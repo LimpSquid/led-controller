@@ -1,7 +1,7 @@
 #ifndef SPI_H
 #define	SPI_H
 
-#include "../include/toolbox.h"
+#include <toolbox.h>
 #include <stdbool.h>
 
 enum spicon_flag

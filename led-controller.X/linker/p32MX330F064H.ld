@@ -63,7 +63,9 @@ PROVIDE(_min_stack_size = 0x400) ;
 /*************************************************************************
  * Processor-specific object file.  Contains SFR definitions.
  *************************************************************************/
-INPUT("processor.o")
+#if defined(__XC32_VERSION__) && (__XC32_VERSION__ < 2100)
+OPTIONAL("processor.o")
+#endif
 
 /*************************************************************************
  * Processor-specific legacy peripheral libraries are optional.

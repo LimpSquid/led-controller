@@ -1,6 +1,6 @@
-#include "../include/timer.h"
-#include "../include/kernel_task.h"
-#include "../include/assert.h"
+#include <timer.h>
+#include <kernel_task.h>
+#include <assert_util.h>
 #include <stddef.h>
 #include <limits.h>
 
@@ -9,8 +9,8 @@ struct timer_module
     unsigned long interval;
     unsigned long ticks;
     void(*execute)(struct timer_module* timer);
-    
-    struct 
+
+    struct
     {
         unsigned char type        :3;
         unsigned char assigned    :1;
@@ -36,13 +36,13 @@ KERN_TTASK(timer, timer_ttask_init, timer_ttask_execute, timer_ttask_configure, 
 #else
     #error "Define timer pool size 'TIMER_POOL_SIZE' with a number >= 1"
 #endif
-        
+
 struct timer_module* timer_construct(int type, void (*execute)(struct timer_module*))
 {
     struct timer_module* timer = NULL;
     if(type < 0 || type >= __TIMER_TYPE_COUNT)
         return timer;
-    
+
     // Search for an unused timer
     for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i) {
         if(!timer_pool[i].opt.assigned) {
@@ -50,7 +50,7 @@ struct timer_module* timer_construct(int type, void (*execute)(struct timer_modu
             break;
         }
     }
-    
+
     // Configure timer, if found
     if(NULL != timer) {
         timer->interval = 0;
@@ -66,23 +66,23 @@ struct timer_module* timer_construct(int type, void (*execute)(struct timer_modu
 
 void timer_destruct(struct timer_module* timer)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     timer->opt.assigned = false;
 }
 
 void timer_set_time(struct timer_module* timer, int time, int unit)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     timer->interval = timer_compute_ticks(time, unit);
     timer->ticks = timer->interval;
 }
 
 void timer_start(struct timer_module* timer, int time, int unit)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     timer->interval = timer_compute_ticks(time, unit);
     timer->ticks = timer->interval;
     timer->opt.timedout = false;
@@ -91,15 +91,15 @@ void timer_start(struct timer_module* timer, int time, int unit)
 
 void timer_stop(struct timer_module* timer)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     timer->opt.suspended = true;
 }
 
 void timer_restart(struct timer_module* timer)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     timer->ticks = timer->interval;
     timer->opt.timedout = false;
     timer->opt.suspended = false;
@@ -107,15 +107,15 @@ void timer_restart(struct timer_module* timer)
 
 bool timer_timed_out(const struct timer_module* timer)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     return timer->opt.timedout;
 }
 
 bool timer_is_valid(const struct timer_module* timer)
 {
-    ASSERT(NULL != timer);
-    
+    ASSERT_NOT_NULL(timer);
+
     return timer->opt.assigned;
 }
 
@@ -134,7 +134,7 @@ static unsigned long timer_compute_ticks(int time, int unit)
             ticks = (time * 1000LU) / TIMER_TICK_INTERVAL;
             break;
         case TIMER_TIME_UNIT_US:
-            ticks = time / TIMER_TICK_INTERVAL; 
+            ticks = time / TIMER_TICK_INTERVAL;
             break;
     }
     return ticks;
@@ -144,7 +144,7 @@ static int timer_ttask_init(void)
 {
     for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i)
         timer_pool[i].opt.assigned = false;
-    
+
     return KERN_INIT_SUCCCES;
 }
 
@@ -155,27 +155,27 @@ static void timer_ttask_execute(void)
     struct timer_module* timer = timer_pool;
     for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i) {
         if(timer->opt.assigned && !timer->opt.suspended) {
-            
+
             // Decrement tick count
             if(timer->ticks > 0)
                 timer->opt.timedout = !!!(--timer->ticks); // Determine if timer timed out after decrement.
-            else 
+            else
                 timer->opt.timedout = true;
-            
+
             if(timer->opt.timedout) {
                 switch(timer->opt.type) {
                     case TIMER_TYPE_SOFT:
                         if(NULL == execute) { // Yay, we can execute this timer's handle
                             timer->ticks = timer->interval; // Reset tick count
                             timer->opt.timedout = false;
-                            execute = timer->execute; 
+                            execute = timer->execute;
                         }
                         break;
                     case TIMER_TYPE_SINGLE_SHOT:
                         if(NULL == execute) {
                             timer->opt.suspended = true;
                             execute = timer->execute;
-                        } 
+                        }
                         break;
                     case TIMER_TYPE_COUNTDOWN:
                         timer->opt.suspended = true;
@@ -187,7 +187,7 @@ static void timer_ttask_execute(void)
         }
         timer++; // Advance to next timer
     }
-    
+
     if(NULL != execute)
         (*execute)(timer);
 }

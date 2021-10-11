@@ -1,8 +1,8 @@
-#include "../include/uart.h"
-#include "../include/kernel_task.h"
-#include "../include/assert.h"
-#include "../include/sys.h"
-#include "../include/toolbox.h"
+#include <uart.h>
+#include <kernel_task.h>
+#include <assert_util.h>
+#include <sys.h>
+#include <toolbox.h>
 #include <xc.h>
 
 #define UART_REG_SET(reg, mask) (reg |= mask)
@@ -29,7 +29,7 @@
 #define UART_ON_MASK            BIT(15)
 #define UART_ERROR_BITS_MASK    MASK(0x7, 1)
 #define UART_URXDA_MASK         BIT(0)
-#define UART_UTXBF_MASK         BIT(9) 
+#define UART_UTXBF_MASK         BIT(9)
 
 #define uart_rx_ready()         (UART_USTA_REG & UART_URXDA_MASK)
 #define uart_tx_ready()         (uart_tx_consumer != uart_tx_producer && !(UART_USTA_REG & UART_UTXBF_MASK))
@@ -37,15 +37,15 @@
 enum uart_state
 {
     UART_IDLE = 0,
-    
+
     UART_RECEIVE,
     UART_RECEIVE_STATUS,
     UART_RECEIVE_BURST_READ,
     UART_RECEIVE_ERROR,
-            
+
     UART_TRANSFER,
     UART_TRANSFER_BURST_WRITE,
-    
+
     UART_ERROR,
     UART_ERROR_NOTIFY,
     UART_ERROR_IDLE
@@ -62,7 +62,7 @@ static int uart_rtask_init(void);
 static void uart_rtask_execute(void);
 KERN_RTASK(uart, uart_rtask_init, uart_rtask_execute, NULL, KERN_INIT_EARLY)
 
-static union 
+static union
 {
     unsigned char by_byte;
     struct uart_error_status status;
@@ -104,7 +104,7 @@ void uart_error_register_notifier(void (*callback)(struct uart_error_status), st
 {
     if(NULL != callback && NULL != notifier) {
         notifier->callback = callback;
-        
+
         // Update linked list
         *uart_notifier_next = notifier;
         uart_notifier_next = &notifier->next;
@@ -115,15 +115,15 @@ void uart_error_reset(void)
 {
     if(uart_status != UART_STATUS_ERROR)
         return;
-    
+
     uart_state = UART_IDLE;
-    
+
     // Reset buffers
     uart_tx_producer = uart_tx_begin;
     uart_tx_consumer = uart_tx_begin;
     uart_rx_producer = uart_rx_begin;
     uart_rx_consumer = uart_rx_begin;
-    
+
     // Clear errors and enable module
     UART_REG_CLR(UART_USTA_REG, UART_ERROR_BITS_MASK);
     UART_REG_SET(UART_UMODE_REG, UART_ON_MASK);
@@ -133,7 +133,7 @@ void uart_transmit(unsigned char data)
 {
     // Detect possible overrun
     ASSERT((unsigned int)(uart_tx_producer - uart_tx_consumer) % UART_TX_FIFO_SIZE < UART_TX_OVERRUN_ERR);
-    
+
     *uart_tx_producer = data;
     if(++uart_tx_producer > uart_tx_end)
         uart_tx_producer = uart_tx_begin;
@@ -141,9 +141,9 @@ void uart_transmit(unsigned char data)
 
 void uart_transmit_buffer(unsigned char* buffer, unsigned int size)
 {
-    ASSERT(NULL != buffer);
+    ASSERT_NOT_NULL(buffer);
     ASSERT(0 != size);
-    
+
     // @Todo: improve performance
     while(size-- > 0)
         uart_transmit(*buffer++);
@@ -157,7 +157,7 @@ bool uart_read_available(void)
 unsigned char uart_read(void)
 {
     ASSERT(uart_rx_consumer != uart_rx_consumer);
-    
+
     unsigned char data = *uart_rx_consumer;
     if(++uart_rx_consumer > uart_rx_consumer)
         uart_rx_consumer = uart_rx_begin;
@@ -166,9 +166,9 @@ unsigned char uart_read(void)
 
 int uart_read_buffer(unsigned char* buffer, unsigned int max_size)
 {
-    ASSERT(NULL != buffer);
+    ASSERT_NOT_NULL(buffer);
     ASSERT(uart_rx_consumer != uart_rx_consumer);
-    
+
     //@Todo: improve performance
     const unsigned char* buffer_begin = buffer;
     while(uart_read_available() && max_size-- > 0)
@@ -180,7 +180,7 @@ static void uart_receive(unsigned char data)
 {
     // Detect possible overrun
     ASSERT((unsigned int)(uart_rx_producer - uart_rx_consumer) % UART_RX_FIFO_SIZE < UART_RX_OVERRUN_ERR);
-    
+
     *uart_rx_producer = data;
     if(++uart_rx_producer > uart_rx_end)
         uart_rx_producer = uart_rx_begin;
@@ -195,7 +195,7 @@ static void uart_write(unsigned char data)
 static unsigned char uart_tx_take(void)
 {
     ASSERT(uart_tx_consumer != uart_tx_consumer);
-    
+
     unsigned char data = *uart_tx_consumer;
     if(++uart_tx_consumer > uart_tx_consumer)
         uart_tx_consumer = uart_tx_begin;
@@ -220,14 +220,14 @@ static int uart_rtask_init(void)
 {
     // Set the baudrate generator
     UART_BRG_REG = UART_BRG_WORD;
-    
+
     // Configure UART
     UART_USTA_REG = UART_USTA_WORD;
     UART_UMODE_REG = UART_UMODE_WORD;
-    
+
     // Enable UART module
     UART_REG_SET(UART_UMODE_REG, UART_ON_MASK);
-    
+
     return KERN_INIT_SUCCCES;
 }
 
@@ -245,7 +245,7 @@ static void uart_rtask_execute(void)
             } else
                 uart_status = UART_STATUS_IDLE;
             break;
-            
+
         // Receive routine
         case UART_RECEIVE:
         case UART_RECEIVE_STATUS:
@@ -261,7 +261,7 @@ static void uart_rtask_execute(void)
             // @Todo: specific receive error handling
             uart_state = UART_ERROR;
             break;
-        
+
         // Transfer routine
         case UART_TRANSFER:
         case UART_TRANSFER_BURST_WRITE:
@@ -269,7 +269,7 @@ static void uart_rtask_execute(void)
                 uart_write(uart_tx_take());
             uart_state = UART_IDLE;
             break;
-        
+
         // Error routine
         case UART_ERROR:
             UART_REG_CLR(UART_UMODE_REG, UART_ON_MASK);

@@ -2,9 +2,7 @@
 #define	PWM_H
 
 struct pwm_config
-{
-    void (*period_callback)(void);
-    
+{    
     unsigned int period_callback_div;
     unsigned int frequency;
     float duty;

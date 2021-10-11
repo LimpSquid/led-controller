@@ -1,11 +1,11 @@
-#include "../include/tlc5940.h"
-#include "../include/tlc5940_config.h"
-#include "../include/spi.h"
-#include "../include/dma.h"
-#include "../include/pwm.h"
-#include "../include/sys.h"
-#include "../include/toolbox.h"
-#include "../include/kernel_task.h"
+#include <tlc5940.h>
+#include <tlc5940_config.h>
+#include <spi.h>
+#include <dma.h>
+#include <pwm.h>
+#include <sys.h>
+#include <toolbox.h>
+#include <kernel_task.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -35,7 +35,7 @@
 #define TLC5940_VPRG_LAT                LATG
 #define TLC5940_DCPRG_LAT               LATB
 
-#define TLC5940_SDO_ANSEL               ANSELG 
+#define TLC5940_SDO_ANSEL               ANSELG
 #define TLC5940_SCK_ANSEL               ANSELG
 #define TLC5940_BLANK_ANSEL             ANSELE
 #define TLC5940_XLAT_ANSEL              ANSELE
@@ -63,7 +63,6 @@ enum tlc5940_state
     TLC5940_UPDATE_CLEAR_BUFFER_WAIT,
 };
 
-static void tlc5940_pwm_period_callback(void);
 static int tlc5940_rtask_init(void);
 static void tlc5940_rtask_execute(void);
 KERN_QUICK_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute);
@@ -84,8 +83,7 @@ static const struct spi_config tlc5940_spi_config =
 static const struct pwm_config tlc5940_pwm_config =
 {
     .duty = 0.5,
-    .frequency = 10000000,
-    .period_callback = &tlc5940_pwm_period_callback,
+    .frequency = 10000000, // @todo: This is way too high as the callback is running at ~2.5kHz
     .period_callback_div = 4096 // Every 4096 PWM periods (one GSCLK period), call the callback
 };
 
@@ -108,7 +106,7 @@ bool tlc5940_update(void)
 {
     if(tlc5940_busy())
         return false;
-    
+
     unsigned char *dma_ptr = tlc5940_dma_ptr;
     tlc5940_dma_ptr = tlc5940_draw_ptr;
     tlc5940_draw_ptr = dma_ptr;
@@ -127,11 +125,11 @@ void tlc5940_write_grayscale(unsigned int device, unsigned int channel, unsigned
         return;
     if(channel >= TLC5940_CHANNELS_PER_DEVICE)
         return;
-  
+
     unsigned char byte1;
     unsigned char byte2;
     unsigned int index = channel + device * TLC5940_CHANNELS_PER_DEVICE;
-    
+
     index += index >> 1;
     if(channel & 1) {
         byte1 = (value >> 8) & 0x0f;
@@ -140,13 +138,16 @@ void tlc5940_write_grayscale(unsigned int device, unsigned int channel, unsigned
         byte1 = (value >> 4) & 0xff;
         byte2 = (value & 0x0f) << 4;
     }
-    
+
     tlc5940_draw_ptr[index] |= byte1;
     tlc5940_draw_ptr[index + 1] |= byte2;
 }
 
-static void tlc5940_pwm_period_callback(void)
+static void pwm_period_callback(void)
 {
+    // Shame that we did put the blank pin on a programmable pin so that we could've
+    // used it with the output compare module from the PWM module. It would've been
+    // way nicer if we didn't had to generate a pulse in the software.
     REG_SET(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
     REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
 }
@@ -155,12 +156,12 @@ static int tlc5940_rtask_init(void)
 {
     // Init variables
     memset(tlc5940_dot_corr_buffer, 0xff, TLC5940_BUFFER_SIZE_DOT_CORR);
-    
+
     // Configure PPS
     sys_unlock();
     TLC5940_SDO_PPS = TLC5940_SDO_PPS_WORD;
     sys_lock();
-    
+
     // Configure IO
     REG_CLR(TLC5940_SDO_ANSEL, TLC5940_SDO_PIN_MASK);
     REG_CLR(TLC5940_SCK_ANSEL, TLC5940_SCK_PIN_MASK);
@@ -168,38 +169,38 @@ static int tlc5940_rtask_init(void)
     REG_CLR(TLC5940_XLAT_ANSEL, TLC5940_XLAT_PIN_MASK);
     REG_CLR(TLC5940_VPRG_ANSEL, TLC5940_VPRG_PIN_MASK);
     REG_CLR(TLC5940_DCPRG_ANSEL, TLC5940_DCPRG_PIN_MASK);
-    
+
     REG_CLR(TLC5940_SDO_TRIS, TLC5940_SDO_PIN_MASK);
     REG_CLR(TLC5940_SCK_TRIS, TLC5940_SCK_PIN_MASK);
     REG_CLR(TLC5940_BLANK_TRIS, TLC5940_BLANK_PIN_MASK);
     REG_CLR(TLC5940_XLAT_TRIS, TLC5940_XLAT_PIN_MASK);
     REG_CLR(TLC5940_VPRG_TRIS, TLC5940_VPRG_PIN_MASK);
     REG_CLR(TLC5940_DCPRG_TRIS, TLC5940_DCPRG_PIN_MASK);
-    
+
     // Define output states
     REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
     REG_CLR(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
     REG_CLR(TLC5940_VPRG_LAT, TLC5940_VPRG_PIN_MASK);
     REG_SET(TLC5940_DCPRG_LAT, TLC5940_DCPRG_PIN_MASK);
-   
+
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);
     if(NULL == tlc5940_dma_channel)
         goto deinit_dma;
-    
+
     // Initialize SPI
     tlc5940_spi_module = spi_construct(TLC5940_SPI_CHANNEL, tlc5940_spi_config);
     if(NULL == tlc5940_spi_module)
         goto deinit_spi;
     spi_configure_dma_dst(tlc5940_spi_module, tlc5940_dma_channel); // SPI module is the destination of the dma module
     spi_enable(tlc5940_spi_module);
-    
+
     // Initialize PWM
     pwm_configure(tlc5940_pwm_config);
     pwm_enable();
-    
+
     return KERN_INIT_SUCCCES;
-    
+
 deinit_spi:
     spi_destruct(tlc5940_spi_module);
 deinit_dma:
@@ -209,7 +210,7 @@ deinit_dma:
 }
 
 static void tlc5940_rtask_execute(void)
-{            
+{
     switch(tlc5940_state) {
         case TLC5940_INIT:
             // no break
@@ -239,24 +240,24 @@ static void tlc5940_rtask_execute(void)
             // Disable PWM
             pwm_disable();
             REG_SET(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
-            
+
             // Latch in data
             REG_SET(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
             REG_CLR(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
-            
+
             // Shift diagnostic data
             spi_disable(tlc5940_spi_module);
             REG_INV(TLC5940_SCK_LAT, TLC5940_SCK_PIN_MASK);
             REG_INV(TLC5940_SCK_LAT, TLC5940_SCK_PIN_MASK);
             spi_enable(tlc5940_spi_module);
-            
+
             if(NULL != tlc5940_latch_callback)
                 tlc5940_latch_callback();
 
             // Enable PWM
             REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
             pwm_enable();
-            
+
             tlc5940_state = TLC5940_UPDATE_CLEAR_BUFFER;
             break;
         case TLC5940_UPDATE_CLEAR_BUFFER:

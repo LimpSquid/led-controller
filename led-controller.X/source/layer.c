@@ -1,12 +1,12 @@
-#include "../include/layer.h"
-#include "../include/layer_config.h"
-#include "../include/kernel_task.h"
-#include "../include/tlc5940.h"
-#include "../include/spi.h"
-#include "../include/dma.h"
-#include "../include/sys.h"
-#include "../include/register.h"
-#include "../include/toolbox.h"
+#include <layer.h>
+#include <layer_config.h>
+#include <kernel_task.h>
+#include <tlc5940.h>
+#include <spi.h>
+#include <dma.h>
+#include <sys.h>
+#include <register.h>
+#include <toolbox.h>
 #include <stddef.h>
 #include <xc.h>
 
@@ -238,12 +238,12 @@ static void layer_rtask_execute(void)
     switch(layer_state) {
         default:
         case LAYER_IDLE:
-            break;
+            //break; // @todo: eventually on UART command call layer_receive_frame()
         case LAYER_RECEIVE_FRAME:
         case LAYER_RECEIVE_FRAME_DMA_START:
             // @Todo: add timeout timer
             if(dma_ready(layer_dma_channel)) {
-                dma_configure_dst(layer_dma_channel, layer_dma_ptr, LAYER_FRAME_BUFFER_SIZE);
+                dma_configure_dst(layer_dma_channel, layer_dma_ptr, LAYER_FRAME_BUFFER_SIZE); // @todo: eventually use layer_draw_ptr
                 dma_enable_transfer(layer_dma_channel);
                 layer_state = LAYER_RECEIVE_FRAME_DMA_WAIT;
             }
