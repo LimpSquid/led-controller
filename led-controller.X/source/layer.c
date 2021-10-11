@@ -70,7 +70,6 @@ enum layer_state
     LAYER_RECEIVE_FRAME_DMA_WAIT,
 };
 
-static void layer_latch_callback(void);
 static int layer_ttask_init(void);
 static void layer_ttask_execute(void);
 static void layer_ttask_configure(struct kernel_ttask_param* const param);
@@ -139,7 +138,7 @@ bool layer_receive_frame(void)
     return true;
 }
 
-static void layer_latch_callback(void)
+void tlc5940_latch_callback(void)
 {
     atomic_reg_ptr_clr(layer_row_previous_io->lat, layer_row_previous_io->mask);
     atomic_reg_ptr_set(layer_row_io->lat, layer_row_io->mask);
@@ -151,6 +150,19 @@ static void layer_latch_callback(void)
         layer_row_io = layer_io;
     } else
         layer_row_io++;
+    
+    // @Todo: We actually have a hardware issue here. The 10kOhm pull-ups on the
+    // FETs are not low enough to quickly charge the gate and switch the the device off.
+    // When this routine is finished the TLCs are turned back on, while the FET of
+    // the previous IO is still not completely turned off. This minor cross-over area
+    // makes the LEDs connected to the previous IO faintly turn on. We should really solve this
+    // by lowering the value of the pull-ups and not nopping around.
+    Nop();Nop();Nop();Nop();Nop();Nop();Nop();Nop();
+    Nop();Nop();Nop();Nop();Nop();Nop();Nop();Nop();
+    Nop();Nop();Nop();Nop();Nop();Nop();Nop();Nop();
+    Nop();Nop();Nop();Nop();Nop();Nop();Nop();Nop();
+    Nop();Nop();Nop();Nop();Nop();Nop();Nop();Nop();
+    Nop();Nop();Nop();Nop();Nop();Nop();Nop();Nop();
 }
 
 static int layer_ttask_init(void)
@@ -165,9 +177,6 @@ static int layer_ttask_init(void)
         atomic_reg_ptr_clr(io->tris, io->mask);
         atomic_reg_ptr_clr(io->lat, io->mask);
     }
-    
-    // Initialize TLC5940
-    tlc5940_set_latch_callback(layer_latch_callback);
     
     return KERN_INIT_SUCCCES;
 }

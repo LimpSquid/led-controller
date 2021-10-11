@@ -87,7 +87,6 @@ static const struct pwm_config tlc5940_pwm_config =
     .period_callback_div = 4096 // Every 4096 PWM periods (one GSCLK period), call the callback
 };
 
-static void (*tlc5940_latch_callback)(void) = NULL;
 static struct dma_channel* tlc5940_dma_channel = NULL;
 static struct spi_module* tlc5940_spi_module = NULL;
 static enum tlc5940_state tlc5940_state = TLC5940_INIT;
@@ -114,11 +113,6 @@ bool tlc5940_update(void)
     return true;
 }
 
-bool tlc5940_set_latch_callback(void (*callback)(void))
-{
-    tlc5940_latch_callback = callback;
-}
-
 void tlc5940_write_grayscale(unsigned int device, unsigned int channel, unsigned short value)
 {
     if(device >= TLC5940_NUM_OF_DEVICES)
@@ -143,7 +137,7 @@ void tlc5940_write_grayscale(unsigned int device, unsigned int channel, unsigned
     tlc5940_draw_ptr[index + 1] |= byte2;
 }
 
-static void pwm_period_callback(void)
+void pwm_period_callback(void)
 {
     // Shame that we did put the blank pin on a programmable pin so that we could've
     // used it with the output compare module from the PWM module. It would've been
@@ -209,6 +203,11 @@ deinit_dma:
     return KERN_INIT_FAILED;
 }
 
+void __attribute__ ((weak)) tlc5940_latch_callback(void)
+{
+    // can be overridden if desired
+}
+
 static void tlc5940_rtask_execute(void)
 {
     switch(tlc5940_state) {
@@ -251,8 +250,7 @@ static void tlc5940_rtask_execute(void)
             REG_INV(TLC5940_SCK_LAT, TLC5940_SCK_PIN_MASK);
             spi_enable(tlc5940_spi_module);
 
-            if(NULL != tlc5940_latch_callback)
-                tlc5940_latch_callback();
+            tlc5940_latch_callback();
 
             // Enable PWM
             REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
