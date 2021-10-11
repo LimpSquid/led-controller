@@ -80,10 +80,13 @@ static const struct spi_config tlc5940_spi_config =
     .baudrate = 20000000,
 };
 
+// Note that this value actually depends on the LAYER_REFRESH_INTERVAL in layer_config.h.
+// Ideally we want atleast 1 GSCLK period (freq / period_callback_div) happening 
+// in the time a layer is active.
 static const struct pwm_config tlc5940_pwm_config =
 {
     .duty = 0.5,
-    .frequency = 10000000, // @todo: This is way too high as the callback is running at ~2.5kHz
+    .frequency = 4000000, // 1 GSCLK period = 1024us
     .period_callback_div = 4096 // Every 4096 PWM periods (one GSCLK period), call the callback
 };
 
