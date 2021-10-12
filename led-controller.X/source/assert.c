@@ -1,4 +1,4 @@
-#include "assert.h" // make sure we do not conflict with <assert.h>
+#include "../include/assert.h" // make sure we do not conflict with <assert.h>
 #include <print.h>
 #include <string.h>
 

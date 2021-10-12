@@ -65,7 +65,7 @@ enum tlc5940_state
 
 static int tlc5940_rtask_init(void);
 static void tlc5940_rtask_execute(void);
-KERN_QUICK_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute);
+KERN_SIMPLE_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute);
 
 static unsigned char tlc5940_front_buffer[TLC5940_BUFFER_SIZE];
 static unsigned char tlc5940_back_buffer[TLC5940_BUFFER_SIZE];

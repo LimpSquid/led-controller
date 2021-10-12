@@ -19,7 +19,7 @@
                 .init_level = level                                             \
             };
 
-#define KERN_QUICK_RTASK(name, init_func, exec_func)                            \
+#define KERN_SIMPLE_RTASK(name, init_func, exec_func)                           \
             KERN_RTASK(name, init_func, exec_func, ((void*)0), KERN_INIT_LATE)
 
 #define KERN_TTASK(name, init_func, exec_func, config_func, level)              \
@@ -42,7 +42,7 @@
                 .init_level = level                                             \
             };
 
-#define KERN_QUICK_TTASK(name, init_func, exec_func)                            \
+#define KERN_SIMPLE_TTASK(name, init_func, exec_func)                           \
             KERN_TTASK(name, init_func, exec_func, ((void*)0), KERN_INIT_LATE)
 
 enum 
