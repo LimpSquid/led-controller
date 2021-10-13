@@ -76,7 +76,7 @@ static void layer_ttask_configure(struct kernel_ttask_param* const param);
 static int layer_rtask_init(void);
 static void layer_rtask_execute(void);
 KERN_TTASK(layer, layer_ttask_init, layer_ttask_execute, layer_ttask_configure, KERN_INIT_LATE);
-KERN_SIMPLE_RTASK(layer, layer_rtask_init, layer_rtask_execute); // No init necessary
+KERN_SIMPLE_RTASK(layer, layer_rtask_init, layer_rtask_execute);
 
 static const struct layer_io layer_io[LAYER_NUM_OF_ROWS] =
 {

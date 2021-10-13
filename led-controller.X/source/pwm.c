@@ -21,7 +21,6 @@
 #define PWM_OC_PR_REG                       PR2
 #define PWM_OC_OCCON_REG                    OC4CON
 #define PWM_OC_OCRS_REG                     OC4RS
-#define PWM_OC_OCR_REG                      OC4R
 
 #define PWM_OC_GSCLK_PPS_WORD               0xb
 #define PWM_OC_TCON_WORD                    BIT(15)
@@ -84,7 +83,6 @@ void pwm_configure(struct pwm_config config)
     // Configure PWM
     PWM_OC_PR_REG = PWM_OC_PR(config.frequency);
     PWM_OC_OCRS_REG = PWM_OC_DUTY(config.frequency, config.duty);
-    PWM_OC_OCR_REG = 0;
 
     // Configure timer
     PWM_TMR_PR_REG = PWM_TMR_PR(config.frequency, config.period_callback_div);
@@ -95,6 +93,9 @@ void pwm_enable(void)
     // Reset timer
     REG_CLR(PWM_TMR_IFS_REG, PWM_TMR_INT_MASK);
     PWM_TMR_TMR_REG = 0;
+    
+    // Reset PWM
+    PWM_TMR_PR_REG = 0;
 
     // Enable timer and PWM
     REG_SET(PWM_TMR_TCON_REG, PWM_TMR_OCCON_ON_MASK);

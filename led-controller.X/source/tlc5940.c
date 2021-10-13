@@ -1,5 +1,6 @@
 #include <tlc5940.h>
 #include <tlc5940_config.h>
+#include <layer_config.h> // a bit hackisch but it is dependent on LAYER_REFRESH_INTERVAL
 #include <spi.h>
 #include <dma.h>
 #include <pwm.h>
@@ -17,6 +18,8 @@
 #define TLC5940_BUFFER_SIZE             (24 * TLC5940_NUM_OF_DEVICES)
 #define TLC5940_BUFFER_SIZE_DOT_CORR    (12 * TLC5940_NUM_OF_DEVICES)
 #define TLC5940_CHANNEL_SIZE            (TLC5940_CHANNELS_PER_DEVICE * TLC5940_NUM_OF_DEVICES)
+#define TLC5940_GSCLK_PERIOD_PULSES     4096 // number of PWM pulses for one GSCLK period to complete
+#define TLC5940_PWM_FREQ                ((1000000LU * TLC5940_GSCLK_PERIOD_PULSES) / LAYER_REFRESH_INTERVAL) // LAYER_REFRESH_INTERVAL must be in us
 
 #define TLC5940_SPI_CHANNEL             SPI_CHANNEL2
 #define TLC5940_SDO_PPS                 RPG7R
@@ -86,8 +89,8 @@ static const struct spi_config tlc5940_spi_config =
 static const struct pwm_config tlc5940_pwm_config =
 {
     .duty = 0.5,
-    .frequency = 4000000, // 1 GSCLK period = 1024us
-    .period_callback_div = 4096 // Every 4096 PWM periods (one GSCLK period), call the callback
+    .frequency = TLC5940_PWM_FREQ, // LAYER_REFRESH_INTERVAL = 1 GSCLK period = 1000us
+    .period_callback_div = TLC5940_GSCLK_PERIOD_PULSES // Every 4096 PWM periods (one GSCLK period), call the callback
 };
 
 static struct dma_channel* tlc5940_dma_channel = NULL;
