@@ -88,7 +88,7 @@ enum layer_dma_state
 };
 
 static void layer_row_io_reset(void);
-static unsigned int layer_next_row_index(void);
+inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void);
 static int layer_ttask_init(void);
 static void layer_ttask_execute(void);
 static void layer_ttask_configure(struct kernel_ttask_param* const param);
@@ -199,7 +199,7 @@ static void layer_row_io_reset(void)
     layer_row_index = 0;
 }
 
-static unsigned int layer_next_row_index(void)
+inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void)
 {   
     unsigned int port = atomic_reg_ptr_value(layer_io[layer_row_index].port);
     if(port & layer_io[layer_row_index].mask)

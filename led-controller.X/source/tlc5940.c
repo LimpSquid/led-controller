@@ -1,6 +1,6 @@
 #include <tlc5940.h>
 #include <tlc5940_config.h>
-#include <layer_config.h> // a bit hackisch but it is dependent on LAYER_REFRESH_INTERVAL
+#include <layer_config.h> // yes, a questionable dependency, but we need it ;-)
 #include <spi.h>
 #include <dma.h>
 #include <pwm.h>
