@@ -199,7 +199,7 @@ static void layer_row_io_reset(void)
     layer_row_index = 0;
 }
 
-static unsigned int layer_next_active_row_index(void)
+static unsigned int layer_next_row_index(void)
 {   
     unsigned int port = atomic_reg_ptr_value(layer_io[layer_row_index].port);
     if(port & layer_io[layer_row_index].mask)
@@ -232,7 +232,7 @@ static void layer_ttask_execute(void)
         return;
     
     if(tlc5940_ready()) {
-        layer_offset = layer_row_index * LAYER_NUM_OF_COLS;
+        layer_offset = layer_next_row_index() * LAYER_NUM_OF_COLS;
         for(unsigned int i = 0; i < LAYER_NUM_OF_COLS; i++) {
             // Convert 8 bit to 12 bit equivalent
             layer_red_index = i + layer_offset + LAYER_RED_OFFSET;
@@ -327,26 +327,21 @@ static void layer_rtask_execute(void)
             layer_tlc5940_index = 0;
             layer_state = LAYER_EXEC_LOD_SHOW_WRITE;
             break;
-        case LAYER_EXEC_LOD_SHOW_WRITE:
-            // In case we went to LAYER_EXEC_LOD_SHOW_DONE, but 
-            // still need to show other broken LEDs
-            if (!tlc5940_ready())
-                break;
-            
-            unsigned int next_row = layer_next_active_row_index(); // need the next row index, because that is what we're about to write
+        case LAYER_EXEC_LOD_SHOW_WRITE: {
+            unsigned int next_row = layer_next_row_index(); // need the next row index, because that is what we're about to write
             bool error = layer_lod_errors[layer_tlc5940_index][next_row];
             
             for(unsigned int i = 0; i < LAYER_NUM_OF_COLS; i++)
                 tlc5940_write_grayscale(layer_tlc5940_index, i, LAYER_LOD_GRAYSCALE_VALUE * error);
             tlc5940_update();
-            layer_state = error
-                ? LAYER_EXEC_LOD_SHOW_WRITE_WAIT
-                : LAYER_EXEC_LOD_SHOW_DONE;
+            layer_state = LAYER_EXEC_LOD_SHOW_WRITE_WAIT;
             break;
+        }
         case LAYER_EXEC_LOD_SHOW_WRITE_WAIT:
             if (tlc5940_ready()) {
                 // Give user some time to see the broken LED
-                for (unsigned int i = 0; i < 1000000; i++) Nop(); // @Commit: change with timer
+                bool error = layer_lod_errors[layer_tlc5940_index][layer_row_index];
+                if (error) for (unsigned int i = 0; i < 1000000; i++) Nop(); // @Commit: change with timer
                 layer_state = LAYER_EXEC_LOD_SHOW_DONE;
             }
             break;
