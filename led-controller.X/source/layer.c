@@ -65,9 +65,13 @@ struct layer_io
 enum layer_state
 {
     LAYER_IDLE = 0,
-    LAYER_RECEIVE_FRAME,
-    LAYER_RECEIVE_FRAME_DMA_START,
-    LAYER_RECEIVE_FRAME_DMA_WAIT,
+    LAYER_EXECUTE_LOD,
+};
+
+enum layer_dma_state
+{
+    LAYER_DMA_RECEIVE_FRAME = 0,
+    LAYER_DMA_RECEIVE_FRAME_WAIT,
 };
 
 static int layer_ttask_init(void);
@@ -75,8 +79,10 @@ static void layer_ttask_execute(void);
 static void layer_ttask_configure(struct kernel_ttask_param* const param);
 static int layer_rtask_init(void);
 static void layer_rtask_execute(void);
+static void layer_dma_rtask_execute(void);
 KERN_TTASK(layer, layer_ttask_init, layer_ttask_execute, layer_ttask_configure, KERN_INIT_LATE);
 KERN_SIMPLE_RTASK(layer, layer_rtask_init, layer_rtask_execute);
+KERN_SIMPLE_RTASK(layer_dma, NULL, layer_dma_rtask_execute);
 
 static const struct layer_io layer_io[LAYER_NUM_OF_ROWS] =
 {
@@ -113,6 +119,7 @@ static const struct layer_io* layer_row_previous_io = &layer_io[LAYER_NUM_OF_ROW
 static struct dma_channel* layer_dma_channel = NULL;
 static struct spi_module* layer_spi_module = NULL;
 static enum layer_state layer_state = LAYER_IDLE;
+static enum layer_dma_state layer_dma_state = LAYER_DMA_RECEIVE_FRAME;
 static unsigned int layer_row_index = 0;
 static unsigned int layer_red_index = 0;
 static unsigned int layer_green_index = 0;
@@ -129,12 +136,12 @@ bool layer_ready(void)
     return !layer_busy();
 }
 
-bool layer_receive_frame(void)
+bool layer_exec_lod(void)
 {
     if(layer_busy())
         return false;
     
-    layer_state = LAYER_RECEIVE_FRAME;
+    layer_state = LAYER_EXECUTE_LOD;
     return true;
 }
 
@@ -247,19 +254,30 @@ static void layer_rtask_execute(void)
     switch(layer_state) {
         default:
         case LAYER_IDLE:
-            //break; // @todo: eventually on UART command call layer_receive_frame()
-        case LAYER_RECEIVE_FRAME:
-        case LAYER_RECEIVE_FRAME_DMA_START:
+            break;
+        case LAYER_EXECUTE_LOD:
+            break;
+    }
+}
+
+static void layer_dma_rtask_execute(void)
+{
+    switch(layer_dma_state) {
+        default:
+        case LAYER_DMA_RECEIVE_FRAME:
             // @Todo: add timeout timer
+            // @Todo: maybe add something to reset the DMA in case we are out of sync with the master
+            // especially when we add the timeout timer, because if a timeout happens we know that
+            // we are out of sync!
             if(dma_ready(layer_dma_channel)) {
                 dma_configure_dst(layer_dma_channel, layer_dma_ptr, LAYER_FRAME_BUFFER_SIZE); // @todo: eventually use layer_draw_ptr
                 dma_enable_transfer(layer_dma_channel);
-                layer_state = LAYER_RECEIVE_FRAME_DMA_WAIT;
+                layer_state = LAYER_DMA_RECEIVE_FRAME_WAIT;
             }
             break;
-        case LAYER_RECEIVE_FRAME_DMA_WAIT:
+        case LAYER_DMA_RECEIVE_FRAME_WAIT:
             if(dma_ready(layer_dma_channel))
-                layer_state = LAYER_IDLE;
+                layer_state = LAYER_DMA_RECEIVE_FRAME;
             break;
     }
 }
