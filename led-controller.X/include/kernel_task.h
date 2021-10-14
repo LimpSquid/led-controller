@@ -5,12 +5,12 @@
 
 #define KERN_RTASK(name, init_func, exec_func, config_func, level)              \
             static struct kernel_rtask_param                                    \
-            __attribute__ ((__used__)) __rtask_param_##name =                   \
+            __attribute__ ((used)) __rtask_param_##name =                   \
             {                                                                   \
                 .init_done = false                                              \
             };                                                                  \
             static const struct kernel_rtask __rtask_##name                     \
-            __attribute__ ((section(".kernel_rstack"), __used__)) =             \
+            __attribute__ ((section(".kernel_rstack"), used)) =             \
             {                                                                   \
                 .init = init_func,                                              \
                 .exec = exec_func,                                              \
@@ -24,7 +24,7 @@
 
 #define KERN_TTASK(name, init_func, exec_func, config_func, level)              \
             static struct kernel_ttask_param                                    \
-            __attribute__ ((__used__)) __ttask_param_##name =                   \
+            __attribute__ ((used)) __ttask_param_##name =                   \
             {                                                                   \
                 .init_done = false,                                             \
                 .priority = KERN_TTASK_PRIORITY_NORMAL,                         \
@@ -33,7 +33,7 @@
                 .next = ((void*)0)                                              \
             };                                                                  \
             static const struct kernel_ttask __ttask_##name                     \
-                __attribute__ ((section(".kernel_tstack"), __used__)) =         \
+                __attribute__ ((section(".kernel_tstack"), used)) =         \
             {                                                                   \
                 .init = init_func,                                              \
                 .exec = exec_func,                                              \

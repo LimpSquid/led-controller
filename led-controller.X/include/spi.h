@@ -4,7 +4,7 @@
 #include <toolbox.h>
 #include <stdbool.h>
 
-enum spicon_flag
+enum spi_con_flag
 {
     SPI_FRMEN                   = BIT(31),
     SPI_FRMSYNC                 = BIT(30),
@@ -52,7 +52,7 @@ struct dma_channel;
 struct spi_module;
 struct spi_config
 {    
-    enum spicon_flag spicon_flags;
+    enum spi_con_flag spi_con_flags;
     unsigned int baudrate;
 };
 

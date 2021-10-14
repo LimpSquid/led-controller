@@ -19,6 +19,7 @@
 
 #define PWM_OC_TCON_REG                     T2CON
 #define PWM_OC_PR_REG                       PR2
+#define PWM_OC_TMR_REG                      TMR2
 #define PWM_OC_OCCON_REG                    OC4CON
 #define PWM_OC_OCRS_REG                     OC4RS
 
@@ -46,7 +47,7 @@
 
 #define PWM_TMR_OCCON_ON_MASK               BIT(15)
 #define PWM_TMR_INT_MASK                    BIT(14)
-#define PWM_TMR_INT_PRIORITY_MASK           MASK(0x3, 2)
+#define PWM_TMR_INT_PRIORITY_MASK           MASK(0x7, 2)
 
 void pwm_init(void)
 {
@@ -95,7 +96,7 @@ void pwm_enable(void)
     PWM_TMR_TMR_REG = 0;
     
     // Reset PWM
-    PWM_TMR_PR_REG = 0;
+    PWM_OC_TMR_REG = 0;
 
     // Enable timer and PWM
     REG_SET(PWM_TMR_TCON_REG, PWM_TMR_OCCON_ON_MASK);
@@ -116,6 +117,9 @@ void __attribute__ ((weak)) pwm_period_callback(void)
 
 void __ISR(PWM_TMR_VECTOR, IPL7AUTO) pwm_timer_interrupt(void)
 {
+    Nop();
+    Nop();
+    Nop();
     pwm_period_callback();
     REG_CLR(PWM_TMR_IFS_REG, PWM_TMR_INT_MASK);
 }

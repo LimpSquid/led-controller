@@ -134,14 +134,14 @@ void spi_configure(struct spi_module* module, struct spi_config config)
 
     // Configure SPI
     atomic_reg_value(spi_reg->spibrg) = config.baudrate > 0 ? SPI_BRG(config.baudrate) : 0;
-    atomic_reg_value(spi_reg->spicon) = config.spicon_flags;
+    atomic_reg_value(spi_reg->spicon) = config.spi_con_flags;
     module->fifo_depth = SPI_FIFO_DEPTH_MODE8;
     module->fifo_size = SPI_FIFO_SIZE_MODE8;
 
-    if(config.spicon_flags & SPI_MODE32) {
+    if(config.spi_con_flags & SPI_MODE32) {
         module->fifo_depth = SPI_FIFO_DEPTH_MODE32;
         module->fifo_size = SPI_FIFO_SIZE_MODE32;
-    } else if(config.spicon_flags & SPI_MODE16) {
+    } else if(config.spi_con_flags & SPI_MODE16) {
         module->fifo_depth = SPI_FIFO_DEPTH_MODE16;
         module->fifo_size = SPI_FIFO_SIZE_MODE16;
     }

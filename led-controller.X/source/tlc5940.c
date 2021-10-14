@@ -30,6 +30,7 @@
 #define TLC5940_XLAT_TRIS               TRISE
 #define TLC5940_VPRG_TRIS               TRISG
 #define TLC5940_DCPRG_TRIS              TRISB
+#define TLC5940_XERR_TRIS               TRISE
 
 #define TLC5940_SDO_LAT                 LATG
 #define TLC5940_SCK_LAT                 LATG
@@ -38,12 +39,15 @@
 #define TLC5940_VPRG_LAT                LATG
 #define TLC5940_DCPRG_LAT               LATB
 
+#define TLC5940_XERR_PORT               PORTE
+
 #define TLC5940_SDO_ANSEL               ANSELG
 #define TLC5940_SCK_ANSEL               ANSELG
 #define TLC5940_BLANK_ANSEL             ANSELE
 #define TLC5940_XLAT_ANSEL              ANSELE
 #define TLC5940_VPRG_ANSEL              ANSELG
 #define TLC5940_DCPRG_ANSEL             ANSELB
+#define TLC5940_XERR_ANSEL              ANSELE
 
 #define TLC5940_SDO_PPS_WORD            0x6
 #define TLC5940_SDO_PIN_MASK            BIT(7)
@@ -52,6 +56,7 @@
 #define TLC5940_XLAT_PIN_MASK           BIT(6)
 #define TLC5940_VPRG_PIN_MASK           BIT(9)
 #define TLC5940_DCPRG_PIN_MASK          BIT(5)
+#define TLC5940_XERR_PIN_MASK           BIT(4)
 
 enum tlc5940_state
 {
@@ -79,7 +84,7 @@ static unsigned char* tlc5940_draw_ptr = tlc5940_front_buffer;
 static const struct dma_config tlc5940_dma_config; // No special config needed
 static const struct spi_config tlc5940_spi_config =
 {
-    .spicon_flags = SPI_MSTEN | SPI_STXISEL_COMPLETE | SPI_DISSDI | SPI_MODE8 | SPI_CKP,
+    .spi_con_flags = SPI_MSTEN | SPI_STXISEL_COMPLETE | SPI_DISSDI | SPI_MODE8 | SPI_CKP,
     .baudrate = 20000000,
 };
 
@@ -119,6 +124,11 @@ bool tlc5940_update(void)
     return true;
 }
 
+bool tlc5940_read_lod_error(void)
+{
+    return !(TLC5940_XERR_PORT & TLC5940_XERR_PIN_MASK);
+}
+
 void tlc5940_write_grayscale(unsigned int device, unsigned int channel, unsigned short value)
 {
     if(device >= TLC5940_NUM_OF_DEVICES)
@@ -145,7 +155,7 @@ void tlc5940_write_grayscale(unsigned int device, unsigned int channel, unsigned
 
 void pwm_period_callback(void)
 {
-    // Shame that we did put the blank pin on a programmable pin so that we could've
+    // Shame that we did put the blank on a programmable pin so that we could've
     // used it with the output compare module from the PWM module. It would've been
     // way nicer if we didn't had to generate a pulse in the software.
     REG_SET(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
@@ -169,6 +179,7 @@ static int tlc5940_rtask_init(void)
     REG_CLR(TLC5940_XLAT_ANSEL, TLC5940_XLAT_PIN_MASK);
     REG_CLR(TLC5940_VPRG_ANSEL, TLC5940_VPRG_PIN_MASK);
     REG_CLR(TLC5940_DCPRG_ANSEL, TLC5940_DCPRG_PIN_MASK);
+    REG_CLR(TLC5940_XERR_ANSEL, TLC5940_XERR_PIN_MASK);
 
     REG_CLR(TLC5940_SDO_TRIS, TLC5940_SDO_PIN_MASK);
     REG_CLR(TLC5940_SCK_TRIS, TLC5940_SCK_PIN_MASK);
@@ -176,6 +187,7 @@ static int tlc5940_rtask_init(void)
     REG_CLR(TLC5940_XLAT_TRIS, TLC5940_XLAT_PIN_MASK);
     REG_CLR(TLC5940_VPRG_TRIS, TLC5940_VPRG_PIN_MASK);
     REG_CLR(TLC5940_DCPRG_TRIS, TLC5940_DCPRG_PIN_MASK);
+    REG_SET(TLC5940_XERR_TRIS, TLC5940_XERR_PIN_MASK);
 
     // Define output states
     REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
