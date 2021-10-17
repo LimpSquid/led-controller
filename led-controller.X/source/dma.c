@@ -147,7 +147,7 @@ struct dma_channel* dma_construct(struct dma_config config)
     }
 
     // Assign and configure channel, if found
-    if(NULL != channel) {
+    if(channel != NULL) {
         channel->assigned = true;
         dma_configure(channel, config);
     }
@@ -188,7 +188,7 @@ void dma_configure(struct dma_channel* channel, struct dma_config config)
     atomic_reg_ptr_clr(dma_int->ipc, dma_int->priority_mask);
     atomic_reg_clr(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
 
-    if(NULL != config.block_transfer_complete) {
+    if(config.block_transfer_complete != NULL) {
         channel->block_transfer_complete = config.block_transfer_complete;
         atomic_reg_ptr_set(dma_int->ipc, MASK(DMA_INTERRUPT_PRIORITY, dma_int->priority_shift) & dma_int->priority_mask);
         atomic_reg_set(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);

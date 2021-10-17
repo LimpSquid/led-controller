@@ -52,7 +52,7 @@ struct timer_module* timer_construct(int type, void (*execute)(struct timer_modu
     }
 
     // Configure timer, if found
-    if(NULL != timer) {
+    if(timer != NULL) {
         timer->interval = 0;
         timer->ticks = 0;
         timer->execute = execute;
@@ -165,14 +165,14 @@ static void timer_ttask_execute(void)
             if(timer->opt.timedout) {
                 switch(timer->opt.type) {
                     case TIMER_TYPE_SOFT:
-                        if(NULL == execute) { // Yay, we can execute this timer's handle
+                        if(execute == NULL) { // Yay, we can execute this timer's handle
                             timer->ticks = timer->interval; // Reset tick count
                             timer->opt.timedout = false;
                             execute = timer->execute;
                         }
                         break;
                     case TIMER_TYPE_SINGLE_SHOT:
-                        if(NULL == execute) {
+                        if(execute == NULL) {
                             timer->opt.suspended = true;
                             execute = timer->execute;
                         }
@@ -188,7 +188,7 @@ static void timer_ttask_execute(void)
         timer++; // Advance to next timer
     }
 
-    if(NULL != execute)
+    if(execute != NULL)
         (*execute)(timer);
 }
 

@@ -99,7 +99,7 @@ struct rs485_error rs485_get_error(void)
 
 void rs485_register_error_notifier(void (*callback)(struct rs485_error), struct rs485_error_notifier* const notifier)
 {
-    if(NULL != callback && NULL != notifier) {
+    if(callback && notifier != NULL) {
         notifier->callback = callback;
 
         // Update linked list
@@ -208,7 +208,7 @@ static void rs485_error_callback(struct rs485_error error)
 static void rs485_error_notify()
 {
     const struct rs485_error_notifier* notifier = &rs485_notifier;
-    while(NULL != notifier) {
+    while(notifier != NULL) {
         notifier->callback(rs485_error_reg.error);
         notifier = notifier->next;
     }

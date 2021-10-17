@@ -5,8 +5,8 @@
 #include "assert.h" // make sure we do not conflict with anyone
 #include <stddef.h>
 
-#define ASSERT_NULL(var)        (NULL == var)
-#define ASSERT_NOT_NULL(var)    (NULL != var)
+#define ASSERT_NULL(var)        (var == NULL)
+#define ASSERT_NOT_NULL(var)    (var != NULL)
 
 
 #endif	/* ASSERT_H */

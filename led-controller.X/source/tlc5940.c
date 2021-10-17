@@ -89,7 +89,7 @@ static const struct spi_config tlc5940_spi_config =
 };
 
 // Note that this value actually depends on the LAYER_REFRESH_INTERVAL in layer_config.h.
-// Ideally we want atleast 1 GSCLK period (freq / period_callback_div) happening 
+// Ideally we want atleast 1 GSCLK period (freq / period_callback_div) happening
 // in the time a layer is active.
 static const struct pwm_config tlc5940_pwm_config =
 {
@@ -197,12 +197,12 @@ static int tlc5940_rtask_init(void)
 
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);
-    if(NULL == tlc5940_dma_channel)
+    if(tlc5940_dma_channel == NULL)
         goto deinit_dma;
 
     // Initialize SPI
     tlc5940_spi_module = spi_construct(TLC5940_SPI_CHANNEL, tlc5940_spi_config);
-    if(NULL == tlc5940_spi_module)
+    if(tlc5940_spi_module == NULL)
         goto deinit_spi;
     spi_configure_dma_dst(tlc5940_spi_module, tlc5940_dma_channel); // SPI module is the destination of the dma module
     spi_enable(tlc5940_spi_module);

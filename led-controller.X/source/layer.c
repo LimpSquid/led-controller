@@ -280,7 +280,7 @@ static int layer_ttask_init(void)
     // Initialize IO
     for(unsigned int i = 0; i < LAYER_NUM_OF_ROWS; ++i) {
         io = &layer_io[i];
-        if(NULL != io->ansel)
+        if(io->ansel != NULL)
             atomic_reg_ptr_clr(io->ansel, io->mask);
         atomic_reg_ptr_clr(io->tris, io->mask);
         atomic_reg_ptr_clr(io->lat, io->mask);
@@ -335,17 +335,17 @@ static int layer_rtask_init(void)
 
     // Initialize TIMER
     layer_countdown_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
-    if(NULL == layer_countdown_timer)
+    if(layer_countdown_timer == NULL)
         goto fail_timer;
     
     // Initialize DMA
     layer_dma_channel = dma_construct(layer_dma_config);
-    if(NULL == layer_dma_channel)
+    if(layer_dma_channel == NULL)
         goto fail_dma;
     
     // Initialize SPI
     layer_spi_module = spi_construct(LAYER_SPI_CHANNEL, layer_spi_config);
-    if(NULL == layer_spi_module)
+    if(layer_spi_module == NULL)
         goto fail_spi;
     spi_configure_dma_src(layer_spi_module, layer_dma_channel); // SPI module is the source of the dma module
     spi_enable(layer_spi_module);
