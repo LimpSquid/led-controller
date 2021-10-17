@@ -1,6 +1,7 @@
 #include <kernel.h>
 #include <kernel_task.h>
 #include <kernel_config.h>
+#include <toolbox.h>
 #include <xc.h>
 #include <stddef.h>
 
@@ -82,9 +83,9 @@ void kernel_init(void)
 
     // Configure timer
     if(kernel_ttask_size() != 0) {
-        KERN_TMR_CFG_REG &= ~KERN_TMR_EN_BIT;
+        REG_CLR(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
         KERN_TMR_CFG_REG = KERN_TMR_CFG_WORD;
-        KERN_TMR_CFG_REG |= KERN_TMR_EN_BIT;
+        REG_SET(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
     }
 }
 
@@ -158,7 +159,7 @@ static void kernel_init_ttask_call_sequence(void)
         kernel_restore_ttask_iterator();
     } while(priority >= 0);
 
-    // Create circular dependency
+    // Create circular linked list
     if(NULL != ttask)
         *ttask = kernel_ttask_sorted_begin;
     kernel_restore_ttask_sorted_iterator();
