@@ -384,15 +384,18 @@ static void layer_rtask_execute(void)
             layer_state = LAYER_EXEC_LOD_WRITE_WAIT;
             break;
         case LAYER_EXEC_LOD_WRITE_WAIT:
-            if (tlc5940_ready())
+            if (tlc5940_ready()) {
                 layer_state = LAYER_EXEC_LOD_READ_ERROR;
-            // Ideally we would wait at least 1us as specified by the TLC5940's datasheet
+                timer_start(layer_countdown_timer, 10, TIMER_TIME_UNIT_US); // Datasheet specs 1us, lets wait a bit more
+            }
             break;
         case LAYER_EXEC_LOD_READ_ERROR:
-            layer_lod_errors[layer_tlc5940_index][layer_row_index] |= tlc5940_read_lod_error();
-            layer_state = (layer_row_index != (LAYER_NUM_OF_ROWS - 1) || ++layer_tlc5940_index < LAYER_FRAME_DEPTH)
-                ? LAYER_EXEC_LOD_WRITE // more rows to check for errors
-                : LAYER_EXEC_LOD_SHOW; // done with checking LOD errors for each row and color
+            if (timer_timed_out(layer_countdown_timer)) {
+                layer_lod_errors[layer_tlc5940_index][layer_row_index] |= tlc5940_read_lod_error();
+                layer_state = (layer_row_index != (LAYER_NUM_OF_ROWS - 1) || ++layer_tlc5940_index < LAYER_FRAME_DEPTH)
+                    ? LAYER_EXEC_LOD_WRITE // more rows to check for errors
+                    : LAYER_EXEC_LOD_SHOW; // done with checking LOD errors for each row and color
+            }
             break;
         case LAYER_EXEC_LOD_SHOW:
             layer_tlc5940_index = 0;

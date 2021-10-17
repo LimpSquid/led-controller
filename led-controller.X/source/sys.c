@@ -19,9 +19,9 @@ void sys_lock(void)
 
 void sys_unlock(void)
 {
-	SYSKEY = 0x33333333;
-	SYSKEY = 0xAA996655;
-	SYSKEY = 0x556699AA;
+    SYSKEY = 0x33333333;
+    SYSKEY = 0xAA996655;
+    SYSKEY = 0x556699AA;
     REG_CLR(SYS_CFGCON_REG, SYS_CFGCON_IOLOCK);
 }
 
