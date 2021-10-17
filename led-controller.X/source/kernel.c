@@ -39,10 +39,10 @@ static void kernel_init_configure_ttask(void);
 static void kernel_init_configure_rtask(void);
 static void kernel_init_ttask_call_sequence(void);
 static void kernel_init_task_init(void);
-inline static void __attribute__((always_inline)) kernel_execute_ttask_rtask(void);
+static void kernel_execute_ttask_rtask(void);
 inline static void __attribute__((always_inline)) kernel_execute_ttask(void);
 inline static void __attribute__((always_inline)) kernel_execute_rtask(void);
-inline static void __attribute__((always_inline)) kernel_execute_no_task(void);
+static void kernel_execute_no_task(void);
 static int kernel_compute_sys_ticks(int time, int unit);
 
 extern const struct kernel_rtask __kernel_rstack_begin;
@@ -206,7 +206,7 @@ static void kernel_init_task_init(void)
     } while(init_level >= 0);
 }
 
-inline static void __attribute__((always_inline)) kernel_execute_ttask_rtask(void)
+static void kernel_execute_ttask_rtask(void)
 {
     kernel_execute_ttask();
     kernel_execute_rtask();
@@ -238,7 +238,7 @@ inline static void __attribute__((always_inline)) kernel_execute_rtask(void)
         kernel_restore_rtask_iterator();
 }
 
-inline static void __attribute__((always_inline)) kernel_execute_no_task(void)
+static void kernel_execute_no_task(void)
 {
     Nop();
 }
