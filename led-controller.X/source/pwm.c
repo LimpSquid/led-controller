@@ -117,9 +117,6 @@ void __attribute__ ((weak)) pwm_period_callback(void)
 
 void __ISR(PWM_TMR_VECTOR, IPL7AUTO) pwm_timer_interrupt(void)
 {
-    Nop();
-    Nop();
-    Nop();
     pwm_period_callback();
     REG_CLR(PWM_TMR_IFS_REG, PWM_TMR_INT_MASK);
 }
