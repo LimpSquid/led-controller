@@ -275,7 +275,9 @@ static void tlc5940_rtask_execute(void)
             tlc5940_state = TLC5940_UPDATE_CLEAR_BUFFER;
             break;
         case TLC5940_UPDATE_CLEAR_BUFFER:
+#ifndef DISABLE_AUTO_BUFFER_CLEAR
             memset(tlc5940_dma_ptr, 0x00, TLC5940_BUFFER_SIZE);
+#endif
             tlc5940_state = TLC5940_IDLE;
             break;
     }
