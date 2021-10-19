@@ -333,7 +333,7 @@ static int layer_rtask_init(void)
     REG_SET(LAYER_SCK_TRIS, LAYER_SCK_PIN_MASK);
     REG_SET(LAYER_SS_TRIS, LAYER_SS_PIN_MASK);
 
-    // Initialize TIMER
+    // Initialize timer
     layer_countdown_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if(layer_countdown_timer == NULL)
         goto fail_timer;
@@ -402,8 +402,8 @@ static void layer_rtask_execute(void)
             layer_state = LAYER_EXEC_LOD_SHOW_WRITE;
             break;
         case LAYER_EXEC_LOD_SHOW_WRITE: {
-            unsigned int next_row = layer_next_row_index(); // need the next row index, because that is what we're about to write
-            bool error = layer_lod_errors[layer_tlc5940_index][next_row];
+            unsigned int row = layer_next_row_index(); // need the next row index, because that is what we're about to write
+            bool error = layer_lod_errors[layer_tlc5940_index][row];
             
             for(unsigned int i = 0; i < LAYER_NUM_OF_COLS; i++)
                 tlc5940_write_grayscale(layer_tlc5940_index, i, LAYER_LOD_GRAYSCALE_VALUE * error);
@@ -414,15 +414,12 @@ static void layer_rtask_execute(void)
         case LAYER_EXEC_LOD_SHOW_WRITE_WAIT:
             if (tlc5940_ready()) {
                 // Give user some time to see the broken LED
-                bool error = layer_lod_errors[layer_tlc5940_index][layer_row_index];
-                if(error) {
-                    // Error shown, give user some time to see broken LEDs
+                if(layer_lod_errors[layer_tlc5940_index][layer_row_index]) {
+                    // Error, give user some time to see broken LEDs
                     timer_start(layer_countdown_timer, LAYER_LOD_SHOW_USER_TIME, TIMER_TIME_UNIT_MS);
                     layer_state = LAYER_EXEC_LOD_SHOW_USER_WAIT;
                 } else
-                    layer_state = LAYER_EXEC_LOD_SHOW_DONE; // No errors shown, go to next row
-                if (error) for (unsigned int i = 0; i < 1000000; i++) Nop(); // @Commit: change with timer
-                layer_state = LAYER_EXEC_LOD_SHOW_DONE;
+                    layer_state = LAYER_EXEC_LOD_SHOW_DONE; // No error, go to next row
             }
             break;
         case LAYER_EXEC_LOD_SHOW_USER_WAIT:

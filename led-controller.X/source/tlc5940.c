@@ -198,12 +198,12 @@ static int tlc5940_rtask_init(void)
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);
     if(tlc5940_dma_channel == NULL)
-        goto deinit_dma;
+        goto fail_dma;
 
     // Initialize SPI
     tlc5940_spi_module = spi_construct(TLC5940_SPI_CHANNEL, tlc5940_spi_config);
     if(tlc5940_spi_module == NULL)
-        goto deinit_spi;
+        goto fail_spi;
     spi_configure_dma_dst(tlc5940_spi_module, tlc5940_dma_channel); // SPI module is the destination of the dma module
     spi_enable(tlc5940_spi_module);
 
@@ -213,10 +213,9 @@ static int tlc5940_rtask_init(void)
 
     return KERN_INIT_SUCCCES;
 
-deinit_spi:
-    spi_destruct(tlc5940_spi_module);
-deinit_dma:
+fail_spi:
     dma_destruct(tlc5940_dma_channel);
+fail_dma:
 
     return KERN_INIT_FAILED;
 }
@@ -230,7 +229,6 @@ static void tlc5940_rtask_execute(void)
 {
     switch(tlc5940_state) {
         case TLC5940_INIT:
-            // no break
         case TLC5940_WRITE_DOT_CORRECTION:
             REG_SET(TLC5940_VPRG_LAT, TLC5940_VPRG_PIN_MASK);
             spi_transmit_mode8(tlc5940_spi_module, tlc5940_dot_corr_buffer, TLC5940_BUFFER_SIZE_DOT_CORR);

@@ -139,7 +139,7 @@ void rs485_transmit(unsigned char data)
 void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(buffer);
-    ASSERT(0 != size);
+    ASSERT(size != 0);
 
     // @Todo: improve performance
     while(size-- > 0)
