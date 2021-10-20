@@ -22,6 +22,7 @@
       <itemPath>include/layer_config.h</itemPath>
       <itemPath>include/assert_util.h</itemPath>
       <itemPath>include/rs485.h</itemPath>
+      <itemPath>include/bus.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -44,6 +45,7 @@
       <itemPath>source/pwm.c</itemPath>
       <itemPath>source/layer.c</itemPath>
       <itemPath>source/rs485.c</itemPath>
+      <itemPath>source/bus.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

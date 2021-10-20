@@ -19,6 +19,11 @@
 #define RS485_TX_REG            U1TXREG
 #define RS485_RX_REG            U1RXREG
 
+#define RS485_DIR_TRIS          TRISB
+#define RS485_DIR_ANSEL         ANSELB
+#define RS485_DIR_LAT           LATB
+#define RS485_DIR_PORT          PORTB
+
 #define RS485_UMODE_WORD        0x0
 #define RS485_USTA_WORD         (BIT(10) | BIT(12) | MASK(0x1, 14))
 #define RS485_BRG_WORD          ((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4 - 1)
@@ -27,13 +32,20 @@
 #define RS485_ERROR_BITS_MASK   MASK(0x7, 1)
 #define RS485_URXDA_MASK        BIT(0)
 #define RS485_UTXBF_MASK        BIT(9)
+#define RS485_TRMT_MASK         BIT(8)
+#define RS485_DIR_PIN_MASK      BIT(7)
 
 #define rs485_rx_ready()        (RS485_USTA_REG & RS485_URXDA_MASK)
 #define rs485_tx_ready()        (rs485_tx_consumer != rs485_tx_producer && !(RS485_USTA_REG & RS485_UTXBF_MASK))
+#define rs485_tx_empty()        (RS485_USTA_REG & RS485_TRMT_MASK)
+#define rs485_dir_rx()          REG_CLR(RS485_DIR_LAT, RS485_DIR_PIN_MASK)
+#define rs485_dir_tx()          REG_SET(RS485_DIR_LAT, RS485_DIR_PIN_MASK)
+#define rs485_dir_is_rx()       (!(RS485_DIR_PORT & RS485_DIR_PIN_MASK))
 
 enum rs485_state
 {
     RS485_IDLE = 0,
+    RS485_IDLE_WAIT_EVENT,
 
     RS485_RECEIVE,
     RS485_RECEIVE_STATUS,
@@ -42,6 +54,7 @@ enum rs485_state
 
     RS485_TRANSFER,
     RS485_TRANSFER_BURST_WRITE,
+    RS485_TRANSFER_WAIT_WRITTEN,
 
     RS485_ERROR,
     RS485_ERROR_NOTIFY,
@@ -216,6 +229,11 @@ static void rs485_error_notify()
 
 static int rs485_rtask_init(void)
 {
+    // Configure IO
+    REG_CLR(RS485_DIR_ANSEL, RS485_DIR_PIN_MASK);
+    REG_CLR(RS485_DIR_TRIS, RS485_DIR_PIN_MASK);
+    REG_CLR(RS485_DIR_LAT, RS485_DIR_PIN_MASK);
+    
     // Set the baudrate generator
     RS485_BRG_REG = RS485_BRG_WORD;
 
@@ -232,26 +250,36 @@ static void rs485_rtask_execute(void)
     switch(rs485_state) {
         default:
         case RS485_IDLE:
-            if(rs485_rx_ready())
+            ASSERT(rs485_dir_is_rx());
+            rs485_dir_rx(); // Shouldn't be necessary, but can't hurt
+            
+            rs485_status = RS485_STATUS_IDLE;
+            rs485_state = RS485_IDLE_WAIT_EVENT;
+            break;
+        case RS485_IDLE_WAIT_EVENT:
+            if(rs485_rx_ready()) {
+                rs485_status = RS485_STATUS_RECEIVING;
                 rs485_state = RS485_RECEIVE;
-            else if(rs485_tx_ready())
+            } else if(rs485_tx_ready()) {
+                rs485_status = RS485_STATUS_TRANSFERRING;
                 rs485_state = RS485_TRANSFER;
-            else
-                rs485_status = RS485_STATUS_IDLE;
+            }
             break;
 
         // Receive routine
         case RS485_RECEIVE:
-            rs485_status = RS485_STATUS_RECEIVING;
-            // no break
         case RS485_RECEIVE_STATUS:
             rs485_error_reg.by_byte |= (RS485_USTA_REG & RS485_ERROR_BITS_MASK) >> 1;
-            rs485_state = rs485_error_reg.by_byte ? RS485_RECEIVE_ERROR : RS485_RECEIVE_BURST_READ;
+            rs485_state = rs485_error_reg.by_byte 
+                    ? RS485_RECEIVE_ERROR 
+                    : RS485_RECEIVE_BURST_READ;
             break;
         case RS485_RECEIVE_BURST_READ:
             for(unsigned int i = 0; rs485_rx_ready() && i < RS485_RX_BURST; ++i)
                 rs485_receive(RS485_RX_REG);
-            rs485_state = RS485_IDLE;
+            rs485_state = rs485_rx_ready() 
+                    ? RS485_RECEIVE_STATUS 
+                    : RS485_IDLE; // Get status in-between burst reads
             break;
         case RS485_RECEIVE_ERROR:
             // @Todo: specific receive error handling
@@ -260,14 +288,20 @@ static void rs485_rtask_execute(void)
 
         // Transfer routine
         case RS485_TRANSFER:
-            rs485_status = RS485_STATUS_TRANSFERRING;
+            rs485_dir_tx(); // Puts transceiver in transfer mode until no more bytes can be written
             // no break
         case RS485_TRANSFER_BURST_WRITE:
-            // @Todo: toggle direction pin
             for(unsigned int i = 0; rs485_tx_ready() && i < RS485_TX_BURST; ++i)
                 rs485_write(rs485_tx_take());
-            rs485_state = RS485_IDLE;
-            // @Todo: toggle direction pin
+            rs485_state = rs485_tx_ready() 
+                    ? RS485_TRANSFER_BURST_WRITE 
+                    : RS485_TRANSFER_WAIT_WRITTEN;
+            break;
+        case RS485_TRANSFER_WAIT_WRITTEN:
+            if(rs485_tx_empty()) {
+                rs485_dir_rx();
+                rs485_state = RS485_IDLE;
+            }
             break;
 
         // Error routine
