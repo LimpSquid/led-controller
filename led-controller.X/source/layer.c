@@ -274,12 +274,10 @@ static int layer_rtask_init(void)
     
     // Configure IO
     REG_CLR(LAYER_SS_ANSEL, LAYER_SS_PIN_MASK);
-    
     REG_SET(LAYER_SDI_TRIS, LAYER_SDI_PIN_MASK);
     REG_SET(LAYER_SCK_TRIS, LAYER_SCK_PIN_MASK);
     REG_SET(LAYER_SS_TRIS, LAYER_SS_PIN_MASK);
     
-    // Initialize IO
     const struct layer_io* io = NULL;
     for(unsigned int i = 0; i < LAYER_NUM_OF_ROWS; ++i) {
         io = &layer_io[i];
