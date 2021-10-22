@@ -73,10 +73,8 @@ enum tlc5940_state
     TLC5940_IDLE,    
 
     TLC5940_UPDATE,
-    TLC5940_UPDATE_DMA_START,
-    TLC5940_UPDATE_DMA_WAIT,
-    TLC5940_UPDATE_CLEAR_BUFFER,
-    TLC5940_UPDATE_DONE,
+    TLC5940_UPDATE_DMA_TRANSFER,
+    TLC5940_UPDATE_DMA_TRANSFER_WAIT,
 };
 
 static int tlc5940_rtask_init(void);
@@ -108,7 +106,6 @@ static struct tlc5940_flags tlc5940_flags =
 static struct dma_channel* tlc5940_dma_channel = NULL;
 static struct spi_module* tlc5940_spi_module = NULL;
 static enum tlc5940_state tlc5940_state = TLC5940_INIT;
-
 
 bool tlc5940_enable(void)
 {
@@ -185,7 +182,8 @@ void pwm_period_callback(void)
     REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
     
     // Means that the update routine in the robin task did not
-    // complete before the GSCLK finished
+    // complete before the GSCLK period finished, consider lowering
+    // the value of TLC5490_GSCLK_PERIOD
     ASSERT(!tlc5940_flags.need_update); 
     
     tlc5940_flags.need_update = true;
@@ -268,26 +266,21 @@ static void tlc5940_rtask_execute(void)
           
         case TLC5940_UPDATE:
             tlc5940_update_handler();
-            tlc5940_state = TLC5940_UPDATE_DMA_START;
+            tlc5940_state = TLC5940_UPDATE_DMA_TRANSFER;
             break;
-        case TLC5940_UPDATE_DMA_START:
+        case TLC5940_UPDATE_DMA_TRANSFER:
             if(dma_ready(tlc5940_dma_channel)) {
                 dma_configure_src(tlc5940_dma_channel, tlc5940_buffer, TLC5940_BUFFER_SIZE);
                 dma_enable_transfer(tlc5940_dma_channel);
-                tlc5940_state = TLC5940_UPDATE_DMA_WAIT;
+                tlc5940_state = TLC5940_UPDATE_DMA_TRANSFER_WAIT;
             }
             break;
-        case TLC5940_UPDATE_DMA_WAIT:
-            if(dma_ready(tlc5940_dma_channel))
-                tlc5940_state = TLC5940_UPDATE_CLEAR_BUFFER;
-            break;
-        case TLC5940_UPDATE_CLEAR_BUFFER:
-            memset(tlc5940_buffer, 0x00, TLC5940_BUFFER_SIZE);
-            tlc5940_state = TLC5940_UPDATE_DONE;
-            break;
-        case TLC5940_UPDATE_DONE:
-            tlc5940_flags.need_update = false;
-            tlc5940_state = TLC5940_IDLE;
+        case TLC5940_UPDATE_DMA_TRANSFER_WAIT:
+            if(dma_ready(tlc5940_dma_channel)) {
+                memset(tlc5940_buffer, 0x00, TLC5940_BUFFER_SIZE); // Because we are OR'ing in tlc5940_write
+                tlc5940_flags.need_update = false;
+                tlc5940_state = TLC5940_IDLE;
+            }
             break;
     }
 }
