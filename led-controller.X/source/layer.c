@@ -73,7 +73,6 @@ enum layer_dma_state
 {
     LAYER_DMA_RECV_FRAME = 0,
     LAYER_DMA_RECV_FRAME_WAIT,
-    LAYER_DMA_SWAP_BUFFER,
 };
 
 static void layer_row_io_reset(void);
@@ -346,12 +345,12 @@ static void layer_dma_rtask_execute(void)
             }
             break;
         case LAYER_DMA_RECV_FRAME_WAIT:
-            if(dma_ready(layer_dma_channel))
-                layer_dma_state = LAYER_DMA_SWAP_BUFFER;
-            break;
-        case LAYER_DMA_SWAP_BUFFER: // @Todo: eventually swap buffers on external command
-            layer_swap_buffers(); // @Todo: eventually sync this in latch callback to avoid swapping buffers mid-frame
-            layer_dma_state = LAYER_DMA_RECV_FRAME;
+            if(dma_ready(layer_dma_channel)) {
+                // @Todo: buffer swap should happen by external command
+                // @Todo: eventually sync this in latch callback to avoid swapping buffers mid-frame
+                layer_swap_buffers();
+                layer_dma_state = LAYER_DMA_RECV_FRAME;
+            }
             break;
     }
 }

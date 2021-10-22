@@ -29,4 +29,6 @@
  * by which it will likely be executed twice by the slave node. For now this behaviour is acceptable and
  * we will not design the protocol to be idempotent, until some new feature requires it to be. 
  *
+ * Broadcasts should be supported by all slaves and can be distinguished by a reserved address (like 255). 
+ * No slave should ever reply to a broadcast message.
  */
