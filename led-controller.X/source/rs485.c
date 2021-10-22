@@ -3,6 +3,7 @@
 #include <assert_util.h>
 #include <sys.h>
 #include <toolbox.h>
+#include <timer.h>
 #include <xc.h>
 
 #define RS485_BAUDRATE          115200LU
@@ -12,6 +13,11 @@
 #define RS485_RX_OVERRUN_ERR    (RS485_RX_FIFO_SIZE - (RS485_RX_FIFO_SIZE >> 3) - 1) // Used to detect possible RX overrun errors in debug mode only
 #define RS485_TX_BURST          (RS485_TX_FIFO_SIZE >> 2)
 #define RS485_RX_BURST          (RS485_RX_FIFO_SIZE >> 2)
+
+// In us, note that this time may not be accurate because of the software timer's resolution.
+// Ideally we use a hardware timer to avoid the software timer's resolution altogether.
+// However as we don't care too much about throughput and latency, we'd keep it nice and simple.
+#define RS485_BACKOFF_TX_TIME   100
 
 #define RS485_UMODE_REG         U1MODE
 #define RS485_USTA_REG          U1STA
@@ -35,9 +41,9 @@
 #define RS485_TRMT_MASK         BIT(8)
 #define RS485_DIR_PIN_MASK      BIT(7)
 
-#define rs485_rx_ready()        (RS485_USTA_REG & RS485_URXDA_MASK)
-#define rs485_tx_ready()        (rs485_tx_consumer != rs485_tx_producer && !(RS485_USTA_REG & RS485_UTXBF_MASK))
-#define rs485_tx_empty()        (RS485_USTA_REG & RS485_TRMT_MASK)
+#define rs485_rx_available()    (RS485_USTA_REG & RS485_URXDA_MASK) // Can we read data from the UART module's buffer?
+#define rs485_tx_available()    (rs485_tx_consumer != rs485_tx_producer && !(RS485_USTA_REG & RS485_UTXBF_MASK)) // Can we read data from the tx buffer and write it to the UART module's buffer?
+#define rs485_tx_complete()     (RS485_USTA_REG & RS485_TRMT_MASK) // Is transfer completed?
 #define rs485_dir_rx()          REG_CLR(RS485_DIR_LAT, RS485_DIR_PIN_MASK)
 #define rs485_dir_tx()          REG_SET(RS485_DIR_LAT, RS485_DIR_PIN_MASK)
 #define rs485_dir_is_rx()       (!(RS485_DIR_PORT & RS485_DIR_PIN_MASK))
@@ -50,11 +56,10 @@ enum rs485_state
     RS485_RECEIVE,
     RS485_RECEIVE_STATUS,
     RS485_RECEIVE_BURST_READ,
-    RS485_RECEIVE_ERROR,
 
     RS485_TRANSFER,
     RS485_TRANSFER_BURST_WRITE,
-    RS485_TRANSFER_WAIT_WRITTEN,
+    RS485_TRANSFER_WAIT_COMPLETION,
 
     RS485_ERROR,
     RS485_ERROR_NOTIFY,
@@ -85,6 +90,9 @@ static struct rs485_error_notifier rs485_notifier =
 };
 static const struct rs485_error_notifier** rs485_notifier_next = &rs485_notifier.next;
 
+// When we stop receiving data we want to make sure the other end
+// has put its transceiver in receive mode before we're doing a transfer.
+static struct timer_module* rs485_backoff_tx_timer = NULL;
 static enum rs485_status rs485_status = RS485_STATUS_IDLE;
 static enum rs485_state rs485_state = RS485_IDLE;
 
@@ -241,8 +249,18 @@ static int rs485_rtask_init(void)
     RS485_USTA_REG = RS485_USTA_WORD;
     RS485_UMODE_REG = RS485_UMODE_WORD;
     REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
+    
+    // Initialize timer
+    rs485_backoff_tx_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
+    if(rs485_backoff_tx_timer == NULL)
+        goto fail_timer;
+    timer_start(rs485_backoff_tx_timer, RS485_BACKOFF_TX_TIME, TIMER_TIME_UNIT_US);
 
     return KERN_INIT_SUCCCES;
+    
+fail_timer:
+    
+    return KERN_INIT_FAILED;
 }
 
 static void rs485_rtask_execute(void)
@@ -257,10 +275,10 @@ static void rs485_rtask_execute(void)
             rs485_state = RS485_IDLE_WAIT_EVENT;
             break;
         case RS485_IDLE_WAIT_EVENT:
-            if(rs485_rx_ready()) {
+            if(rs485_rx_available()) {
                 rs485_status = RS485_STATUS_RECEIVING;
                 rs485_state = RS485_RECEIVE;
-            } else if(rs485_tx_ready()) {
+            } else if(rs485_tx_available() && timer_timed_out(rs485_backoff_tx_timer)) {
                 rs485_status = RS485_STATUS_TRANSFERRING;
                 rs485_state = RS485_TRANSFER;
             }
@@ -271,35 +289,35 @@ static void rs485_rtask_execute(void)
         case RS485_RECEIVE_STATUS:
             rs485_error_reg.by_byte |= (RS485_USTA_REG & RS485_ERROR_BITS_MASK) >> 1;
             rs485_state = rs485_error_reg.by_byte 
-                    ? RS485_RECEIVE_ERROR 
+                    ? RS485_ERROR 
                     : RS485_RECEIVE_BURST_READ;
             break;
         case RS485_RECEIVE_BURST_READ:
-            for(unsigned int i = 0; rs485_rx_ready() && i < RS485_RX_BURST; ++i)
+            for(unsigned int i = 0; rs485_rx_available() && i < RS485_RX_BURST; ++i)
                 rs485_receive(RS485_RX_REG);
-            rs485_state = rs485_rx_ready() 
-                    ? RS485_RECEIVE_STATUS 
-                    : RS485_IDLE; // Get status in-between burst reads
+            
+            if (rs485_rx_available())
+                rs485_state = RS485_RECEIVE_STATUS; // Get status in-between burst reads
+            else {
+                timer_restart(rs485_backoff_tx_timer);
+                rs485_state = RS485_IDLE;
+            }
             break;
-        case RS485_RECEIVE_ERROR:
-            // @Todo: specific receive error handling
-            rs485_state = RS485_ERROR;
-            break;
-
+           
         // Transfer routine
         case RS485_TRANSFER:
-            rs485_dir_tx(); // Puts transceiver in transfer mode until no more bytes can be written
+            rs485_dir_tx(); // Put transceiver into transfer mode
             // no break
         case RS485_TRANSFER_BURST_WRITE:
-            for(unsigned int i = 0; rs485_tx_ready() && i < RS485_TX_BURST; ++i)
+            for(unsigned int i = 0; rs485_tx_available() && i < RS485_TX_BURST; ++i)
                 rs485_write(rs485_tx_take());
-            rs485_state = rs485_tx_ready() 
+            rs485_state = rs485_tx_available() 
                     ? RS485_TRANSFER_BURST_WRITE 
-                    : RS485_TRANSFER_WAIT_WRITTEN;
+                    : RS485_TRANSFER_WAIT_COMPLETION;
             break;
-        case RS485_TRANSFER_WAIT_WRITTEN:
-            if(rs485_tx_empty()) {
-                rs485_dir_rx();
+        case RS485_TRANSFER_WAIT_COMPLETION:
+            if(rs485_tx_complete()) {
+                rs485_dir_rx(); // Put transceiver back into receive mode
                 rs485_state = RS485_IDLE;
             }
             break;

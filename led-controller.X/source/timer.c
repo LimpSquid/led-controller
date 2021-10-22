@@ -82,9 +82,8 @@ void timer_set_time(struct timer_module* timer, int time, int unit)
 void timer_start(struct timer_module* timer, int time, int unit)
 {
     ASSERT_NOT_NULL(timer);
-
-    timer->interval = timer_compute_ticks(time, unit);
-    timer->ticks = timer->interval;
+    
+    timer_set_time(timer, time, unit);
     timer->opt.timedout = false;
     timer->opt.suspended = false;
 }

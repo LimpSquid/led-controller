@@ -172,6 +172,16 @@ static void kernel_init_task_init(void)
         int (*init)(void) = NULL;
         bool* init_done = NULL;
 
+        // Find init function with current init_level in robin tasks
+        while(kernel_rtask_iterator != kernel_rtask_end) {
+            if(kernel_rtask_iterator->init_level == init_level && !kernel_rtask_iterator->param->init_done) {
+                init = kernel_rtask_iterator->init;
+                init_done = &kernel_rtask_iterator->param->init_done;
+                break;
+            }
+            kernel_rtask_iterator++;
+        }
+
         // Find init function with current init_level in timed tasks, these will get precedence over robin tasks
         while(kernel_ttask_iterator != kernel_ttask_end) {
             if(kernel_ttask_iterator->init_level == init_level && !kernel_ttask_iterator->param->init_done) {
@@ -180,18 +190,6 @@ static void kernel_init_task_init(void)
                 break;
             }
             kernel_ttask_iterator++;
-        }
-        
-        if(init != NULL) {
-            // Find init function with current init_level in robin tasks
-            while(kernel_rtask_iterator != kernel_rtask_end) {
-                if(kernel_rtask_iterator->init_level == init_level && !kernel_rtask_iterator->param->init_done) {
-                    init = kernel_rtask_iterator->init;
-                    init_done = &kernel_rtask_iterator->param->init_done;
-                    break;
-                }
-                kernel_rtask_iterator++;
-            }
         }
 
         // Check if we have found an init function to process...

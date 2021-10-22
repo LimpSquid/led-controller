@@ -5,8 +5,8 @@
  * 
  * We need no complexity at all for our bus protocol. A message might look like as follows:
  *
- *  master: |command byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
- *  slave:  |response byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
+ *  master: |address byte|command byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
+ *  slave:  |response status byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
  * 
  * The protocol uses a fixed message width with 4 data bytes and two CRC bytes. If the relevant
  * command doesn't use any of the data bytes, zeroing these fields will suffice.
