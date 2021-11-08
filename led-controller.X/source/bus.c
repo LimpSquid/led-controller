@@ -1,4 +1,129 @@
 #include <bus.h>
+#include <bus_func.h>
+#include <kernel_task.h>
+#include <rs485.h>
+#include <timer.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#define BUS_REQUEST_FRAME_SIZE      sizeof(struct bus_request_frame)
+#define BUS_FUNCS_SIZE              (sizeof(bus_funcs) / sizeof(struct bus_func))
+#define BUS_ERROR_BACKOFF_TIME      250 // In milliseconds
+
+enum bus_state
+{
+    BUS_READ_CLEAR = 0,
+    BUS_READ_WAIT,
+    BUS_READ_PART,
+    BUS_HANDLE_FRAME,
+    
+    BUS_ERROR,
+    BUS_ERROR_BACKOFF_WAIT,
+    BUS_ERROR_RESET,
+};
+
+struct __attribute__((packed)) bus_request_frame
+{
+    unsigned char address;
+    unsigned char command;
+    union
+    {
+        struct 
+        {
+            unsigned char b1;
+            unsigned char b2;
+            unsigned char b3;
+            unsigned char b4;
+        } by_bytes;
+        uint32_t by_uint32;
+        int32_t by_int32;
+    } data;
+    unsigned short crc;
+};
+
+union bus_request_frame_buffer
+{
+    struct bus_request_frame frame;
+    unsigned char data[BUS_REQUEST_FRAME_SIZE];
+};
+
+static void bus_error_callback(struct rs485_error error);
+
+static int bus_rtask_init(void);
+static void bus_rtask_execute(void);
+KERN_RTASK(bus, bus_rtask_init, bus_rtask_execute, NULL, KERN_INIT_LATE)
+
+extern const struct bus_func bus_funcs[];
+static struct rs485_error_notifier bus_error_notifier =
+{
+    .callback = bus_error_callback
+};
+
+static struct timer_module* bus_backoff_timer = NULL;
+static union bus_request_frame_buffer bus_req_fbuffer;
+static enum bus_state bus_state = BUS_READ_CLEAR;
+static unsigned int bus_frame_offset = 0;
+
+static void bus_error_callback(struct rs485_error error)
+{
+    (void)error; // Don't really care what happened
+    bus_state = BUS_ERROR;
+}
+
+static int bus_rtask_init(void)
+{
+    rs485_register_error_notifier(&bus_error_notifier);
+    
+    // Initialize timer
+    bus_backoff_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
+    if(bus_backoff_timer == NULL)
+        goto fail_timer;
+
+    return KERN_INIT_SUCCCES;
+    
+fail_timer:
+    
+    return KERN_INIT_FAILED;
+}
+
+static void bus_rtask_execute(void)
+{
+    switch(bus_state) {
+        default:
+        case BUS_READ_CLEAR:
+            bus_frame_offset = 0;
+            bus_state = BUS_READ_WAIT;
+            break;
+        case BUS_READ_WAIT:
+            if(rs485_bytes_available())
+                bus_state = BUS_READ_PART;
+            break;
+        case BUS_READ_PART:
+            bus_frame_offset += rs485_read_buffer(
+                    bus_req_fbuffer.data + bus_frame_offset, 
+                    BUS_REQUEST_FRAME_SIZE - bus_frame_offset);
+            bus_state = bus_frame_offset < BUS_REQUEST_FRAME_SIZE
+                ? BUS_READ_WAIT
+                : BUS_HANDLE_FRAME;
+            break;
+        case BUS_HANDLE_FRAME:
+            // Todo: continue here
+            break;
+            
+        case BUS_ERROR:
+            timer_start(bus_backoff_timer, BUS_ERROR_BACKOFF_TIME, TIMER_TIME_UNIT_MS);
+            bus_state = BUS_ERROR_BACKOFF_WAIT;
+            break;
+        case BUS_ERROR_BACKOFF_WAIT:
+            if(timer_timed_out(bus_backoff_timer))
+                bus_state = BUS_ERROR_RESET;
+            break;
+        case BUS_ERROR_RESET:
+            rs485_reset();
+            bus_state = BUS_READ_CLEAR;
+            break;
+    }
+}
 
 /*
  * @Todo: implement bus protocol

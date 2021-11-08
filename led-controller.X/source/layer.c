@@ -211,11 +211,11 @@ void tlc5940_update_handler(void)
     unsigned int r, g, b;
     
     for(unsigned int i = 0; i < LAYER_NUM_OF_COLS; i++) {
-        // Convert 8 bit to 12 bit equivalent
         r = i + offset + LAYER_RED_OFFSET;
         g = i + offset + LAYER_GREEN_OFFSET;
         b = i + offset + LAYER_BLUE_OFFSET;
 
+        // Convert 8 bit to 12 bit equivalent
         tlc5940_write(0, i, layer_update_ptr[r] << 4 | layer_update_ptr[r] >> 4);
         tlc5940_write(1, i, layer_update_ptr[g] << 4 | layer_update_ptr[g] >> 4);
         tlc5940_write(2, i, layer_update_ptr[b] << 4 | layer_update_ptr[b] >> 4);

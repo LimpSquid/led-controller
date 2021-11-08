@@ -62,7 +62,6 @@ enum rs485_state
     RS485_TRANSFER_WAIT_COMPLETION,
 
     RS485_ERROR,
-    RS485_ERROR_NOTIFY,
     RS485_ERROR_IDLE
 };
 
@@ -118,25 +117,19 @@ struct rs485_error rs485_get_error(void)
     return rs485_error_reg.error;
 }
 
-void rs485_register_error_notifier(void (*callback)(struct rs485_error), struct rs485_error_notifier* const notifier)
+void rs485_register_error_notifier(struct rs485_error_notifier* const notifier)
 {
-    if(callback && notifier != NULL) {
-        notifier->callback = callback;
-
+    if(notifier != NULL && notifier->callback != NULL) {
         // Update linked list
         *rs485_notifier_next = notifier;
         rs485_notifier_next = &notifier->next;
     }
 }
 
-void rs485_error_reset(void)
+void rs485_reset(void)
 {
-    if(RS485_STATUS_ERROR != rs485_status)
-        return;
-
     rs485_state = RS485_IDLE;
-
-    // Reset buffers
+    rs485_status = RS485_STATUS_IDLE;
     rs485_tx_producer = rs485_tx_begin;
     rs485_tx_consumer = rs485_tx_begin;
     rs485_rx_producer = rs485_rx_begin;
@@ -182,7 +175,7 @@ unsigned char rs485_read(void)
     return data;
 }
 
-int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
+unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
 {
     ASSERT_NOT_NULL(buffer);
     ASSERT(rs485_rx_consumer != rs485_rx_consumer);
@@ -324,12 +317,9 @@ static void rs485_rtask_execute(void)
 
         // Error routine
         case RS485_ERROR:
-            REG_CLR(RS485_UMODE_REG, RS485_ON_MASK);
-            rs485_status = RS485_STATUS_ERROR;
-            rs485_state = RS485_ERROR_NOTIFY;
-            break;
-        case RS485_ERROR_NOTIFY:
+            REG_CLR(RS485_UMODE_REG, RS485_ON_MASK); // Disable module
             rs485_error_notify();
+            rs485_status = RS485_STATUS_ERROR;
             rs485_state = RS485_ERROR_IDLE;
             break;
         case RS485_ERROR_IDLE:

@@ -23,6 +23,7 @@
       <itemPath>include/assert_util.h</itemPath>
       <itemPath>include/rs485.h</itemPath>
       <itemPath>include/bus.h</itemPath>
+      <itemPath>include/bus_func.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -46,6 +47,7 @@
       <itemPath>source/layer.c</itemPath>
       <itemPath>source/rs485.c</itemPath>
       <itemPath>source/bus.c</itemPath>
+      <itemPath>source/bus_func_impl.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
