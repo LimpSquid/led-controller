@@ -16,6 +16,9 @@
     #error "GSCLK period is not specified, please define 'TLC5490_GSCLK_PERIOD'"
 #endif
 
+STATIC_ASSERT(TLC5940_NUM_OF_DEVICES > 0)
+STATIC_ASSERT(TLC5490_GSCLK_PERIOD >= 750 && TLC5490_GSCLK_PERIOD <= 31250) // Limit values to something reasonable
+
 #define TLC5940_CHANNELS_PER_DEVICE     16
 #define TLC5940_BUFFER_SIZE             (24 * TLC5940_NUM_OF_DEVICES)
 #define TLC5940_BUFFER_SIZE_DOT_CORR    (12 * TLC5940_NUM_OF_DEVICES)

@@ -7,6 +7,7 @@
 #undef ASSERT
 #undef INT_ASSERT
 #undef SOFT_ASSERT
+#undef STATIC_ASSERT
 
 #undef __assert_failed
 #undef __assert_int_failed
@@ -30,5 +31,8 @@ void __assert_print_no_block(const char* format, ...);
 #define INT_ASSERT(expression)      ((void)0)
 #define SOFT_ASSERT(expression)     ((void)0)
 #endif
+
+// Use extern keyword to allow usage inside function, e.g. avoiding the multiple declaration error
+#define STATIC_ASSERT(expression)   extern char __attribute__((unused)) __assert[(expression) ? 0 : -1];
 
 #endif	/* ASSERT_H */

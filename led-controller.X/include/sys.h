@@ -10,6 +10,10 @@
     #error "System peripheral bus clock could not be calculated, please define the _SYS_CLK and _PB_DIV." 
 #endif
 
+// Version ranges between 0 - 255
+#define SYS_VERSION_MAJOR           0
+#define SYS_VERSION_MINOR           0
+#define SYS_VERSION_PATCH           0
 #define SYS_BONZO_IS_HUNGRY         true
 
 #define sys_goodnight_bonzo()       WDTCONbits.ON = 0
@@ -21,5 +25,6 @@ void sys_unlock(void);
 void sys_enable_global_interrupt(void);
 void sys_disable_global_interrupt(void);
 void sys_cpu_early_init(void);
+void sys_cpu_reset(void);
 
 #endif	/* SYS_H */
