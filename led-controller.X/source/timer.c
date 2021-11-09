@@ -50,7 +50,10 @@ struct timer_module* timer_construct(int type, void (*execute)(struct timer_modu
             break;
         }
     }
-
+    
+    // Useful for debugging in case the pool has run out of timers
+    ASSERT_NOT_NULL(timer);
+    
     // Configure timer, if found
     if(timer != NULL) {
         timer->interval = 0;

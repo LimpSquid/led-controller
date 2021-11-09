@@ -3,6 +3,7 @@
 #include <kernel_task.h>
 #include <rs485.h>
 #include <timer.h>
+#include <toolbox.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -15,6 +16,7 @@ enum bus_state
     BUS_READ_CLEAR = 0,
     BUS_READ_WAIT,
     BUS_READ_PART,
+    BUS_VERIFY_CRC,
     BUS_HANDLE_FRAME,
     
     BUS_ERROR,
@@ -38,7 +40,7 @@ struct __attribute__((packed)) bus_request_frame
         uint32_t by_uint32;
         int32_t by_int32;
     } data;
-    unsigned short crc;
+    crc16_t crc;
 };
 
 union bus_request_frame_buffer
@@ -60,6 +62,7 @@ static struct rs485_error_notifier bus_error_notifier =
 };
 
 static struct timer_module* bus_backoff_timer = NULL;
+static crc16_t bus_crc16;
 static union bus_request_frame_buffer bus_req_fbuffer;
 static enum bus_state bus_state = BUS_READ_CLEAR;
 static unsigned int bus_frame_offset = 0;
@@ -92,22 +95,29 @@ static void bus_rtask_execute(void)
         default:
         case BUS_READ_CLEAR:
             bus_frame_offset = 0;
+            crc16_reset(&bus_crc16);
             bus_state = BUS_READ_WAIT;
             break;
         case BUS_READ_WAIT:
             if(rs485_bytes_available())
                 bus_state = BUS_READ_PART;
             break;
-        case BUS_READ_PART:
-            bus_frame_offset += rs485_read_buffer(
-                    bus_req_fbuffer.data + bus_frame_offset, 
-                    BUS_REQUEST_FRAME_SIZE - bus_frame_offset);
+        case BUS_READ_PART: {
+            unsigned int size = rs485_read_buffer(
+                bus_req_fbuffer.data + bus_frame_offset, 
+                BUS_REQUEST_FRAME_SIZE - bus_frame_offset);
+            crc16_work(&bus_crc16, bus_req_fbuffer.data + bus_frame_offset, size);
+            bus_frame_offset += size;
             bus_state = bus_frame_offset < BUS_REQUEST_FRAME_SIZE
                 ? BUS_READ_WAIT
-                : BUS_HANDLE_FRAME;
+                : BUS_VERIFY_CRC;
+            break;
+        }
+        case BUS_VERIFY_CRC:
+            // If CRC16 yields zero, then the frame is OK
+            bus_state = bus_crc16 ? BUS_ERROR : BUS_HANDLE_FRAME;
             break;
         case BUS_HANDLE_FRAME:
-            // Todo: continue here
             break;
             
         case BUS_ERROR:

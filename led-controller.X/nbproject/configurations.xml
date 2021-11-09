@@ -48,6 +48,7 @@
       <itemPath>source/rs485.c</itemPath>
       <itemPath>source/bus.c</itemPath>
       <itemPath>source/bus_func_impl.c</itemPath>
+      <itemPath>source/crc16.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
