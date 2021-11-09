@@ -12,7 +12,7 @@ void crc16_reset(crc16_t* crc)
     *crc = CRC16_SEED;
 }
 
-void crc16_work(crc16_t* crc, const unsigned char* data, unsigned int size)
+void crc16_update(crc16_t* crc, const unsigned char* data, unsigned int size)
 {
     ASSERT_NOT_NULL(crc);
     
