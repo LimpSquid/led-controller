@@ -160,9 +160,11 @@ static void bus_rtask_execute(void)
             }
             break;
         case BUS_FRAME_VERIFY:
-            // If CRC16 yields zero, then the frame is OK
-            if(bus_crc16)
-                bus_state = BUS_ERROR;
+            // If CRC16 yields non-zero, then the frame is garbled
+            if(bus_crc16) {
+                bus_response.frame.response_code = BUS_ERROR_INVALID_CRC;
+                bus_state = BUS_SEND_RESPONSE;
+            }
             // Frame meant for us?
             else if(bus_request.frame.address == BUS_BROADCAST_ADDRESS ||
                     bus_request.frame.address == bus_address)

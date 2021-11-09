@@ -9,6 +9,7 @@ enum bus_response_code
     
     BUS_ERROR_MIN = 100,
     BUS_ERROR_UNKNOWN = BUS_ERROR_MIN,  // Unknown error
+    BUS_ERROR_INVALID_CRC,              // CRC was invalid
     BUS_ERROR_INVALID_PAYLOAD,          // Request payload invalid
     BUS_ERROR_INVALID_COMMAND,          // Request command does not exist
     BUS_ERROR_MAX,
