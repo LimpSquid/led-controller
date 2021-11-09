@@ -161,7 +161,11 @@ static void bus_rtask_execute(void)
             break;
         case BUS_FRAME_VERIFY:
             // If CRC16 yields non-zero, then the frame is garbled
+#ifdef BUS_IGNORE_CRC
+            if(false) {
+#else
             if(bus_crc16) {
+#endif
                 bus_response.frame.response_code = BUS_ERR_INVALID_CRC;
                 bus_state = BUS_SEND_RESPONSE;
             }
