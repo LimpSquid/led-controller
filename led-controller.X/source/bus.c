@@ -1,29 +1,29 @@
 
 /* 
- * We need no complexity at all for our bus protocol. A message might look like as follows:
+ * We need no complexity at all for our bus protocol. A message might look like this:
  *
  *  master: |address byte|command byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
  *  slave:  |response status byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
  * 
- * The protocol uses a fixed message width with 4 data bytes and two CRC bytes. If the relevant
- * command doesn't use any of the data bytes, zeroing these fields will suffice.
+ * The protocol uses a fixed message width with 1 address byte, 1 command byte, 4 data bytes and two CRC bytes. 
+ * If the relevant command doesn't use any of the data bytes, zeroing these fields will suffice (not required).
  * 
- * Because we use a fixed message width we don't need any message idle time to indicate a tranmission
- * is completed. We can simply listen to the incoming stream of bytes and always assume the format
+ * Because we use a fixed message width we don't need any message idle time to indicate that a tranmission
+ * has completed. We can simply listen to the incoming stream of bytes and always assume the format
  * as described above.
  * 
- * In case a CRC fails is detected on a slave node, the slave should backoff for a fixed to 
+ * In case a communication error is detected on a slave node, the slave should backoff for a fixed to 
  * be determined time and clear its receive buffer afterwards. Once the backoff time has expired
  * and the receive buffer is cleared, the node should operate as normal again.
  * 
- * Only the master node should retry sending messages. It should wait for up to atleast the 2x backoff
- * period(s) until it may retry sending a message after this period has expired. This ensures that in case of a CRC
- * failure on the slave's end, the master won't send any data during the backoff period. In case the master
- * encounters a CRC error, it may retry sending the message immediatly.
+ * Only the master node should retry sending messages. It should wait for up to at least the 2x 
+ * backoff period before it may retry sending a message. If a slave has responded with a CRC error
+ * it may retry sending the message immediately. In case the master encounters  a CRC error,
+ * it can also retry immediately.
  * 
  * Consider the following situation. Master sends command to slave, slave receives and executes command, 
  * slave sends back response, response gets lost.  The master will now retry sending the same command, 
- * by which it will likely be executed twice by the slave node. For now this behaviour is acceptable and
+ * by which it will likely be executed twice by the slave node. For now this behavior is acceptable and
  * we will not design the protocol to be idempotent, until some new feature requires it to be. 
  *
  * Broadcasts should be supported by all slaves and can be distinguished by a reserved address (like 255). 
@@ -155,14 +155,14 @@ static void bus_rtask_execute(void)
                 bus_frame_offset += size;
                 
                 // Did we read a whole frame's worth of data?
-                if (bus_frame_offset >= BUS_REQUEST_SIZE)
+                if(bus_frame_offset >= BUS_REQUEST_SIZE)
                     bus_state = BUS_FRAME_VERIFY;
             }
             break;
         case BUS_FRAME_VERIFY:
             // If CRC16 yields non-zero, then the frame is garbled
             if(bus_crc16) {
-                bus_response.frame.response_code = BUS_ERROR_INVALID_CRC;
+                bus_response.frame.response_code = BUS_ERR_INVALID_CRC;
                 bus_state = BUS_SEND_RESPONSE;
             }
             // Frame meant for us?
@@ -175,10 +175,12 @@ static void bus_rtask_execute(void)
             break;
         case BUS_FRAME_HANDLE:
             if(bus_request.frame.command >= bus_funcs_size)
-                bus_response.frame.response_code = BUS_ERROR_INVALID_COMMAND;
+                bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
             else {
                 bus_func_t handler = bus_funcs[bus_request.frame.command];
-                bus_response.frame.response_code = handler(&bus_response.frame.payload);
+                bus_response.frame.response_code = handler(
+                    bus_request.frame.address == BUS_BROADCAST_ADDRESS,
+                    &bus_response.frame.payload);
             }
             bus_state = BUS_SEND_RESPONSE;
             break;
