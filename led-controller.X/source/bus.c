@@ -121,7 +121,7 @@ static int bus_rtask_init(void)
     if(bus_backoff_timer == NULL)
         goto fail_timer;
 
-    return KERN_INIT_SUCCCES;
+    return KERN_INIT_SUCCESS;
     
 fail_timer:
     

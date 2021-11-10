@@ -61,7 +61,7 @@ static int timer_ttask_init(void)
     for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i)
         timer_pool[i].opt.assigned = false;
 
-    return KERN_INIT_SUCCCES;
+    return KERN_INIT_SUCCESS;
 }
 
 static void timer_ttask_execute(void)

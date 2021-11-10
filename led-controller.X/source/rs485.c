@@ -163,7 +163,7 @@ static int rs485_rtask_init(void)
         goto fail_timer;
     timer_start(rs485_backoff_tx_timer, RS485_BACKOFF_TX_TIME, TIMER_TIME_UNIT_US);
 
-    return KERN_INIT_SUCCCES;
+    return KERN_INIT_SUCCESS;
     
 fail_timer:
     

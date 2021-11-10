@@ -195,7 +195,7 @@ static int tlc5940_rtask_init(void)
     // Initialize PWM
     pwm_configure(tlc5940_pwm_config);
 
-    return KERN_INIT_SUCCCES;
+    return KERN_INIT_SUCCESS;
 
 fail_spi:
     dma_destruct(tlc5940_dma_channel);

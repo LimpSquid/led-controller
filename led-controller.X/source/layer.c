@@ -286,7 +286,7 @@ static int layer_rtask_init(void)
     // Detect open LEDs on boot
     layer_exec_lod();
    
-    return KERN_INIT_SUCCCES;
+    return KERN_INIT_SUCCESS;
 
 fail_spi:
     dma_destruct(layer_dma_channel);
