@@ -64,6 +64,11 @@ struct layer_io
     unsigned int mask;
 };
 
+struct layer_flags
+{
+    bool need_buffer_swap   :1;
+};
+
 enum layer_state
 {
     LAYER_IDLE = 0,
@@ -73,6 +78,13 @@ enum layer_dma_state
 {
     LAYER_DMA_RECV_FRAME = 0,
     LAYER_DMA_RECV_FRAME_WAIT,
+    LAYER_DMA_SWAP_BUFFERS,
+    LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC,
+};
+
+static struct layer_flags layer_flags = 
+{
+    .need_buffer_swap = false
 };
 
 static int layer_rtask_init(void);
@@ -203,11 +215,14 @@ inline static unsigned int __attribute__((always_inline)) layer_next_row_index(v
     return 0; 
 }
 
-inline static void  __attribute__((always_inline)) layer_swap_buffers(void)
+inline static void  __attribute__((always_inline)) layer_possibly_swap_buffers(void)
 {
-    unsigned char* tmp = layer_dma_ptr;
-    layer_dma_ptr = layer_update_ptr;
-    layer_update_ptr = tmp;
+    if(layer_flags.need_buffer_swap) {
+        unsigned char* tmp = layer_dma_ptr;
+        layer_dma_ptr = layer_update_ptr;
+        layer_update_ptr = tmp;
+        layer_flags.need_buffer_swap = false;
+    }
 }
 
 void tlc5940_update_handler(void)
@@ -234,9 +249,10 @@ void tlc5940_latch_handler(void)
     
     layer_row_index = (unsigned int)(layer_row_io - layer_io);
     layer_row_previous_io = layer_row_io;
-    if(layer_row_index >= (LAYER_NUM_OF_ROWS - 1))
+    if(layer_row_index >= (LAYER_NUM_OF_ROWS - 1)) {
+        layer_possibly_swap_buffers();
         layer_row_io = layer_io;
-    else
+    } else
         layer_row_io++;
 }
 
@@ -311,10 +327,6 @@ static void layer_dma_rtask_execute(void)
     switch(layer_dma_state) {
         default:
         case LAYER_DMA_RECV_FRAME:
-            // @Todo: add timeout timer
-            // @Todo: maybe add something to reset the DMA in case we are out of sync with the master
-            // especially when we add the timeout timer, because if a timeout happens we know that
-            // we are out of sync!
             if(dma_ready(layer_dma_channel)) {
                 dma_configure_dst(layer_dma_channel, layer_dma_ptr, LAYER_FRAME_BUFFER_SIZE);
                 dma_enable_transfer(layer_dma_channel);
@@ -322,12 +334,19 @@ static void layer_dma_rtask_execute(void)
             }
             break;
         case LAYER_DMA_RECV_FRAME_WAIT:
-            if(dma_ready(layer_dma_channel)) {
-                // @Todo: buffer swap should happen by external command
-                // @Todo: eventually sync this in latch callback to avoid swapping buffers mid-frame
-                layer_swap_buffers();
+            if(dma_ready(layer_dma_channel))
+                layer_dma_state = LAYER_DMA_SWAP_BUFFERS;
+            break;
+
+        case LAYER_DMA_SWAP_BUFFERS:
+#ifdef LAYER_AUTO_BUFFER_SWAP
+#warning "AUTO_BUFFER_SWAP defined"
+            layer_flags.need_buffer_swap = true;
+#endif
+            break;
+        case LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC:
+            if(!layer_flags.need_buffer_swap)
                 layer_dma_state = LAYER_DMA_RECV_FRAME;
-            }
             break;
     }
 }
@@ -348,5 +367,23 @@ bool layer_exec_lod(void)
         return false;
     
     // @Todo: eventually start LOD execution
+    return true;
+}
+
+void layer_dma_reset(void)
+{
+    dma_disable_transfer(layer_dma_channel);
+    
+    layer_flags.need_buffer_swap = false;
+    layer_dma_state = LAYER_DMA_RECV_FRAME;
+}
+
+bool layer_dma_swap_buffers(void)
+{
+    if (layer_dma_state != LAYER_DMA_SWAP_BUFFERS)
+        return false;
+    
+    layer_flags.need_buffer_swap = true;
+    layer_dma_state = LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC;
     return true;
 }

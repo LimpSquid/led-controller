@@ -30,6 +30,7 @@
  */
 
 #include <bus.h>
+#include <assert_util.h>
 #include <kernel_task.h>
 #include <rs485.h>
 #include <timer.h>
@@ -42,22 +43,6 @@
 #define BUS_CRC_SIZE                sizeof(crc16_t)
 #define BUS_ERROR_BACKOFF_TIME      5 // In milliseconds
 #define BUS_BROADCAST_ADDRESS       255
-
-enum bus_state
-{
-    BUS_INIT = 0,
-    BUS_INIT_SAMPLE_ADDRESS,
-    
-    BUS_READ_CLEAR,
-    BUS_READ_PART,
-    BUS_FRAME_VERIFY,
-    BUS_FRAME_HANDLE,
-    BUS_SEND_RESPONSE,
-    
-    BUS_ERROR,
-    BUS_ERROR_BACKOFF_WAIT,
-    BUS_ERROR_RESET,
-};
 
 struct __attribute__((packed)) bus_request_frame
 {
@@ -84,6 +69,22 @@ union bus_response
 {
     struct bus_response_frame frame;
     unsigned char data[sizeof(struct bus_response_frame)];
+};
+
+enum bus_state
+{
+    BUS_INIT = 0,
+    BUS_INIT_SAMPLE_ADDRESS,
+    
+    BUS_READ_CLEAR,
+    BUS_READ_PART,
+    BUS_FRAME_VERIFY,
+    BUS_FRAME_HANDLE,
+    BUS_SEND_RESPONSE,
+    
+    BUS_ERROR,
+    BUS_ERROR_BACKOFF_WAIT,
+    BUS_ERROR_RESET,
 };
 
 static void bus_error_callback(struct rs485_error);
@@ -159,6 +160,7 @@ static void bus_rtask_execute(void)
             break;
         case BUS_FRAME_VERIFY:
 #ifdef BUS_IGNORE_CRC
+#warning "BUS_IGNORE_CRC defined"
             if(false)
 #else
             // If CRC16 yields non-zero, then the frame is garbled, back off and reset
@@ -180,6 +182,8 @@ static void bus_rtask_execute(void)
             } else {
                 bool broadcast = bus_request.frame.address == BUS_BROADCAST_ADDRESS;
                 bus_func_t handler = bus_funcs[bus_request.frame.command];
+                ASSERT_NOT_NULL(handler);
+                
                 bus_response.frame.response_code = handler(
                     broadcast,
                     &bus_request.frame.payload,

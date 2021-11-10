@@ -254,6 +254,13 @@ void dma_enable_transfer(struct dma_channel* channel)
     atomic_reg_set(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 }
 
+void dma_disable_transfer(struct dma_channel* channel)
+{
+    ASSERT_NOT_NULL(channel);
+
+    atomic_reg_clr(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+}
+
 bool dma_busy(struct dma_channel* channel)
 {
     ASSERT_NOT_NULL(channel);

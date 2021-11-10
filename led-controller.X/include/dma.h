@@ -34,6 +34,7 @@ void dma_configure_cell(struct dma_channel* channel, unsigned short size);
 void dma_configure_start_event(struct dma_channel* channel, struct dma_event event);
 void dma_configure_abort_event(struct dma_channel* channel, struct dma_event event);
 void dma_enable_transfer(struct dma_channel* channel);
+void dma_disable_transfer(struct dma_channel* channel);
 bool dma_busy(struct dma_channel* channel);
 bool dma_ready(struct dma_channel* channel);
 
