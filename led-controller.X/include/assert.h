@@ -14,9 +14,9 @@
 #undef __assert_soft_failed
 
 #ifdef __DEBUG
-#define ASSERT(expression)          ((expression) ? expression : __assert_failed(expression))
-#define INT_ASSERT(expression)      ((expression) ? expression : __assert_int_failed(expression))
-#define SOFT_ASSERT(expression)     ((expression) ? expression : __assert_soft_failed(expression))
+#define ASSERT(expression)          do { if(!expression) { __assert_failed(expression));        } } while(0)
+#define INT_ASSERT(expression)      do { if(!expression) { __assert_int_failed(expression));    } } while(0)
+#define SOFT_ASSERT(expression)     do { if(!expression) { __assert_soft_failed(expression));   } } while(0)
 
 // Assertion formats
 #define __assert_failed(expression)         __assert_print("Assertion failed: %s at line %d in %s of %s", #expression, __LINE__, __FUNCTION__, __FILE__)
