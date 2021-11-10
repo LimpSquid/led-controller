@@ -110,51 +110,6 @@ static struct dma_channel* tlc5940_dma_channel = NULL;
 static struct spi_module* tlc5940_spi_module = NULL;
 static enum tlc5940_state tlc5940_state = TLC5940_INIT;
 
-bool tlc5940_enable(void)
-{
-    // Note that the first GSCLK is undefined because the update
-    // and latch handlers are yet to be called
-    pwm_enable(); 
-}
-
-bool tlc5940_disable(void)
-{
-    pwm_disable();
-}
-
-void tlc5940_write(unsigned int device, unsigned int channel, unsigned short value)
-{
-    if(device >= TLC5940_NUM_OF_DEVICES)
-        return;
-    if(channel >= TLC5940_CHANNELS_PER_DEVICE)
-        return;
-
-    unsigned char byte1;
-    unsigned char byte2;
-    unsigned int index = channel + device * TLC5940_CHANNELS_PER_DEVICE;
-
-    index += index >> 1;
-    if(channel & 1) {
-        byte1 = (value >> 8) & 0x0f;
-        byte2 = (value & 0xff);
-    } else {
-        byte1 = (value >> 4) & 0xff;
-        byte2 = (value & 0x0f) << 4;
-    }
-
-    tlc5940_buffer[index    ] |= byte1;
-    tlc5940_buffer[index + 1] |= byte2;
-}
-
-void tlc5940_write_all_channels(unsigned int device, unsigned short value)
-{
-    if(device >= TLC5940_NUM_OF_DEVICES)
-        return;
-    
-    for(unsigned int i = 0; i < TLC5940_CHANNELS_PER_DEVICE; i++)
-        tlc5940_write(device, i, value);
-}
-
 void __attribute__ ((weak)) tlc5940_update_handler(void)
 {
     // Handler to write new data to the TLC5940's
@@ -286,4 +241,49 @@ static void tlc5940_rtask_execute(void)
             }
             break;
     }
+}
+
+bool tlc5940_enable(void)
+{
+    // Note that the first GSCLK is undefined because the update
+    // and latch handlers are yet to be called
+    pwm_enable(); 
+}
+
+bool tlc5940_disable(void)
+{
+    pwm_disable();
+}
+
+void tlc5940_write(unsigned int device, unsigned int channel, unsigned short value)
+{
+    if(device >= TLC5940_NUM_OF_DEVICES)
+        return;
+    if(channel >= TLC5940_CHANNELS_PER_DEVICE)
+        return;
+
+    unsigned char byte1;
+    unsigned char byte2;
+    unsigned int index = channel + device * TLC5940_CHANNELS_PER_DEVICE;
+
+    index += index >> 1;
+    if(channel & 1) {
+        byte1 = (value >> 8) & 0x0f;
+        byte2 = (value & 0xff);
+    } else {
+        byte1 = (value >> 4) & 0xff;
+        byte2 = (value & 0x0f) << 4;
+    }
+
+    tlc5940_buffer[index    ] |= byte1;
+    tlc5940_buffer[index + 1] |= byte2;
+}
+
+void tlc5940_write_all_channels(unsigned int device, unsigned short value)
+{
+    if(device >= TLC5940_NUM_OF_DEVICES)
+        return;
+    
+    for(unsigned int i = 0; i < TLC5940_CHANNELS_PER_DEVICE; i++)
+        tlc5940_write(device, i, value);
 }

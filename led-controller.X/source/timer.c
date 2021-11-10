@@ -20,8 +20,6 @@ struct timer_module
     } opt;
 };
 
-static unsigned long timer_compute_ticks(int time, int unit);
-
 static int timer_ttask_init(void);
 static void timer_ttask_execute(void);
 static void timer_ttask_configure(struct kernel_ttask_param* const param);
@@ -36,6 +34,85 @@ KERN_TTASK(timer, timer_ttask_init, timer_ttask_execute, timer_ttask_configure, 
 #else
     #error "Define timer pool size 'TIMER_POOL_SIZE' with a number >= 1"
 #endif
+
+static unsigned long timer_compute_ticks(int time, int unit)
+{
+    unsigned long ticks;
+    switch(unit) {
+        default: // Default to seconds
+        case TIMER_TIME_UNIT_S:
+            //@Todo: Currently limited to 12 bits, fixme?
+            if(time > 4096)
+                time = 4096;
+            ticks = (time * 1000000LU) / TIMER_TICK_INTERVAL;
+            break;
+        case TIMER_TIME_UNIT_MS:
+            ticks = (time * 1000LU) / TIMER_TICK_INTERVAL;
+            break;
+        case TIMER_TIME_UNIT_US:
+            ticks = time / TIMER_TICK_INTERVAL;
+            break;
+    }
+    return ticks;
+}
+
+static int timer_ttask_init(void)
+{
+    for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i)
+        timer_pool[i].opt.assigned = false;
+
+    return KERN_INIT_SUCCCES;
+}
+
+static void timer_ttask_execute(void)
+{
+    void (*execute)(struct timer_module*) = NULL;
+
+    struct timer_module* timer = timer_pool;
+    for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i) {
+        if(timer->opt.assigned && !timer->opt.suspended) {
+
+            // Decrement tick count
+            if(timer->ticks > 0)
+                timer->opt.timedout = !!!(--timer->ticks); // Determine if timer timed out after decrement.
+            else
+                timer->opt.timedout = true;
+
+            if(timer->opt.timedout) {
+                switch(timer->opt.type) {
+                    case TIMER_TYPE_SOFT:
+                        if(execute == NULL) { // Yay, we can execute this timer's handle
+                            timer->ticks = timer->interval; // Reset tick count
+                            timer->opt.timedout = false;
+                            execute = timer->execute;
+                        }
+                        break;
+                    case TIMER_TYPE_SINGLE_SHOT:
+                        if(execute == NULL) {
+                            timer->opt.suspended = true;
+                            execute = timer->execute;
+                        }
+                        break;
+                    case TIMER_TYPE_COUNTDOWN:
+                        timer->opt.suspended = true;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        timer++; // Advance to next timer
+    }
+
+    if(execute != NULL)
+        (*execute)(timer);
+}
+
+static void timer_ttask_configure(struct kernel_ttask_param* const param)
+{
+    kernel_ttask_set_priority(param, KERN_TTASK_PRIORITY_HIGH);
+    kernel_ttask_set_interval(param, TIMER_TICK_INTERVAL, KERN_TIME_UNIT_US);
+}
 
 struct timer_module* timer_construct(int type, void (*execute)(struct timer_module*))
 {
@@ -119,83 +196,4 @@ bool timer_is_valid(const struct timer_module* timer)
     ASSERT_NOT_NULL(timer);
 
     return timer->opt.assigned;
-}
-
-static unsigned long timer_compute_ticks(int time, int unit)
-{
-    unsigned long ticks;
-    switch(unit) {
-        default: // Default to seconds
-        case TIMER_TIME_UNIT_S:
-            //@Todo: Currently limited to 12 bits, fixme?
-            if(time > 4096)
-                time = 4096;
-            ticks = (time * 1000000LU) / TIMER_TICK_INTERVAL;
-            break;
-        case TIMER_TIME_UNIT_MS:
-            ticks = (time * 1000LU) / TIMER_TICK_INTERVAL;
-            break;
-        case TIMER_TIME_UNIT_US:
-            ticks = time / TIMER_TICK_INTERVAL;
-            break;
-    }
-    return ticks;
-}
-
-static int timer_ttask_init(void)
-{
-    for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i)
-        timer_pool[i].opt.assigned = false;
-
-    return KERN_INIT_SUCCCES;
-}
-
-static void timer_ttask_execute(void)
-{
-    void (*execute)(struct timer_module*) = NULL;
-
-    struct timer_module* timer = timer_pool;
-    for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i) {
-        if(timer->opt.assigned && !timer->opt.suspended) {
-
-            // Decrement tick count
-            if(timer->ticks > 0)
-                timer->opt.timedout = !!!(--timer->ticks); // Determine if timer timed out after decrement.
-            else
-                timer->opt.timedout = true;
-
-            if(timer->opt.timedout) {
-                switch(timer->opt.type) {
-                    case TIMER_TYPE_SOFT:
-                        if(execute == NULL) { // Yay, we can execute this timer's handle
-                            timer->ticks = timer->interval; // Reset tick count
-                            timer->opt.timedout = false;
-                            execute = timer->execute;
-                        }
-                        break;
-                    case TIMER_TYPE_SINGLE_SHOT:
-                        if(execute == NULL) {
-                            timer->opt.suspended = true;
-                            execute = timer->execute;
-                        }
-                        break;
-                    case TIMER_TYPE_COUNTDOWN:
-                        timer->opt.suspended = true;
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-        timer++; // Advance to next timer
-    }
-
-    if(execute != NULL)
-        (*execute)(timer);
-}
-
-static void timer_ttask_configure(struct kernel_ttask_param* const param)
-{
-    kernel_ttask_set_priority(param, KERN_TTASK_PRIORITY_HIGH);
-    kernel_ttask_set_interval(param, TIMER_TICK_INTERVAL, KERN_TIME_UNIT_US);
 }

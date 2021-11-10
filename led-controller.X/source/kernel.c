@@ -36,16 +36,6 @@
 
 typedef KERN_TMR_REG_DATA_TYPE timer_size_t;
 
-static void kernel_init_configure_ttask(void);
-static void kernel_init_configure_rtask(void);
-static void kernel_init_ttask_call_sequence(void);
-static void kernel_init_task_init(void);
-static void kernel_execute_ttask_rtask(void);
-inline static void __attribute__((always_inline)) kernel_execute_ttask(void);
-inline static void __attribute__((always_inline)) kernel_execute_rtask(void);
-static void kernel_execute_no_task(void);
-static int kernel_compute_sys_ticks(int time, int unit);
-
 extern const struct kernel_rtask __kernel_rstack_begin;
 extern const struct kernel_rtask __kernel_rstack_end;
 extern const struct kernel_ttask __kernel_tstack_begin;
@@ -64,50 +54,6 @@ static void (*kernel_exec_func)(void) = NULL;
 
 static timer_size_t elapsed_ticks = 0;
 static timer_size_t previous_ticks = 0;
-
-void kernel_init(void)
-{
-    kernel_init_configure_ttask();
-    kernel_init_configure_rtask();
-    kernel_init_ttask_call_sequence();
-    kernel_init_task_init();
-
-    if(kernel_rtask_size() != 0 && kernel_ttask_size() != 0)
-        kernel_exec_func = kernel_execute_ttask_rtask;
-    else if(kernel_rtask_size() != 0)
-        kernel_exec_func = kernel_execute_rtask;
-    else if(kernel_ttask_size() != 0)
-        kernel_exec_func = kernel_execute_ttask;
-    else
-        kernel_exec_func = kernel_execute_no_task;
-
-    // Configure timer
-    if(kernel_ttask_size() != 0) {
-        REG_CLR(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
-        KERN_TMR_CFG_REG = KERN_TMR_CFG_WORD;
-        REG_SET(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
-    }
-}
-
-void kernel_execute(void)
-{
-    (*kernel_exec_func)();
-}
-
-void kernel_ttask_set_priority(struct kernel_ttask_param* const ttask_param, int priority)
-{
-    if(ttask_param != NULL) {
-        if(priority < 0 || priority >= __KERN_TTASK_PRIORITY_COUNT)
-            priority = KERN_TTASK_PRIORITY_NORMAL;
-        ttask_param->priority = priority;
-    }
-}
-
-void kernel_ttask_set_interval(struct kernel_ttask_param* const ttask_param, int time, int unit)
-{
-    if(ttask_param != NULL)
-        ttask_param->interval = kernel_compute_sys_ticks(time, unit);
-}
 
 static void kernel_init_configure_ttask(void)
 {
@@ -205,12 +151,6 @@ static void kernel_init_task_init(void)
     } while(init_level >= 0);
 }
 
-static void kernel_execute_ttask_rtask(void)
-{
-    kernel_execute_ttask();
-    kernel_execute_rtask();
-}
-
 inline static void __attribute__((always_inline)) kernel_execute_ttask(void)
 {
     struct kernel_ttask_param* param;
@@ -237,6 +177,12 @@ inline static void __attribute__((always_inline)) kernel_execute_rtask(void)
         kernel_restore_rtask_iterator();
 }
 
+static void kernel_execute_ttask_rtask(void)
+{
+    kernel_execute_ttask();
+    kernel_execute_rtask();
+}
+
 static void kernel_execute_no_task(void)
 {
     Nop();
@@ -252,4 +198,48 @@ static int kernel_compute_sys_ticks(int time, int unit)
         case KERN_TIME_UNIT_US: ticks = time / KERNEL_SYSTEM_TICK;                  break;
     }
     return ticks;
+}
+
+void kernel_init(void)
+{
+    kernel_init_configure_ttask();
+    kernel_init_configure_rtask();
+    kernel_init_ttask_call_sequence();
+    kernel_init_task_init();
+
+    if(kernel_rtask_size() != 0 && kernel_ttask_size() != 0)
+        kernel_exec_func = kernel_execute_ttask_rtask;
+    else if(kernel_rtask_size() != 0)
+        kernel_exec_func = kernel_execute_rtask;
+    else if(kernel_ttask_size() != 0)
+        kernel_exec_func = kernel_execute_ttask;
+    else
+        kernel_exec_func = kernel_execute_no_task;
+
+    // Configure timer
+    if(kernel_ttask_size() != 0) {
+        REG_CLR(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
+        KERN_TMR_CFG_REG = KERN_TMR_CFG_WORD;
+        REG_SET(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
+    }
+}
+
+void kernel_execute(void)
+{
+    (*kernel_exec_func)();
+}
+
+void kernel_ttask_set_priority(struct kernel_ttask_param* const ttask_param, int priority)
+{
+    if(ttask_param != NULL) {
+        if(priority < 0 || priority >= __KERN_TTASK_PRIORITY_COUNT)
+            priority = KERN_TTASK_PRIORITY_NORMAL;
+        ttask_param->priority = priority;
+    }
+}
+
+void kernel_ttask_set_interval(struct kernel_ttask_param* const ttask_param, int time, int unit)
+{
+    if(ttask_param != NULL)
+        ttask_param->interval = kernel_compute_sys_ticks(time, unit);
 }

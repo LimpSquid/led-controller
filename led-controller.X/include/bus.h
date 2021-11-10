@@ -8,13 +8,11 @@ enum bus_response_code
 {
     BUS_OK = 0,                         // Request OK and handled, must be 0
     
-    BUS_ERR_MIN = 100,
-    BUS_ERR_UNKNOWN = BUS_ERR_MIN,      // Unknown error
+    BUS_ERR_START = 100,
+    BUS_ERR_UNKNOWN = BUS_ERR_START,    // Unknown error
     BUS_ERR_AGAIN,                      // Request couldn't be completed at this time
-    BUS_ERR_INVALID_CRC,                // CRC was invalid
     BUS_ERR_INVALID_PAYLOAD,            // Request payload invalid
     BUS_ERR_INVALID_COMMAND,            // Request command does not exist
-    BUS_ERR_MAX,
 };
 
 union __attribute__((packed)) bus_data

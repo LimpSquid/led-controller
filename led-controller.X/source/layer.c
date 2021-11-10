@@ -75,10 +75,6 @@ enum layer_dma_state
     LAYER_DMA_RECV_FRAME_WAIT,
 };
 
-static void layer_row_io_reset(void);
-inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void);
-inline static void  __attribute__((always_inline)) layer_swap_buffers(void);
-
 static int layer_rtask_init(void);
 static void layer_rtask_execute(void);
 static void layer_dma_rtask_execute(void);
@@ -186,23 +182,32 @@ static enum layer_state layer_state = LAYER_IDLE;
 static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME;
 static unsigned int layer_row_index = 0; // Active row, corresponding row IO is layer_io[layer_row_index]
 
-bool layer_busy(void)
+static void layer_row_io_reset(void)
 {
-    return layer_state != LAYER_IDLE;
-}
-
-bool layer_ready(void)
-{
-    return !layer_busy();
-}
-
-bool layer_exec_lod(void)
-{
-    if(layer_busy())
-        return false;
+    atomic_reg_ptr_clr(layer_row_io->lat, layer_row_io->mask);
+    atomic_reg_ptr_clr(layer_row_previous_io->lat, layer_row_previous_io->mask);
     
-    // @Todo: eventually start LOD execution
-    return true;
+    layer_row_io = layer_io;
+    layer_row_previous_io = &layer_io[LAYER_NUM_OF_ROWS - 1];
+    layer_row_index = 0;
+}
+
+inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void)
+{   
+    unsigned int port = atomic_reg_ptr_value(layer_io[layer_row_index].port);
+    if(port & layer_io[layer_row_index].mask)
+        return (layer_row_index + 1) % LAYER_NUM_OF_ROWS;
+    
+    // This means that layer_row_io_reset() was just called (or a CPU reset)
+    // and we have yet to make the first row active in tlc5940_latch_callback())
+    return 0; 
+}
+
+inline static void  __attribute__((always_inline)) layer_swap_buffers(void)
+{
+    unsigned char* tmp = layer_dma_ptr;
+    layer_dma_ptr = layer_update_ptr;
+    layer_update_ptr = tmp;
 }
 
 void tlc5940_update_handler(void)
@@ -233,34 +238,6 @@ void tlc5940_latch_handler(void)
         layer_row_io = layer_io;
     else
         layer_row_io++;
-}
-
-static void layer_row_io_reset(void)
-{
-    atomic_reg_ptr_clr(layer_row_io->lat, layer_row_io->mask);
-    atomic_reg_ptr_clr(layer_row_previous_io->lat, layer_row_previous_io->mask);
-    
-    layer_row_io = layer_io;
-    layer_row_previous_io = &layer_io[LAYER_NUM_OF_ROWS - 1];
-    layer_row_index = 0;
-}
-
-inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void)
-{   
-    unsigned int port = atomic_reg_ptr_value(layer_io[layer_row_index].port);
-    if(port & layer_io[layer_row_index].mask)
-        return (layer_row_index + 1) % LAYER_NUM_OF_ROWS;
-    
-    // This means that layer_row_io_reset() was just called (or a CPU reset)
-    // and we have yet to make the first row active in tlc5940_latch_callback())
-    return 0; 
-}
-
-inline static void  __attribute__((always_inline)) layer_swap_buffers(void)
-{
-    unsigned char* tmp = layer_dma_ptr;
-    layer_dma_ptr = layer_update_ptr;
-    layer_update_ptr = tmp;
 }
 
 static int layer_rtask_init(void)
@@ -353,4 +330,23 @@ static void layer_dma_rtask_execute(void)
             }
             break;
     }
+}
+
+bool layer_busy(void)
+{
+    return layer_state != LAYER_IDLE;
+}
+
+bool layer_ready(void)
+{
+    return !layer_busy();
+}
+
+bool layer_exec_lod(void)
+{
+    if(layer_busy())
+        return false;
+    
+    // @Todo: eventually start LOD execution
+    return true;
 }

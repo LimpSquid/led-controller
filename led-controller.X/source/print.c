@@ -30,42 +30,79 @@ enum
     ALIGN_CENTER
 };
 
-static void print_full_str(const char* str, int size, void* data, int(*puts)(void* data, const char* str, unsigned int size));
-static int print_format(const char* format, va_list arg, void* data, int(*puts)(void* data, const char* str, unsigned int size));
-static int print_strlen32(const char* str);
-static int print_itoa(int value, char* str, int base, const struct print_options* opt);
-
-static int print_str_puts(void* data, const char* str, unsigned int size);
-
-int print_fs(char* str, const char* format, ...)
-{
-    int result = 0;
-    if(str != NULL) {
-        va_list arg;
-        va_start(arg, format);
-        struct print_string str_data = { .buffer = str, .offset = 0 };
-        result = print_format(format, arg, &str_data, print_str_puts);
-        va_end(arg);
-    }
-    return result;
-}
-
-int print_vfs(char* str, const char* format, va_list arg)
-{
-    int result = 0;
-    if(str != NULL) {
-        struct print_string str_data = { .buffer = str, .offset = 0 };
-        result = print_format(format, arg, &str_data, print_str_puts);
-    }
-    return result;
-}
-
 static void print_full_str(const char* str, int size, void* data, int(*puts)(void* data, const char* str, unsigned int size))
 {
     const char* start = str;
     const char* end = str + size;
     while(start != end)
         start += (*puts)(data, start, (end - start));
+}
+
+static int print_strlen32(const char* str)
+{
+    int length = 0;
+    while(1) {
+        unsigned int x = *(unsigned int*)str;
+        if((x & 0xff) == 0)
+            return length;
+        if((x & 0xff00) == 0)
+            return length + 1;
+        if((x & 0xff0000) == 0)
+            return length + 2;
+        if((x & 0xff000000) == 0)
+            return length + 3;
+
+        str += 4;
+        length += 4;
+    }
+}
+
+static int print_itoa(int value, char* str, int number_base, const struct print_options* opt)
+{
+    // Check boundaries of base, default to 10
+    if(number_base < 2 || number_base > 16)
+        number_base = 10;
+
+    // Only base 10 can be negative
+    unsigned char negative = (value < 0) && opt->negative && (number_base == 10);
+    unsigned int pos_value = negative ? -value : value;
+    unsigned int number = pos_value;
+    unsigned int n_digits;
+
+    // Determine how many digits the number has
+    for(n_digits = 1; number /= number_base; n_digits++);
+
+    unsigned char zero_padding = (opt->pad_zero >= (n_digits + negative)) ? opt->pad_zero - (n_digits + negative) : 0;
+    int length = (zero_padding + n_digits + negative);
+    char* string_builder = str + length;
+
+    // Insert NULL terminator
+    *(string_builder--) = '\0';
+
+    // Build up the digits
+    do {
+		int digit = pos_value % number_base;
+		*(string_builder--) = (digit < 10 ? '0' + digit : (opt->upper_case ? 'A' : 'a') + digit - 10);
+		pos_value /= number_base;
+    } while(pos_value > 0);
+
+    // Zero padding
+    while(zero_padding-- > 0)
+        *(string_builder--) = '0';
+
+    // Insert negative sign
+    if(negative)
+        *(string_builder--) = '-';
+
+    return length;
+}
+
+static int print_str_puts(void* data, const char* str, unsigned int size)
+{
+    struct print_string* str_data = data;
+    memcpy(&str_data->buffer[str_data->offset], str, size);
+    str_data->offset += size;
+    return size;
 }
 
 static int print_format(const char* format,  va_list arg, void* data, int(*puts)(void* data, const char* str, unsigned int size))
@@ -153,69 +190,25 @@ static int print_format(const char* format,  va_list arg, void* data, int(*puts)
     return chars_written;
 }
 
-static int print_strlen32(const char* str)
+int print_fs(char* str, const char* format, ...)
 {
-    int length = 0;
-    while(1) {
-        unsigned int x = *(unsigned int*)str;
-        if((x & 0xff) == 0)
-            return length;
-        if((x & 0xff00) == 0)
-            return length + 1;
-        if((x & 0xff0000) == 0)
-            return length + 2;
-        if((x & 0xff000000) == 0)
-            return length + 3;
-
-        str += 4;
-        length += 4;
+    int result = 0;
+    if(str != NULL) {
+        va_list arg;
+        va_start(arg, format);
+        struct print_string str_data = { .buffer = str, .offset = 0 };
+        result = print_format(format, arg, &str_data, print_str_puts);
+        va_end(arg);
     }
+    return result;
 }
 
-static int print_itoa(int value, char* str, int base, const struct print_options* opt)
+int print_vfs(char* str, const char* format, va_list arg)
 {
-    // Check boundaries of base, default to 10
-    if(base < 2 || base > 16)
-        base = 10;
-
-    // Only base 10 can be negative
-    unsigned char negative = (value < 0) && opt->negative && (base == 10);
-    unsigned int pos_value = negative ? -value : value;
-    unsigned int number = pos_value;
-    unsigned int n_digits;
-
-    // Determine how many digits the number has
-    for(n_digits = 1; number /= base; n_digits++);
-
-    unsigned char zero_padding = (opt->pad_zero >= (n_digits + negative)) ? opt->pad_zero - (n_digits + negative) : 0;
-    int length = (zero_padding + n_digits + negative);
-    char* string_builder = str + length;
-
-    // Insert NULL terminator
-    *(string_builder--) = '\0';
-
-    // Build up the digits
-    do {
-		int digit = pos_value % base;
-		*(string_builder--) = (digit < 10 ? '0' + digit : (opt->upper_case ? 'A' : 'a') + digit - 10);
-		pos_value /= base;
-    } while(pos_value > 0);
-
-    // Zero padding
-    while(zero_padding-- > 0)
-        *(string_builder--) = '0';
-
-    // Insert negative sign
-    if(negative)
-        *(string_builder--) = '-';
-
-    return length;
-}
-
-static int print_str_puts(void* data, const char* str, unsigned int size)
-{
-    struct print_string* str_data = data;
-    memcpy(&str_data->buffer[str_data->offset], str, size);
-    str_data->offset += size;
-    return size;
+    int result = 0;
+    if(str != NULL) {
+        struct print_string str_data = { .buffer = str, .offset = 0 };
+        result = print_format(format, arg, &str_data, print_str_puts);
+    }
+    return result;
 }

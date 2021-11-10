@@ -1,13 +1,14 @@
 #include <bus.h>
 #include <assert.h>
+#include <timer.h>
 #include <layer.h>
 #include <sys.h>
 #include <stddef.h>
 
-#define BUS_FUNCS_SIZE  (sizeof(bus_funcs) / sizeof(bus_func_t))
-#define UNUSED1(x)      ((void)x)
-#define UNUSED2(x,y)    ((void)x);((void)y)
-#define UNUSED3(x,y,z)  ((void)x);((void)y);((void)z)
+#define BUS_FUNCS_SIZE      (sizeof(bus_funcs) / sizeof(bus_func_t))
+#define UNUSED1(x)          ((void)x)
+#define UNUSED2(x, y)       ((void)x);((void)y)
+#define UNUSED3(x, y, z)    ((void)x);((void)y);((void)z)
 
 enum
 {
@@ -15,6 +16,7 @@ enum
     BUS_COMMAND_LAYER_EXEC_LOD,
     BUS_COMMAND_SYS_VERSION,
     BUS_COMMAND_SYS_CPU_RESET,
+
     BUS_NUM_OF_COMMANDS // Must be last
 };
 
@@ -55,15 +57,23 @@ static enum bus_response_code bus_func_sys_version(
     return BUS_OK;
 }
 
+static void bus_delayed_cpu_reset(struct timer_module* timer)
+{
+    timer_destruct(timer); // Lets be nice and destruct the timer even though we are going to reset :-)
+    sys_cpu_reset();
+}
+
 static enum bus_response_code bus_func_sys_cpu_reset(
     bool broadcast,
     const union bus_data* request_data,
     union bus_data* response_data)
 {
-    UNUSED3(broadcast, request_data, response_data);
-    // @Todo: possibly add timer to delay the reset
+    UNUSED2(broadcast, response_data);
 
-    sys_cpu_reset();
+    struct timer_module* timer = timer_construct(TIMER_TYPE_SINGLE_SHOT, bus_delayed_cpu_reset);
+    if(timer == NULL)
+        return BUS_ERR_AGAIN;
+    timer_start(timer, request_data->by_int32, TIMER_TIME_UNIT_MS);
     return BUS_OK;
 }
 

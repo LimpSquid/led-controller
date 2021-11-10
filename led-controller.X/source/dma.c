@@ -62,8 +62,6 @@ struct dma_channel
     bool assigned;
 };
 
-static void dma_handle_interrupt(struct dma_channel* channel);
-
 static const struct dma_interrupt_map dma_channel_interrupts[] =
 {
     {

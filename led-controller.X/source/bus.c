@@ -12,14 +12,13 @@
  * has completed. We can simply listen to the incoming stream of bytes and always assume the format
  * as described above.
  * 
- * In case a communication error is detected on a slave node, the slave should backoff for a fixed to 
- * be determined time and clear its receive buffer afterwards. Once the backoff time has expired
+ * In case a communication error (UART error, CRC, etc) is detected on a slave node, the slave should back off for a fixed to 
+ * be determined time and clear its receive buffer afterwards. Once the back off time has expired
  * and the receive buffer is cleared, the node should operate as normal again.
  * 
  * Only the master node should retry sending messages. It should wait for up to at least the 2x 
- * backoff period before it may retry sending a message. If a slave has responded with a CRC error
- * it may retry sending the message immediately. In case the master encounters  a CRC error,
- * it can also retry immediately.
+ * back off period before it may retry sending a message. In case the master encounters a CRC error,
+ * it can retry immediately.
  * 
  * Consider the following situation. Master sends command to slave, slave receives and executes command, 
  * slave sends back response, response gets lost.  The master will now retry sending the same command, 
@@ -87,8 +86,7 @@ union bus_response
     unsigned char data[sizeof(struct bus_response_frame)];
 };
 
-static void bus_error_callback(struct rs485_error error);
-
+static void bus_error_callback(struct rs485_error);
 static int bus_rtask_init(void);
 static void bus_rtask_execute(void);
 KERN_RTASK(bus, bus_rtask_init, bus_rtask_execute, NULL, KERN_INIT_LATE)
@@ -160,15 +158,13 @@ static void bus_rtask_execute(void)
             }
             break;
         case BUS_FRAME_VERIFY:
-            // If CRC16 yields non-zero, then the frame is garbled
 #ifdef BUS_IGNORE_CRC
-            if(false) {
+            if(false)
 #else
-            if(bus_crc16) {
+            // If CRC16 yields non-zero, then the frame is garbled, back off and reset
+            if(bus_crc16)
 #endif
-                bus_response.frame.response_code = BUS_ERR_INVALID_CRC;
-                bus_state = BUS_SEND_RESPONSE;
-            }
+                bus_state = BUS_ERROR;
             // Frame meant for us?
             else if(bus_request.frame.address == BUS_BROADCAST_ADDRESS ||
                     bus_request.frame.address == bus_address)

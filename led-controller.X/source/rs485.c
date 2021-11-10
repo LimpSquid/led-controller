@@ -65,13 +65,7 @@ enum rs485_state
     RS485_ERROR_IDLE
 };
 
-static void rs485_receive(unsigned char data);
-static void rs485_write(unsigned char data);
-static unsigned char rs485_tx_take(void);
-
-static void rs485_error_callback(struct rs485_error error);
-static void rs485_error_notify(void);
-
+static void rs485_error_callback(struct rs485_error);
 static int rs485_rtask_init(void);
 static void rs485_rtask_execute(void);
 KERN_RTASK(rs485, rs485_rtask_init, rs485_rtask_execute, NULL, KERN_INIT_EARLY)
@@ -106,86 +100,6 @@ static unsigned char* const rs485_rx_begin = &rs485_rx_fifo[0];
 static unsigned char* const rs485_rx_end = &rs485_rx_fifo[RS485_RX_FIFO_SIZE - 1];
 static unsigned char* rs485_rx_consumer = &rs485_rx_fifo[0];
 static unsigned char* rs485_rx_producer = &rs485_rx_fifo[0];
-
-enum rs485_status rs485_get_status(void)
-{
-    return rs485_status;
-}
-
-struct rs485_error rs485_get_error(void)
-{
-    return rs485_error_reg.error;
-}
-
-void rs485_register_error_notifier(struct rs485_error_notifier* const notifier)
-{
-    if(notifier != NULL && notifier->callback != NULL) {
-        // Update linked list
-        *rs485_notifier_next = notifier;
-        rs485_notifier_next = &notifier->next;
-    }
-}
-
-void rs485_reset(void)
-{
-    rs485_state = RS485_IDLE;
-    rs485_status = RS485_STATUS_IDLE;
-    rs485_tx_producer = rs485_tx_begin;
-    rs485_tx_consumer = rs485_tx_begin;
-    rs485_rx_producer = rs485_rx_begin;
-    rs485_rx_consumer = rs485_rx_begin;
-
-    // Clear errors and enable module
-    REG_CLR(RS485_USTA_REG, RS485_ERROR_BITS_MASK);
-    REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
-}
-
-void rs485_transmit(unsigned char data)
-{
-    // Detect possible overrun
-    ASSERT((unsigned int)(rs485_tx_producer - rs485_tx_consumer) % RS485_TX_FIFO_SIZE < RS485_TX_OVERRUN_ERR);
-
-    *rs485_tx_producer = data;
-    if(++rs485_tx_producer > rs485_tx_end)
-        rs485_tx_producer = rs485_tx_begin;
-}
-
-void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
-{
-    ASSERT_NOT_NULL(buffer);
-    ASSERT(size != 0);
-
-    // @Todo: improve performance
-    while(size-- > 0)
-        rs485_transmit(*buffer++);
-}
-
-bool rs485_bytes_available(void)
-{
-    return rs485_rx_consumer != rs485_rx_producer;
-}
-
-unsigned char rs485_read(void)
-{
-    ASSERT(rs485_bytes_available());
-
-    unsigned char data = *rs485_rx_consumer;
-    if(++rs485_rx_consumer > rs485_rx_end)
-        rs485_rx_consumer = rs485_rx_begin;
-    return data;
-}
-
-unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
-{
-    ASSERT_NOT_NULL(buffer);
-    ASSERT(rs485_rx_consumer != rs485_rx_consumer);
-
-    //@Todo: improve performance
-    const unsigned char* buffer_begin = buffer;
-    while(rs485_bytes_available() && max_size-- > 0)
-        *buffer++ = rs485_read();
-    return (buffer - buffer_begin);
-}
 
 static void rs485_receive(unsigned char data)
 {
@@ -325,4 +239,84 @@ static void rs485_rtask_execute(void)
         case RS485_ERROR_IDLE:
             break;
     }
+}
+
+enum rs485_status rs485_get_status(void)
+{
+    return rs485_status;
+}
+
+struct rs485_error rs485_get_error(void)
+{
+    return rs485_error_reg.error;
+}
+
+void rs485_register_error_notifier(struct rs485_error_notifier* const notifier)
+{
+    if(notifier != NULL && notifier->callback != NULL) {
+        // Update linked list
+        *rs485_notifier_next = notifier;
+        rs485_notifier_next = &notifier->next;
+    }
+}
+
+void rs485_reset(void)
+{
+    rs485_state = RS485_IDLE;
+    rs485_status = RS485_STATUS_IDLE;
+    rs485_tx_producer = rs485_tx_begin;
+    rs485_tx_consumer = rs485_tx_begin;
+    rs485_rx_producer = rs485_rx_begin;
+    rs485_rx_consumer = rs485_rx_begin;
+
+    // Clear errors and enable module
+    REG_CLR(RS485_USTA_REG, RS485_ERROR_BITS_MASK);
+    REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
+}
+
+void rs485_transmit(unsigned char data)
+{
+    // Detect possible overrun
+    ASSERT((unsigned int)(rs485_tx_producer - rs485_tx_consumer) % RS485_TX_FIFO_SIZE < RS485_TX_OVERRUN_ERR);
+
+    *rs485_tx_producer = data;
+    if(++rs485_tx_producer > rs485_tx_end)
+        rs485_tx_producer = rs485_tx_begin;
+}
+
+void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
+{
+    ASSERT_NOT_NULL(buffer);
+    ASSERT(size != 0);
+
+    // @Todo: improve performance
+    while(size-- > 0)
+        rs485_transmit(*buffer++);
+}
+
+bool rs485_bytes_available(void)
+{
+    return rs485_rx_consumer != rs485_rx_producer;
+}
+
+unsigned char rs485_read(void)
+{
+    ASSERT(rs485_bytes_available());
+
+    unsigned char data = *rs485_rx_consumer;
+    if(++rs485_rx_consumer > rs485_rx_end)
+        rs485_rx_consumer = rs485_rx_begin;
+    return data;
+}
+
+unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
+{
+    ASSERT_NOT_NULL(buffer);
+    ASSERT(rs485_rx_consumer != rs485_rx_consumer);
+
+    //@Todo: improve performance
+    const unsigned char* buffer_begin = buffer;
+    while(rs485_bytes_available() && max_size-- > 0)
+        *buffer++ = rs485_read();
+    return (buffer - buffer_begin);
 }
