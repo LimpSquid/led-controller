@@ -8,3 +8,9 @@
 */nbproject/Package-default.bash
 */nbproject/private/
 */.generated_files/
+*/nbproject/Makefile-local-release.mk
+*/nbproject/Makefile-local-test.mk
+*/nbproject/Makefile-release.mk
+*/nbproject/Makefile-test.mk
+*/nbproject/Package-release.bash
+*/nbproject/Package-test.bash
