@@ -1,6 +1,6 @@
 #include <dma.h>
 #include <assert_util.h>
-#include <register.h>
+#include <atomic_reg.h>
 #include <toolbox.h>
 #include <xc.h>
 #include <sys/attribs.h>

@@ -1,5 +1,5 @@
-#ifndef REGISTER_H
-#define	REGISTER_H
+#ifndef ATOMIC_REG_H
+#define ATOMIC_REG_H
 
 typedef volatile unsigned int atomic_reg_t;
 typedef atomic_reg_t* atomic_reg_ptr_t;
@@ -24,4 +24,4 @@ typedef struct
 #define atomic_reg_ptr_set(reg, mask)   *(((atomic_reg_ptr_t)reg) + 2) = mask
 #define atomic_reg_ptr_inv(reg, mask)   *(((atomic_reg_ptr_t)reg) + 3) = mask
 
-#endif	/* REGISTER_H */
+#endif	/* ATOMIC_REG_H */

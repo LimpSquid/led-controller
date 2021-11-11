@@ -4,9 +4,16 @@
 
 #define ASSERT_BUFFER_SIZE  512
 
-static inline unsigned char __attribute__((always_inline)) assert_halt();
-
 static char assert_print_buffer[ASSERT_BUFFER_SIZE];
+
+static unsigned char assert_halt()
+{
+    for(;;) {
+        Nop();
+        Nop();
+        Nop();
+    }
+}
 
 void __attribute__((weak)) assert_printer(const char* format, va_list arg)
 {
@@ -30,13 +37,4 @@ void __assert_print_no_block(const char* format, ...)
     va_start(arg, format);
     assert_printer(format, arg);
     va_end(arg);
-}
-
-static inline unsigned char __attribute__((always_inline)) assert_halt()
-{
-    while(1) {
-        Nop();
-        Nop();
-        Nop();
-    }
 }

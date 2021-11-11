@@ -143,7 +143,7 @@ void pwm_period_callback(void)
     // complete before the GSCLK period finished, consider lowering
     // the value of TLC5490_GSCLK_PERIOD
     ASSERT(!tlc5940_flags.need_update); 
-    
+
     tlc5940_flags.need_update = true;
 }
 

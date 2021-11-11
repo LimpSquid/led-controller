@@ -1,6 +1,6 @@
 #include <pwm.h>
 #include <assert_util.h>
-#include <register.h>
+#include <atomic_reg.h>
 #include <sys.h>
 #include <toolbox.h>
 #include <xc.h>

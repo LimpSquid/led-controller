@@ -59,8 +59,8 @@ struct __attribute__((packed)) bus_frame
     struct bus_header header;
     union
     {
-        unsigned char command; // Request
-        unsigned char response_code; // Response
+        unsigned char command; // For a request
+        unsigned char response_code; // For a response
     };
     union bus_data payload;
     crc16_t crc;

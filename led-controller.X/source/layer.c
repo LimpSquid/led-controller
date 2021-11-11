@@ -6,7 +6,7 @@
 #include <dma.h>
 #include <timer.h>
 #include <sys.h>
-#include <register.h>
+#include <atomic_reg.h>
 #include <toolbox.h>
 #include <stddef.h>
 #include <xc.h>
@@ -342,6 +342,7 @@ static void layer_dma_rtask_execute(void)
 #ifdef LAYER_AUTO_BUFFER_SWAP
 #warning "AUTO_BUFFER_SWAP defined"
             layer_flags.need_buffer_swap = true;
+            layer_dma_state = LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC;
 #endif
             break;
         case LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC:
