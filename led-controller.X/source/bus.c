@@ -178,12 +178,12 @@ static void bus_rtask_execute(void)
             else
                 bus_state = BUS_READ_CLEAR;
             break;
-        case BUS_FRAME_HANDLE:
-            if(bus_request.frame.command >= bus_funcs_size){
+        case BUS_FRAME_HANDLE: {
+            bool broadcast = bus_request.frame.header.address == BUS_BROADCAST_ADDRESS;
+            
+            if(bus_request.frame.command >= bus_funcs_size)
                 bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
-                bus_state = BUS_SEND_RESPONSE;
-            } else {
-                bool broadcast = bus_request.frame.header.address == BUS_BROADCAST_ADDRESS;
+            else {
                 bus_func_t handler = bus_funcs[bus_request.frame.command];
                 ASSERT_NOT_NULL(handler);
                 
@@ -191,8 +191,9 @@ static void bus_rtask_execute(void)
                     broadcast,
                     &bus_request.frame.payload,
                     &bus_response.frame.payload);
-                bus_state = broadcast ? BUS_READ_CLEAR : BUS_SEND_RESPONSE;
             }
+
+            bus_state = broadcast ? BUS_READ_CLEAR : BUS_SEND_RESPONSE;
             break;
         case BUS_SEND_RESPONSE:
             ASSERT(!bus_response.frame.header.request);
