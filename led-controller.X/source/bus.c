@@ -195,6 +195,7 @@ static void bus_rtask_execute(void)
 
             bus_state = broadcast ? BUS_READ_CLEAR : BUS_SEND_RESPONSE;
             break;
+        }
         case BUS_SEND_RESPONSE:
             ASSERT(!bus_response.frame.header.request);
             ASSERT(bus_response.frame.header.address == 0); // It reality it doesn't really matter what value it is
