@@ -34,6 +34,7 @@
  */
 
 #include <bus.h>
+#include <bus_address.h>
 #include <assert_util.h>
 #include <kernel_task.h>
 #include <rs485.h>
@@ -75,10 +76,7 @@ STATIC_ASSERT(BUS_FRAME_SIZE == sizeof(union bus_raw_frame))
 
 enum bus_state
 {
-    BUS_INIT = 0,
-    BUS_INIT_SAMPLE_ADDRESS,
-    
-    BUS_READ_CLEAR,
+    BUS_READ_CLEAR = 0,
     BUS_READ_PART,
     BUS_FRAME_VERIFY,
     BUS_FRAME_HANDLE,
@@ -105,9 +103,8 @@ static struct timer_module* bus_backoff_timer = NULL;
 static crc16_t bus_crc16;
 static union bus_raw_frame bus_request;
 static union bus_raw_frame bus_response;
-static enum bus_state bus_state = BUS_INIT;
+static enum bus_state bus_state = BUS_READ_CLEAR;
 static unsigned int bus_frame_offset;
-static unsigned char bus_address;
 
 static void bus_error_callback(struct rs485_error error)
 {
@@ -133,14 +130,11 @@ fail_timer:
 
 static void bus_rtask_execute(void)
 {
+	if(!bus_address_valid())
+		return;
+
     switch(bus_state) {
         default:
-        case BUS_INIT:
-        case BUS_INIT_SAMPLE_ADDRESS:
-            // @Todo: sample address
-            bus_state = BUS_READ_CLEAR;
-            break;
-            
         case BUS_READ_CLEAR:
             bus_frame_offset = 0;
             crc16_reset(&bus_crc16);
@@ -172,7 +166,7 @@ static void bus_rtask_execute(void)
             // Is frame a request and meant for us?
             else if(bus_request.frame.header.request && (
                     bus_request.frame.header.address == BUS_BROADCAST_ADDRESS ||
-                    bus_request.frame.header.address == bus_address))
+                    bus_request.frame.header.address == bus_address_get()))
                 bus_state = BUS_FRAME_HANDLE;
             // Nope...
             else

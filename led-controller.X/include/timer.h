@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #define TIMER_TICK_INTERVAL     500 // In microseconds
-#define TIMER_POOL_SIZE         5
+#define TIMER_POOL_SIZE         8
 
 struct timer_module;
 
