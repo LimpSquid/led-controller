@@ -2,7 +2,7 @@
 #define	KERNEL_CONFIG_H
 
 #include <sys.h>
-#include <toolbox.h>
+#include <util.h>
 
 #define KERN_TMR_REG            TMR5            // Hardware timer
 #define KERN_TMR_REG_DATA_TYPE  unsigned short  // Hardware timer data type

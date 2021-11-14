@@ -7,7 +7,7 @@
 #include <timer.h>
 #include <sys.h>
 #include <atomic_reg.h>
-#include <toolbox.h>
+#include <util.h>
 #include <stddef.h>
 #include <xc.h>
 #include <string.h>
@@ -21,22 +21,6 @@
 #define LAYER_FRAME_DEPTH           3 // RGB
 #define LAYER_FRAME_BUFFER_SIZE     (LAYER_NUM_OF_LEDS * LAYER_FRAME_DEPTH)
 #define LAYER_OFFSET(index)         (index * LAYER_NUM_OF_COLS)
-#define LAYER_IO(pin, bank) \
-    { \
-        .ansel = NULL, \
-        .tris = atomic_reg_ptr_cast(&TRIS##bank), \
-        .lat = atomic_reg_ptr_cast(&LAT##bank), \
-        .port = atomic_reg_ptr_cast(&PORT##bank), \
-        .mask = BIT(pin) \
-    }
-#define LAYER_ANSEL_IO(pin, bank) \
-    { \
-        .ansel = atomic_reg_ptr_cast(&ANSEL##bank), \
-        .tris = atomic_reg_ptr_cast(&TRIS##bank), \
-        .lat = atomic_reg_ptr_cast(&LAT##bank), \
-        .port = atomic_reg_ptr_cast(&PORT##bank), \
-        .mask = BIT(pin) \
-    }
 
 #define LAYER_SPI_CHANNEL               SPI_CHANNEL1
 #define LAYER_SDI_PPS                   SDI1R
@@ -53,16 +37,6 @@
 #define LAYER_SDI_PIN_MASK              BIT(2)
 #define LAYER_SCK_PIN_MASK              BIT(6)
 #define LAYER_SS_PIN_MASK               BIT(15)
-
-struct layer_io
-{
-    atomic_reg_ptr(ansel);
-    atomic_reg_ptr(tris);
-    atomic_reg_ptr(lat);
-    atomic_reg_ptr(port);
-    
-    unsigned int mask;
-};
 
 struct layer_flags
 {
@@ -114,24 +88,24 @@ static const unsigned int layer_offset[LAYER_NUM_OF_ROWS] =
     LAYER_OFFSET(14),
 };
 
-static const struct layer_io layer_io[LAYER_NUM_OF_ROWS] =
+static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 {
-    LAYER_IO(6, D), // Row 1
-    LAYER_IO(4, D), // Row 3
-    LAYER_ANSEL_IO(2, D), // ...
-    LAYER_IO(0, D),
-    LAYER_ANSEL_IO(2, E), 
-    LAYER_IO(0, E),
-    LAYER_IO(10, D),
-    LAYER_IO(8, D),
-    LAYER_IO(7, D), // Row 0
-    LAYER_IO(5, D), // Row 2
-    LAYER_ANSEL_IO(3, D), // ...
-    LAYER_ANSEL_IO(1, D),
-    LAYER_IO(3, E),
-    LAYER_IO(1, E),
-    LAYER_IO(11, D),
-    LAYER_IO(9, D),
+    IO_PIN(6, D), // Row 1
+    IO_PIN(4, D), // Row 3
+    IO_ANSEL_PIN(2, D), // ...
+    IO_PIN(0, D),
+    IO_ANSEL_PIN(2, E), 
+    IO_PIN(0, E),
+    IO_PIN(10, D),
+    IO_PIN(8, D),
+    IO_PIN(7, D), // Row 0
+    IO_PIN(5, D), // Row 2
+    IO_ANSEL_PIN(3, D), // ...
+    IO_ANSEL_PIN(1, D),
+    IO_PIN(3, E),
+    IO_PIN(1, E),
+    IO_PIN(11, D),
+    IO_PIN(9, D),
 };
 #else
 static const unsigned int layer_offset[LAYER_NUM_OF_ROWS] =
@@ -154,24 +128,24 @@ static const unsigned int layer_offset[LAYER_NUM_OF_ROWS] =
     LAYER_OFFSET(15),
 };
 
-static const struct layer_io layer_io[LAYER_NUM_OF_ROWS] =
+static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 {
-    LAYER_IO(7, D), // Row 0
-    LAYER_IO(6, D), // Row 1
-    LAYER_IO(5, D), // ...
-    LAYER_IO(4, D),
-    LAYER_ANSEL_IO(3, D),
-    LAYER_ANSEL_IO(2, D),
-    LAYER_ANSEL_IO(1, D),
-    LAYER_IO(0, D),
-    LAYER_IO(3, E),
-    LAYER_ANSEL_IO(2, E),
-    LAYER_IO(1, E),
-    LAYER_IO(0, E),
-    LAYER_IO(11, D),
-    LAYER_IO(10, D),
-    LAYER_IO(9, D),
-    LAYER_IO(8, D),
+    IO_PIN(7, D), // Row 0
+    IO_PIN(6, D), // Row 1
+    IO_PIN(5, D), // ...
+    IO_PIN(4, D),
+    IO_ANSEL_PIN(3, D),
+    IO_ANSEL_PIN(2, D),
+    IO_ANSEL_PIN(1, D),
+    IO_PIN(0, D),
+    IO_PIN(3, E),
+    IO_ANSEL_PIN(2, E),
+    IO_PIN(1, E),
+    IO_PIN(0, E),
+    IO_PIN(11, D),
+    IO_PIN(10, D),
+    IO_PIN(9, D),
+    IO_PIN(8, D),
 };
 #endif
 
@@ -185,32 +159,31 @@ static unsigned char layer_front_buffer[LAYER_FRAME_BUFFER_SIZE];
 static unsigned char layer_back_buffer[LAYER_FRAME_BUFFER_SIZE];
 static unsigned char* layer_dma_ptr = layer_back_buffer; // Buffer used for storing new data received on DMA channel
 static unsigned char* layer_update_ptr = layer_front_buffer; // Buffer used for updating TLC5940's
-static const struct layer_io* layer_row_io = layer_io;
-static const struct layer_io* layer_row_previous_io = &layer_io[LAYER_NUM_OF_ROWS - 1];
+static const struct io_pin* layer_row_pin = layer_pins;
+static const struct io_pin* layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_ROWS - 1];
 static struct dma_channel* layer_dma_channel = NULL;
 static struct spi_module* layer_spi_module = NULL;
 static struct timer_module* layer_countdown_timer = NULL;
 static enum layer_state layer_state = LAYER_IDLE;
 static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME;
-static unsigned int layer_row_index = 0; // Active row, corresponding row IO is layer_io[layer_row_index]
+static unsigned int layer_row_index = 0; // Active row, corresponding row IO is layer_pins[layer_row_index]
 
-static void layer_row_io_reset(void)
+static void layer_row_reset(void)
 {
-    atomic_reg_ptr_clr(layer_row_io->lat, layer_row_io->mask);
-    atomic_reg_ptr_clr(layer_row_previous_io->lat, layer_row_previous_io->mask);
+    io_set(layer_row_pin, false);
+    io_set(layer_row_previous_pin, false);
     
-    layer_row_io = layer_io;
-    layer_row_previous_io = &layer_io[LAYER_NUM_OF_ROWS - 1];
+    layer_row_pin = layer_pins;
+    layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_ROWS - 1];
     layer_row_index = 0;
 }
 
 inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void)
 {   
-    unsigned int port = atomic_reg_ptr_value(layer_io[layer_row_index].port);
-    if(port & layer_io[layer_row_index].mask)
+    if(io_read(&layer_pins[layer_row_index]))
         return (layer_row_index + 1) % LAYER_NUM_OF_ROWS;
     
-    // This means that layer_row_io_reset() was just called (or a CPU reset)
+    // This means that {() was just called (or a CPU reset)
     // and we have yet to make the first row active in tlc5940_latch_callback())
     return 0; 
 }
@@ -244,16 +217,16 @@ void tlc5940_update_handler(void)
 
 void tlc5940_latch_handler(void)
 {        
-    atomic_reg_ptr_clr(layer_row_previous_io->lat, layer_row_previous_io->mask);
-    atomic_reg_ptr_set(layer_row_io->lat, layer_row_io->mask);
+    io_set(layer_row_previous_pin, false);
+    io_set(layer_row_pin, true);
     
-    layer_row_index = (unsigned int)(layer_row_io - layer_io);
-    layer_row_previous_io = layer_row_io;
+    layer_row_index = (unsigned int)(layer_row_pin - layer_pins);
+    layer_row_previous_pin = layer_row_pin;
     if(layer_row_index >= (LAYER_NUM_OF_ROWS - 1)) {
         layer_possibly_swap_buffers();
-        layer_row_io = layer_io;
+        layer_row_pin = layer_pins;
     } else
-        layer_row_io++;
+        layer_row_pin++;
 }
 
 static int layer_rtask_init(void)
@@ -269,16 +242,8 @@ static int layer_rtask_init(void)
     REG_SET(LAYER_SDI_TRIS, LAYER_SDI_PIN_MASK);
     REG_SET(LAYER_SCK_TRIS, LAYER_SCK_PIN_MASK);
     REG_SET(LAYER_SS_TRIS, LAYER_SS_PIN_MASK);
-    
-    const struct layer_io* io = NULL;
-    for(unsigned int i = 0; i < LAYER_NUM_OF_ROWS; ++i) {
-        io = &layer_io[i];
-        if(io->ansel != NULL)
-            atomic_reg_ptr_clr(io->ansel, io->mask);
-        atomic_reg_ptr_clr(io->tris, io->mask);
-        atomic_reg_ptr_clr(io->lat, io->mask);
-    }
-
+    io_configure(IO_DIRECTION_DOUT_LOW, layer_pins, LAYER_NUM_OF_ROWS);
+            
     // Initialize timer
     layer_countdown_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if(layer_countdown_timer == NULL)

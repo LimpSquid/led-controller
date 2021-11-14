@@ -1,8 +1,7 @@
 #ifndef SPI_H
 #define	SPI_H
 
-#include <toolbox.h>
-#include <stdbool.h>
+#include <util.h>
 
 enum spi_con_flag
 {
