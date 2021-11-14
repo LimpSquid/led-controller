@@ -101,7 +101,8 @@ static const struct pwm_config tlc5940_pwm_config =
     .period_callback_div = TLC5940_GSCLK_PERIOD_PULSES
 };
 
-static struct tlc5940_flags tlc5940_flags = 
+// Volatile because flags is accessed from ISR and we want to avoid weird optimizations
+static volatile struct tlc5940_flags tlc5940_flags =
 {
     .need_update = false
 };
