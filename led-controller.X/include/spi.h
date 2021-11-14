@@ -1,5 +1,5 @@
 #ifndef SPI_H
-#define    SPI_H
+#define SPI_H
 
 #include <util.h>
 
@@ -65,4 +65,4 @@ void spi_disable(struct spi_module* module);
 bool spi_transmit_mode32(struct spi_module* module, unsigned int* buffer, unsigned int size);
 bool spi_transmit_mode8(struct spi_module* module, unsigned char* buffer, unsigned int size);
 
-#endif    /* SPI_H */
+#endif /* SPI_H */

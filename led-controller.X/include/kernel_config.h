@@ -1,5 +1,5 @@
 #ifndef KERNEL_CONFIG_H
-#define    KERNEL_CONFIG_H
+#define KERNEL_CONFIG_H
 
 #include <sys.h>
 #include <util.h>
@@ -12,4 +12,4 @@
 #define KERN_TMR_EN_BIT         BIT(15)         // Hardware timer enable mask of the configuration word
 #define KERN_TMR_CLKIN_FREQ     SYS_PB_CLOCK    // Hardware timer input frequency (can be calculated with SYS_CLK / PB_DIV)
 
-#endif    /* KERNEL_CONFIG_H */
+#endif /* KERNEL_CONFIG_H */

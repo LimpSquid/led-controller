@@ -1,5 +1,5 @@
 #ifndef ASSERT_H
-#define    ASSERT_H
+#define ASSERT_H
 
 #include <xc.h>
 #include <stdarg.h>

@@ -1,5 +1,5 @@
 #ifndef RS485_H
-#define    RS485_H
+#define RS485_H
 
 #include <stdbool.h>
 
@@ -35,4 +35,4 @@ bool rs485_bytes_available(void);
 unsigned char rs485_read(void);
 unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size);
 
-#endif    /* RS485 */
+#endif /* RS485 */

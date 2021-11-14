@@ -1,5 +1,5 @@
 #ifndef BUS_H
-#define    BUS_H
+#define BUS_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -39,5 +39,5 @@ typedef enum bus_response_code (*bus_func_t)(
     const union bus_data* request_data, 
     union bus_data* response_data);
 
-#endif    /* BUS_H */
+#endif /* BUS_H */
 

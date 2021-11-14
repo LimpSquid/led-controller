@@ -1,5 +1,5 @@
 #ifndef PWM_H
-#define    PWM_H
+#define PWM_H
 
 struct pwm_config
 {    
@@ -13,4 +13,4 @@ void pwm_configure(struct pwm_config config);
 void pwm_enable(void);
 void pwm_disable(void);
 
-#endif    /* PWM_H */
+#endif /* PWM_H */
