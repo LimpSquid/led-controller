@@ -1,5 +1,5 @@
 #ifndef SYS_H
-#define	SYS_H
+#define    SYS_H
 
 #include <stdbool.h>
 #include <xc.h>
@@ -27,4 +27,4 @@ void sys_disable_global_interrupt(void);
 void sys_cpu_early_init(void);
 void sys_cpu_reset(void);
 
-#endif	/* SYS_H */
+#endif    /* SYS_H */

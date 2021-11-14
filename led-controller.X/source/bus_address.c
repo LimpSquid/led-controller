@@ -4,9 +4,9 @@
 #include <util.h>
 
 #define BUS_ADDRESS_BITS            5
-#define BUS_ADDRESS_SAMPLE_TIME		250 // In milliseconds
-#define BUS_ADDRESS_SAMPLE_COUNT	2 // How many reads must yield the same result after an address change is detected before the new address is latched into actual address
-#define BUS_ADDRESS_INVALID			255
+#define BUS_ADDRESS_SAMPLE_TIME     250 // In milliseconds
+#define BUS_ADDRESS_SAMPLE_COUNT    2 // How many reads must yield the same result after an address change is detected before the new address is latched into actual address
+#define BUS_ADDRESS_INVALID         255
 
 static const struct io_pin bus_address_pins[BUS_ADDRESS_BITS] =
 {
@@ -32,16 +32,16 @@ static unsigned char bus_address_read(void)
 
 static void bus_address_sample(struct timer_module* module)
 {
-	unsigned char address = bus_address_read();
-	if(address != bus_address_sampling) {
-		bus_address_sample_count = 0;
-		bus_address_sampling = address;
-	} 
-	
-	if(bus_address_sample_count < BUS_ADDRESS_SAMPLE_COUNT)
-		bus_address_sample_count++;
-	else
-		bus_address_actual = address; 
+    unsigned char address = bus_address_read();
+    if(address != bus_address_sampling) {
+        bus_address_sample_count = 0;
+        bus_address_sampling = address;
+    } 
+    
+    if(bus_address_sample_count < BUS_ADDRESS_SAMPLE_COUNT)
+        bus_address_sample_count++;
+    else
+        bus_address_actual = address; 
 }
 
 void bus_address_init(void)
@@ -51,19 +51,19 @@ void bus_address_init(void)
     
     // Initialize timer
     bus_address_sample_timer = timer_construct(TIMER_TYPE_SOFT, bus_address_sample);
-	ASSERT_NOT_NULL(bus_address_sample_timer);
-	if(bus_address_sample_timer == NULL)
-		return;
-	
-	timer_start(bus_address_sample_timer, BUS_ADDRESS_SAMPLE_TIME, TIMER_TIME_UNIT_MS);
+    ASSERT_NOT_NULL(bus_address_sample_timer);
+    if(bus_address_sample_timer == NULL)
+        return;
+    
+    timer_start(bus_address_sample_timer, BUS_ADDRESS_SAMPLE_TIME, TIMER_TIME_UNIT_MS);
 }
 
 bool bus_address_valid(void)
 {
-	return bus_address_actual >= 0 && bus_address_actual < 32;
+    return bus_address_actual >= 0 && bus_address_actual < 32;
 }
 
 unsigned char bus_address_get(void)
 {
-	return bus_address_actual;
+    return bus_address_actual;
 }

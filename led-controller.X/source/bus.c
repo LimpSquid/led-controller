@@ -130,8 +130,8 @@ fail_timer:
 
 static void bus_rtask_execute(void)
 {
-	if(!bus_address_valid())
-		return;
+    if(!bus_address_valid())
+        return;
 
     switch(bus_state) {
         default:

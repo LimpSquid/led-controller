@@ -81,9 +81,9 @@ static int print_itoa(int value, char* str, int number_base, const struct print_
 
     // Build up the digits
     do {
-		int digit = pos_value % number_base;
-		*(string_builder--) = (digit < 10 ? '0' + digit : (opt->upper_case ? 'A' : 'a') + digit - 10);
-		pos_value /= number_base;
+        int digit = pos_value % number_base;
+        *(string_builder--) = (digit < 10 ? '0' + digit : (opt->upper_case ? 'A' : 'a') + digit - 10);
+        pos_value /= number_base;
     } while(pos_value > 0);
 
     // Zero padding

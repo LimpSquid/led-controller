@@ -1,5 +1,5 @@
 #ifndef ASSERT_H
-#define	ASSERT_H
+#define    ASSERT_H
 
 #include <xc.h>
 #include <stdarg.h>
@@ -35,4 +35,4 @@ void __assert_print_no_block(const char* format, ...);
 // Use extern keyword to allow usage inside function, e.g. avoiding the multiple declaration error
 #define STATIC_ASSERT(expression)   extern char __attribute__((unused)) __assert[(expression) ? 0 : -1];
 
-#endif	/* ASSERT_H */
+#endif    /* ASSERT_H */

@@ -24,4 +24,4 @@ typedef struct
 #define atomic_reg_ptr_set(reg, mask)   *(((atomic_reg_ptr_t)reg) + 2) = mask
 #define atomic_reg_ptr_inv(reg, mask)   *(((atomic_reg_ptr_t)reg) + 3) = mask
 
-#endif	/* ATOMIC_REG_H */
+#endif    /* ATOMIC_REG_H */

@@ -1,5 +1,5 @@
 #ifndef DMA_H
-#define	DMA_H
+#define    DMA_H
 
 #include <stdbool.h>
 
@@ -38,4 +38,4 @@ void dma_disable_transfer(struct dma_channel* channel);
 bool dma_busy(struct dma_channel* channel);
 bool dma_ready(struct dma_channel* channel);
 
-#endif	/* DMA_H */
+#endif    /* DMA_H */

@@ -19,9 +19,9 @@ int main()
     
     // Then do the kernel init
     kernel_init();
-	
-	// Misc init
-	bus_address_init();
+    
+    // Misc init
+    bus_address_init();
     
     // And finally enable interrupts again
     sys_enable_global_interrupt();

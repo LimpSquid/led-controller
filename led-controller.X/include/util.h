@@ -1,5 +1,5 @@
 #ifndef UTIL_H
-#define	UTIL_H
+#define    UTIL_H
 
 #include <atomic_reg.h>
 #include <stdbool.h>
@@ -59,4 +59,4 @@ typedef unsigned short crc16_t;
 void crc16_reset(crc16_t* crc);
 void crc16_update(crc16_t* crc, const unsigned char* data, unsigned int size);
 
-#endif	/* UTIL_H */
+#endif    /* UTIL_H */

@@ -1,5 +1,5 @@
 #ifndef TIMER_H
-#define	TIMER_H
+#define    TIMER_H
 
 #include <stdbool.h>
 
@@ -35,4 +35,4 @@ void timer_restart(struct timer_module* timer);
 bool timer_timed_out(const struct timer_module* timer);
 bool timer_is_valid(const struct timer_module* timer);
 
-#endif	/* TIMER_H */
+#endif    /* TIMER_H */
