@@ -22,21 +22,21 @@
 #define LAYER_FRAME_BUFFER_SIZE     (LAYER_NUM_OF_LEDS * LAYER_FRAME_DEPTH)
 #define LAYER_OFFSET(index)         (index * LAYER_NUM_OF_COLS)
 
-#define LAYER_SPI_CHANNEL               SPI_CHANNEL1
-#define LAYER_SDI_PPS                   SDI1R
-#define LAYER_SS_PPS                    SS1R
+#define LAYER_SPI_CHANNEL           SPI_CHANNEL1
+#define LAYER_SDI_PPS               SDI1R
+#define LAYER_SS_PPS                SS1R
 
-#define LAYER_SDI_TRIS                  TRISF
-#define LAYER_SCK_TRIS                  TRISF
-#define LAYER_SS_TRIS                   TRISB
+#define LAYER_SDI_TRIS              TRISF
+#define LAYER_SCK_TRIS              TRISF
+#define LAYER_SS_TRIS               TRISB
 
-#define LAYER_SS_ANSEL                  ANSELB 
+#define LAYER_SS_ANSEL              ANSELB 
 
-#define LAYER_SDI_PPS_WORD              0xe
-#define LAYER_SS_PPS_WORD               0x3
-#define LAYER_SDI_PIN_MASK              BIT(2)
-#define LAYER_SCK_PIN_MASK              BIT(6)
-#define LAYER_SS_PIN_MASK               BIT(15)
+#define LAYER_SDI_PPS_WORD          0xe
+#define LAYER_SS_PPS_WORD           0x3
+#define LAYER_SDI_PIN_MASK          BIT(2)
+#define LAYER_SCK_PIN_MASK          BIT(6)
+#define LAYER_SS_PIN_MASK           BIT(15)
 
 struct layer_flags
 {
