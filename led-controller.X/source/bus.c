@@ -54,6 +54,7 @@ struct bus_header
     unsigned char address   :6; // Must be specified if request is true
     unsigned char _         :1;
 };
+STATIC_ASSERT(sizeof(struct bus_header) == 1)
 
 struct __attribute__((packed)) bus_frame
 {
@@ -66,13 +67,14 @@ struct __attribute__((packed)) bus_frame
     union bus_data payload;
     crc16_t crc;
 };
+STATIC_ASSERT(sizeof(struct bus_frame) == 8)
 
 union bus_raw_frame
 {
     struct bus_frame frame;
     unsigned char data[BUS_FRAME_SIZE];
 };
-STATIC_ASSERT(BUS_FRAME_SIZE == sizeof(union bus_raw_frame))
+STATIC_ASSERT(sizeof(union bus_raw_frame) == BUS_FRAME_SIZE)
 
 enum bus_state
 {
