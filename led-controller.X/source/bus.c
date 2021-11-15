@@ -57,7 +57,7 @@ enum bus_state
 static void bus_error_callback(struct rs485_error);
 static int bus_rtask_init(void);
 static void bus_rtask_execute(void);
-KERN_RTASK(bus, bus_rtask_init, bus_rtask_execute, NULL, KERN_INIT_LATE)
+KERN_SIMPLE_RTASK(bus, bus_rtask_init, bus_rtask_execute)
 
 extern const bus_func_t bus_funcs[];
 extern const size_t bus_funcs_size;

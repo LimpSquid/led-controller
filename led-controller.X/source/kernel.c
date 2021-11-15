@@ -37,6 +37,7 @@
 
 typedef KERN_TMR_REG_DATA_TYPE timer_size_t;
 
+// Nice info explaining this: https://mcuoneclipse.com/2016/11/01/getting-the-memory-range-of-sections-with-gnu-linker-files/
 extern const struct kernel_rtask __kernel_rstack_begin;
 extern const struct kernel_rtask __kernel_rstack_end;
 extern const struct kernel_ttask __kernel_tstack_begin;
