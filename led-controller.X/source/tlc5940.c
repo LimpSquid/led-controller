@@ -34,18 +34,28 @@ STATIC_ASSERT(TLC5490_GSCLK_PERIOD >= 750 && TLC5490_GSCLK_PERIOD <= 31250) // L
 struct tlc5940_flags
 {
     bool need_update    :1;
+    
+    // Enabling, disabling and LOD mode needs to
+    // be executed from the state machine to not interfere
+    // with an ongoing update
+    bool exec_enable    :1;
+    bool exec_disable   :1;
+    bool exec_lod_mode  :1;
 };
 
 enum tlc5940_state
 {
     TLC5940_INIT = 0,
-    TLC5940_WRITE_DOT_CORRECTION,
+    TLC5940_INIT_WRITE_DOT_CORRECTION,
 
-    TLC5940_IDLE,    
-
+    TLC5940_IDLE,
     TLC5940_UPDATE,
     TLC5940_UPDATE_DMA_TRANSFER,
     TLC5940_UPDATE_DMA_TRANSFER_WAIT,
+    TLC5940_EXEC_ENABLE,
+    TLC5940_EXEC_DISABLE,
+    TLC5940_EXEC_LOD_MODE,
+    TLC5940_EXEC_LOD_MODE_DONE,
 };
 
 static int tlc5940_rtask_init(void);
@@ -77,7 +87,10 @@ static const struct io_pin tlc5940_xerr_pin = IO_ANSEL_PIN(4, E);
 // Volatile because flags are accessed from ISR and we want to avoid weird optimizations
 static volatile struct tlc5940_flags tlc5940_flags =
 {
-    .need_update = false
+    .need_update = false,
+    .exec_enable = false,
+    .exec_disable = false,
+    .exec_lod_mode = false
 };
 
 static unsigned char tlc5940_buffer[TLC5940_BUFFER_SIZE];
@@ -99,12 +112,10 @@ void __attribute__ ((weak)) tlc5940_latch_handler(void)
 }
 
 void pwm_period_callback(void)
-{            
+{
+    // Blank and shift in data
     IO_SET(tlc5940_blank_pin);
-
-    // Latch in data
-    IO_SET(tlc5940_xlat_pin);
-    IO_CLR(tlc5940_xlat_pin);
+    IO_HI_PULSE(tlc5940_xlat_pin);
 
     // Shift diagnostic data
     spi_disable(tlc5940_spi_module);
@@ -169,13 +180,12 @@ fail_dma:
 static void tlc5940_rtask_execute(void)
 {
     switch(tlc5940_state) {
+        default:
         case TLC5940_INIT:
-        case TLC5940_WRITE_DOT_CORRECTION:
+        case TLC5940_INIT_WRITE_DOT_CORRECTION:
             IO_SET(tlc5940_vprg_pin);
             spi_transmit_mode8(tlc5940_spi_module, tlc5940_dot_corr_buffer, TLC5940_BUFFER_SIZE_DOT_CORR);
-            
-            IO_SET(tlc5940_xlat_pin);
-            IO_CLR(tlc5940_xlat_pin);
+            IO_HI_PULSE(tlc5940_xlat_pin);
             IO_CLR(tlc5940_vprg_pin);
             tlc5940_state = TLC5940_IDLE;
             break;
@@ -183,8 +193,13 @@ static void tlc5940_rtask_execute(void)
         case TLC5940_IDLE:
             if(tlc5940_flags.need_update)
                 tlc5940_state = TLC5940_UPDATE;
+            else if(tlc5940_flags.exec_enable)
+                tlc5940_state = TLC5940_EXEC_ENABLE;
+            else if(tlc5940_flags.exec_disable)
+                tlc5940_state = TLC5940_EXEC_DISABLE;
+            else if(tlc5940_flags.exec_lod_mode)
+                tlc5940_state = TLC5940_EXEC_LOD_MODE;
             break;
-          
         case TLC5940_UPDATE:
             tlc5940_update_handler();
             tlc5940_state = TLC5940_UPDATE_DMA_TRANSFER;
@@ -203,19 +218,44 @@ static void tlc5940_rtask_execute(void)
                 tlc5940_state = TLC5940_IDLE;
             }
             break;
+            
+        case TLC5940_EXEC_ENABLE:
+        case TLC5940_EXEC_DISABLE:
+            if(tlc5940_state == TLC5940_EXEC_ENABLE)
+                pwm_enable();
+            else
+                pwm_disable();
+            
+            tlc5940_flags.exec_enable = false;
+            tlc5940_flags.exec_disable = false;
+            tlc5940_state = TLC5940_IDLE;
+            break;
+        case TLC5940_EXEC_LOD_MODE:
+            pwm_disable();
+            // @Todo: Write max values to all channels, latch data, clear blank pin, 
+            // give PWM pin single high pulse, and then we can read out the error flags
+            tlc5940_state = TLC5940_EXEC_LOD_MODE_DONE;
+            break;
+        case TLC5940_EXEC_LOD_MODE_DONE:
+            tlc5940_flags.exec_lod_mode = false;
+            tlc5940_state = TLC5940_IDLE;
+            break;
     }
 }
 
-bool tlc5940_enable(void)
+void tlc5940_enable(void)
 {
-    // Note that the first GSCLK is undefined because the update
-    // and latch handlers are yet to be called
-    pwm_enable(); 
+    tlc5940_flags.exec_enable = true;
 }
 
-bool tlc5940_disable(void)
+void tlc5940_disable(void)
 {
-    pwm_disable();
+    tlc5940_flags.exec_disable = true;
+}
+
+void tlc5940_lod_mode(void)
+{
+    tlc5940_flags.exec_lod_mode = true;
 }
 
 void tlc5940_write(unsigned int device, unsigned int channel, unsigned short value)

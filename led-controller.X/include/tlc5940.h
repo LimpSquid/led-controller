@@ -3,8 +3,9 @@
 
 #include <stdbool.h>
 
-bool tlc5940_enable(void);
-bool tlc5940_disable(void);
+void tlc5940_enable(void);
+void tlc5940_disable(void);
+void tlc5940_lod_mode(void);
 void tlc5940_write(unsigned int device, unsigned int channel, unsigned short value);
 void tlc5940_write_all_channels(unsigned int device, unsigned short value);
 
