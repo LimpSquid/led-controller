@@ -282,7 +282,6 @@ void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
     ASSERT_NOT_NULL(buffer);
     ASSERT(size != 0);
 
-    // @Todo: improve performance
     while(size-- > 0)
         rs485_transmit(*buffer++);
 }
@@ -307,7 +306,6 @@ unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
     ASSERT_NOT_NULL(buffer);
     ASSERT(rs485_rx_consumer != rs485_rx_consumer);
 
-    //@Todo: improve performance
     const unsigned char* buffer_begin = buffer;
     while(rs485_bytes_available() && max_size-- > 0)
         *buffer++ = rs485_read();

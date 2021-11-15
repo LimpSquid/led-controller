@@ -1,6 +1,8 @@
 #ifndef ASSERT_H
 #define ASSERT_H
 
+// @Todo: maybe rename this file someday as it can conflict with assert.h from the c standard libs
+
 #include <xc.h>
 #include <stdarg.h>
 

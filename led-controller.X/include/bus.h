@@ -33,7 +33,6 @@ union __attribute__((packed)) bus_data
     bool        by_bool;
 };
 
-// @Todo: eventually have separate broadcast functions
 typedef enum bus_response_code (*bus_func_t)(
     bool broadcast, 
     const union bus_data* request_data, 

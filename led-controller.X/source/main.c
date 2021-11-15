@@ -25,11 +25,6 @@ int main()
     
     // And finally enable interrupts again
     sys_enable_global_interrupt();
-
-    // @todo: eventually remove this when UART works
-    ANSELBbits.ANSB7 = 0;
-    TRISBbits.TRISB7 = 0;
-    LATBbits.LATB7 = 0;
     
     // Bonzo is always hungry...
     while(SYS_BONZO_IS_HUNGRY) {

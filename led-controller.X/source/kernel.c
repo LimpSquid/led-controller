@@ -1,6 +1,7 @@
 #include <kernel.h>
 #include <kernel_task.h>
 #include <kernel_config.h>
+#include <assert.h>
 #include <util.h>
 #include <xc.h>
 #include <stddef.h>
@@ -140,8 +141,11 @@ static void kernel_init_task_init(void)
 
         // Check if we have found an init function to process...
         if(init_done != NULL) {
-            if(init != NULL)
-                (*init)();
+            if(init != NULL) {
+                int result = (*init)();
+                ASSERT(result == KERN_INIT_SUCCESS);
+                for(;;){} // Should trigger a watchdog reset
+            }
             *init_done = true;
         } else // If not, we go to the next init_level
             init_level--;

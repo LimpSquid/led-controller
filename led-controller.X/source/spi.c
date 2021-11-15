@@ -123,8 +123,7 @@ void spi_configure(struct spi_module* module, struct spi_config config)
     // Disable module first
     atomic_reg_clr(spi_reg->spicon, SPI_ON);
 
-    // Configure interrupts
-    // @Todo: for now only disable and never re-enable...
+    // For now interrupts are not supported, always disable them
     atomic_reg_ptr_clr(spi_int->iec, spi_int->fault_mask);
     atomic_reg_ptr_clr(spi_int->iec, spi_int->receive_mask);
     atomic_reg_ptr_clr(spi_int->iec, spi_int->transfer_mask);

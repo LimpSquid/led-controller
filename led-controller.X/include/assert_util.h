@@ -1,8 +1,7 @@
 #ifndef ASSERT_UTIL_H
 #define ASSERT_UTIL_H
 
-//#include <assert.h>
-#include "assert.h" // make sure we do not conflict with anyone
+#include <assert.h>
 #include <stddef.h>
 
 #define ASSERT_NULL(var)        ASSERT(var == NULL)

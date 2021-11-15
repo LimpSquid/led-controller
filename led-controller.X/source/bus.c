@@ -1,38 +1,3 @@
-
-/* 
- * We need no complexity at all for our bus protocol. A message might look like this:
- *
- *  master: |header byte|command byte |data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
- *  slave:  |header byte|response byte|data byte 1|data byte 2|data byte 3|data byte 4|crc byte 1|crc byte 2|
- * 
- * The protocol uses a fixed message width with 1 header byte, 1 command/response byte, 4 data bytes and two CRC bytes. 
- * If the relevant command doesn't use any of the data bytes, zeroing these fields will suffice.
- * 
- * Because we use a fixed message width we don't need any message idle time to indicate that a tranmission
- * has completed. We can simply listen to the incoming stream of bytes and always assume the format
- * as described above.
- * 
- * The header describes if this frame is either a request or response. If it is a response, all slave nodes should
- * ignore the frame. If it is a request all slave nodes should check the frame's address to see if it matches their
- * own address or the broadcast address.
- * 
- * In case a communication error (UART error, CRC, etc) is detected on a slave node, the slave should back off for a fixed to 
- * be determined time and clear its receive buffer afterwards. Once the back off time has expired
- * and the receive buffer is cleared, the node should operate as normal again.
- * 
- * Only the master node should retry sending messages. It should wait for up to at least the 2x 
- * back off period before it may retry sending a message. In case the master encounters a CRC error,
- * it can retry immediately.
- * 
- * Consider the following situation. Master sends command to slave, slave receives and executes command, 
- * slave sends back response, response gets lost.  The master will now retry sending the same command, 
- * by which it will likely be executed twice by the slave node. For now this behavior is acceptable and
- * we will not design the protocol to be idempotent, until some new feature requires it to be. 
- *
- * Broadcasts should be supported by all slaves and can be distinguished by a reserved address (like 255). 
- * No slave should ever reply to a broadcast message.
- */
-
 #include <bus.h>
 #include <bus_address.h>
 #include <assert_util.h>

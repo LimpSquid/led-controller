@@ -1,8 +1,11 @@
 #include <timer.h>
 #include <kernel_task.h>
 #include <assert_util.h>
+#include <util.h>
 #include <stddef.h>
 #include <limits.h>
+
+#define TIMER_SEC_MAX   (BIT_SHIFT(12) - 1) // Time unit seconds is limited to 12 bits
 
 struct timer_module
 {
@@ -41,9 +44,9 @@ static unsigned long timer_compute_ticks(int time, int unit)
     switch(unit) {
         default: // Default to seconds
         case TIMER_TIME_UNIT_S:
-            //@Todo: Currently limited to 12 bits, fixme?
-            if(time > 4096)
-                time = 4096;
+            ASSERT(time <= TIMER_SEC_MAX);
+            if(time > TIMER_SEC_MAX)
+                time = TIMER_SEC_MAX;
             ticks = (time * 1000000LU) / TIMER_TICK_INTERVAL;
             break;
         case TIMER_TIME_UNIT_MS:
