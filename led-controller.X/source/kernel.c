@@ -145,7 +145,8 @@ static void kernel_init_task_init(void)
             if(init != NULL) {
                 int result = (*init)();
                 ASSERT(result == KERN_INIT_SUCCESS);
-                for(;;){} // Should trigger a watchdog reset
+                if(result != KERN_INIT_SUCCESS)
+                    for(;;) {} // Should trigger a watchdog reset
             }
             *init_done = true;
         } else // If not, we go to the next init_level
