@@ -3,8 +3,8 @@
 #include <atomic_reg.h>
 #include <sys.h>
 #include <dma.h>
-#include <xc.h>
 #include <stddef.h>
+#include <xc.h>
 
 #define SPI_BRG(baudrate)           (SYS_PB_CLOCK / (baudrate << 1) - 1)
 #define SPI_FIFO_DEPTH_MODE32       4

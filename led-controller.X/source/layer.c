@@ -9,8 +9,8 @@
 #include <atomic_reg.h>
 #include <util.h>
 #include <stddef.h>
-#include <xc.h>
 #include <string.h>
+#include <xc.h>
 
 #define LAYER_NUM_OF_ROWS           16
 #define LAYER_NUM_OF_COLS           16

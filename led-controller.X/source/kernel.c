@@ -3,8 +3,8 @@
 #include <kernel_config.h>
 #include <assert.h>
 #include <util.h>
-#include <xc.h>
 #include <stddef.h>
+#include <xc.h>
 
 #if !defined(KERN_TMR_REG)
     #error "Timer register not specified, please define 'KERN_TMR_REG'"

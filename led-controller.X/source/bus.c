@@ -1,7 +1,7 @@
 #include <bus.h>
 #include <bus_address.h>
-#include <assert_util.h>
 #include <kernel_task.h>
+#include <assert_util.h>
 #include <rs485.h>
 #include <timer.h>
 #include <util.h>
