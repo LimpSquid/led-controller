@@ -56,7 +56,8 @@ enum layer_dma_state
     LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC,
 };
 
-static struct layer_flags layer_flags = 
+// Volatile because flags are accessed from ISR and we want to avoid weird optimizations
+static volatile struct layer_flags layer_flags = 
 {
     .need_buffer_swap = false
 };
