@@ -25,11 +25,6 @@
 #define RS485_TX_REG            U1TXREG
 #define RS485_RX_REG            U1RXREG
 
-#define RS485_DIR_TRIS          TRISB
-#define RS485_DIR_ANSEL         ANSELB
-#define RS485_DIR_LAT           LATB
-#define RS485_DIR_PORT          PORTB
-
 #define RS485_UMODE_WORD        0x0
 #define RS485_USTA_WORD         (BIT(10) | BIT(12) | MASK(0x1, 14))
 #define RS485_BRG_WORD          ((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4 - 1)
@@ -39,14 +34,13 @@
 #define RS485_URXDA_MASK        BIT(0)
 #define RS485_UTXBF_MASK        BIT(9)
 #define RS485_TRMT_MASK         BIT(8)
-#define RS485_DIR_PIN_MASK      BIT(7)
 
 #define rs485_rx_available()    (RS485_USTA_REG & RS485_URXDA_MASK) // Can we read data from the UART module's buffer?
 #define rs485_tx_available()    (rs485_tx_consumer != rs485_tx_producer && !(RS485_USTA_REG & RS485_UTXBF_MASK)) // Can we read data from the tx buffer and write it to the UART module's buffer?
 #define rs485_tx_complete()     (RS485_USTA_REG & RS485_TRMT_MASK) // Is transfer completed?
-#define rs485_dir_rx()          REG_CLR(RS485_DIR_LAT, RS485_DIR_PIN_MASK)
-#define rs485_dir_tx()          REG_SET(RS485_DIR_LAT, RS485_DIR_PIN_MASK)
-#define rs485_dir_is_rx()       (!(RS485_DIR_PORT & RS485_DIR_PIN_MASK))
+#define rs485_dir_rx()          IO_CLR(rs485_dir_pin)
+#define rs485_dir_tx()          IO_SET(rs485_dir_pin)
+#define rs485_dir_is_rx()       (!IO_READ(rs485_dir_pin))
 
 enum rs485_state
 {
@@ -82,6 +76,7 @@ static struct rs485_error_notifier rs485_notifier =
     .next = NULL
 };
 static const struct rs485_error_notifier** rs485_notifier_next = &rs485_notifier.next;
+static const struct io_pin rs485_dir_pin = IO_ANSEL_PIN(7, B);
 
 // When we stop receiving data we want to make sure the other end
 // has put its transceiver in receive mode before we're doing a transfer.
@@ -145,9 +140,7 @@ static void rs485_error_notify()
 static int rs485_rtask_init(void)
 {
     // Configure IO
-    REG_CLR(RS485_DIR_ANSEL, RS485_DIR_PIN_MASK);
-    REG_CLR(RS485_DIR_TRIS, RS485_DIR_PIN_MASK);
-    REG_CLR(RS485_DIR_LAT, RS485_DIR_PIN_MASK);
+    io_configure(IO_DIRECTION_DOUT_LOW, &rs485_dir_pin, 1);
     
     // Set the baudrate generator
     RS485_BRG_REG = RS485_BRG_WORD;

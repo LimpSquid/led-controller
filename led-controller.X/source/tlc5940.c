@@ -29,39 +29,7 @@ STATIC_ASSERT(TLC5490_GSCLK_PERIOD >= 750 && TLC5490_GSCLK_PERIOD <= 31250) // L
 #define TLC5940_SPI_CHANNEL             SPI_CHANNEL2
 #define TLC5940_SDO_PPS                 RPG7R
 
-#define TLC5940_SDO_TRIS                TRISG
-#define TLC5940_SCK_TRIS                TRISG
-#define TLC5940_BLANK_TRIS              TRISE
-#define TLC5940_XLAT_TRIS               TRISE
-#define TLC5940_VPRG_TRIS               TRISG
-#define TLC5940_DCPRG_TRIS              TRISB
-#define TLC5940_XERR_TRIS               TRISE
-
-#define TLC5940_SDO_LAT                 LATG
-#define TLC5940_SCK_LAT                 LATG
-#define TLC5940_BLANK_LAT               LATE
-#define TLC5940_XLAT_LAT                LATE
-#define TLC5940_VPRG_LAT                LATG
-#define TLC5940_DCPRG_LAT               LATB
-
-#define TLC5940_XERR_PORT               PORTE
-
-#define TLC5940_SDO_ANSEL               ANSELG
-#define TLC5940_SCK_ANSEL               ANSELG
-#define TLC5940_BLANK_ANSEL             ANSELE
-#define TLC5940_XLAT_ANSEL              ANSELE
-#define TLC5940_VPRG_ANSEL              ANSELG
-#define TLC5940_DCPRG_ANSEL             ANSELB
-#define TLC5940_XERR_ANSEL              ANSELE
-
 #define TLC5940_SDO_PPS_WORD            0x6
-#define TLC5940_SDO_PIN_MASK            BIT(7)
-#define TLC5940_SCK_PIN_MASK            BIT(6)
-#define TLC5940_BLANK_PIN_MASK          BIT(7)
-#define TLC5940_XLAT_PIN_MASK           BIT(6)
-#define TLC5940_VPRG_PIN_MASK           BIT(9)
-#define TLC5940_DCPRG_PIN_MASK          BIT(5)
-#define TLC5940_XERR_PIN_MASK           BIT(4)
 
 struct tlc5940_flags
 {
@@ -84,9 +52,6 @@ static int tlc5940_rtask_init(void);
 static void tlc5940_rtask_execute(void);
 KERN_SIMPLE_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute);
 
-static unsigned char tlc5940_buffer[TLC5940_BUFFER_SIZE];
-static unsigned char tlc5940_dot_corr_buffer[TLC5940_BUFFER_SIZE_DOT_CORR];
-
 static const struct dma_config tlc5940_dma_config; // No special config needed
 static const struct spi_config tlc5940_spi_config =
 {
@@ -101,11 +66,22 @@ static const struct pwm_config tlc5940_pwm_config =
     .period_callback_div = TLC5940_GSCLK_PERIOD_PULSES
 };
 
+static const struct io_pin tlc5940_sdo_pin = IO_ANSEL_PIN(7, G);
+static const struct io_pin tlc5940_sck_pin = IO_ANSEL_PIN(6, G);
+static const struct io_pin tlc5940_blank_pin = IO_ANSEL_PIN(7, E);
+static const struct io_pin tlc5940_xlat_pin = IO_ANSEL_PIN(6, E);
+static const struct io_pin tlc5940_vprg_pin = IO_ANSEL_PIN(9, G);
+static const struct io_pin tlc5940_dcprg_pin = IO_ANSEL_PIN(5, B);
+static const struct io_pin tlc5940_xerr_pin = IO_ANSEL_PIN(4, E);
+
 // Volatile because flags are accessed from ISR and we want to avoid weird optimizations
 static volatile struct tlc5940_flags tlc5940_flags =
 {
     .need_update = false
 };
+
+static unsigned char tlc5940_buffer[TLC5940_BUFFER_SIZE];
+static unsigned char tlc5940_dot_corr_buffer[TLC5940_BUFFER_SIZE_DOT_CORR];
 
 static struct dma_channel* tlc5940_dma_channel = NULL;
 static struct spi_module* tlc5940_spi_module = NULL;
@@ -124,21 +100,20 @@ void __attribute__ ((weak)) tlc5940_latch_handler(void)
 
 void pwm_period_callback(void)
 {            
-    REG_SET(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
+    IO_SET(tlc5940_blank_pin);
 
     // Latch in data
-    REG_SET(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
-    REG_CLR(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
+    IO_SET(tlc5940_xlat_pin);
+    IO_CLR(tlc5940_xlat_pin);
 
     // Shift diagnostic data
     spi_disable(tlc5940_spi_module);
-    REG_INV(TLC5940_SCK_LAT, TLC5940_SCK_PIN_MASK);
-    REG_INV(TLC5940_SCK_LAT, TLC5940_SCK_PIN_MASK);
+    IO_PULSE(tlc5940_sck_pin);
     spi_enable(tlc5940_spi_module);
 
     tlc5940_latch_handler();
-
-    REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
+    
+    IO_CLR(tlc5940_blank_pin);
     
     // Means that the update routine in the robin task did not
     // complete before the GSCLK period finished, consider lowering
@@ -159,27 +134,13 @@ static int tlc5940_rtask_init(void)
     sys_lock();
 
     // Configure IO
-    REG_CLR(TLC5940_SDO_ANSEL, TLC5940_SDO_PIN_MASK);
-    REG_CLR(TLC5940_SCK_ANSEL, TLC5940_SCK_PIN_MASK);
-    REG_CLR(TLC5940_BLANK_ANSEL, TLC5940_BLANK_PIN_MASK);
-    REG_CLR(TLC5940_XLAT_ANSEL, TLC5940_XLAT_PIN_MASK);
-    REG_CLR(TLC5940_VPRG_ANSEL, TLC5940_VPRG_PIN_MASK);
-    REG_CLR(TLC5940_DCPRG_ANSEL, TLC5940_DCPRG_PIN_MASK);
-    REG_CLR(TLC5940_XERR_ANSEL, TLC5940_XERR_PIN_MASK);
-
-    REG_CLR(TLC5940_SDO_TRIS, TLC5940_SDO_PIN_MASK);
-    REG_CLR(TLC5940_SCK_TRIS, TLC5940_SCK_PIN_MASK);
-    REG_CLR(TLC5940_BLANK_TRIS, TLC5940_BLANK_PIN_MASK);
-    REG_CLR(TLC5940_XLAT_TRIS, TLC5940_XLAT_PIN_MASK);
-    REG_CLR(TLC5940_VPRG_TRIS, TLC5940_VPRG_PIN_MASK);
-    REG_CLR(TLC5940_DCPRG_TRIS, TLC5940_DCPRG_PIN_MASK);
-    REG_SET(TLC5940_XERR_TRIS, TLC5940_XERR_PIN_MASK);
-
-    // Define output states
-    REG_CLR(TLC5940_BLANK_LAT, TLC5940_BLANK_PIN_MASK);
-    REG_CLR(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
-    REG_CLR(TLC5940_VPRG_LAT, TLC5940_VPRG_PIN_MASK);
-    REG_SET(TLC5940_DCPRG_LAT, TLC5940_DCPRG_PIN_MASK);
+    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_sdo_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_sck_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_blank_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_xlat_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_dcprg_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_HIGH, &tlc5940_vprg_pin, 1);
+    io_configure(IO_DIRECTION_DIN, &tlc5940_xerr_pin, 1);
 
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);
@@ -210,11 +171,12 @@ static void tlc5940_rtask_execute(void)
     switch(tlc5940_state) {
         case TLC5940_INIT:
         case TLC5940_WRITE_DOT_CORRECTION:
-            REG_SET(TLC5940_VPRG_LAT, TLC5940_VPRG_PIN_MASK);
+            IO_SET(tlc5940_vprg_pin);
             spi_transmit_mode8(tlc5940_spi_module, tlc5940_dot_corr_buffer, TLC5940_BUFFER_SIZE_DOT_CORR);
-            REG_SET(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
-            REG_CLR(TLC5940_XLAT_LAT, TLC5940_XLAT_PIN_MASK);
-            REG_CLR(TLC5940_VPRG_LAT, TLC5940_VPRG_PIN_MASK);
+            
+            IO_SET(tlc5940_xlat_pin);
+            IO_CLR(tlc5940_xlat_pin);
+            IO_CLR(tlc5940_vprg_pin);
             tlc5940_state = TLC5940_IDLE;
             break;
         

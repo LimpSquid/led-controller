@@ -16,6 +16,17 @@
 #define REG_INV(reg, mask)      (reg ^= mask)
 
 // IO utils
+#define IO_READ(pin)            !!(atomic_reg_ptr_value((pin).port) & (pin).mask)
+#define IO_SET(pin)             atomic_reg_ptr_set((pin).lat, (pin).mask)
+#define IO_CLR(pin)             atomic_reg_ptr_clr((pin).lat, (pin).mask)
+#define IO_INV(pin)             atomic_reg_ptr_inv((pin).lat, (pin).mask)
+#define IO_PULSE(pin)           IO_INV(pin);IO_INV(pin)
+#define IO_PTR_READ(pin)        !!(atomic_reg_ptr_value(pin->port) & pin->mask)
+#define IO_PTR_SET(pin)         atomic_reg_ptr_set(pin->lat, pin->mask)
+#define IO_PTR_CLR(pin)         atomic_reg_ptr_clr(pin->lat, pin->mask)
+#define IO_PTR_INV(pin)         atomic_reg_ptr_inv(pin->lat, pin->mask)
+#define IO_PTR_PULSE(pin)       IO_PTR_INV(pin);IO_PTR_INV(pin)
+
 #define IO_PIN(pin, bank) \
     { \
         .ansel = NULL, \
@@ -51,8 +62,6 @@ enum io_direction
 };
 
 void io_configure(enum io_direction direction, const struct io_pin* pins, unsigned int size);
-bool io_read(const struct io_pin* pin);
-void io_set(const struct io_pin* pin, bool level);
 
 // CRC utils
 typedef unsigned short crc16_t;

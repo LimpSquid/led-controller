@@ -26,17 +26,8 @@
 #define LAYER_SDI_PPS               SDI1R
 #define LAYER_SS_PPS                SS1R
 
-#define LAYER_SDI_TRIS              TRISF
-#define LAYER_SCK_TRIS              TRISF
-#define LAYER_SS_TRIS               TRISB
-
-#define LAYER_SS_ANSEL              ANSELB 
-
 #define LAYER_SDI_PPS_WORD          0xe
 #define LAYER_SS_PPS_WORD           0x3
-#define LAYER_SDI_PIN_MASK          BIT(2)
-#define LAYER_SCK_PIN_MASK          BIT(6)
-#define LAYER_SS_PIN_MASK           BIT(15)
 
 struct layer_flags
 {
@@ -156,6 +147,10 @@ static const struct spi_config layer_spi_config =
     .spi_con_flags = SPI_SRXISEL_NOT_EMPTY | SPI_DISSDO | SPI_MODE8 | SPI_SSEN,
 };
 
+static const struct io_pin layer_sdi_pin = IO_PIN(2, F);
+static const struct io_pin layer_sck_pin = IO_PIN(6, F);
+static const struct io_pin layer_ss_pin = IO_ANSEL_PIN(15, B);
+
 static unsigned char layer_front_buffer[LAYER_FRAME_BUFFER_SIZE];
 static unsigned char layer_back_buffer[LAYER_FRAME_BUFFER_SIZE];
 static unsigned char* layer_dma_ptr = layer_back_buffer; // Buffer used for storing new data received on DMA channel
@@ -171,8 +166,8 @@ static unsigned int layer_row_index = 0; // Active row, corresponding row IO is 
 
 static void layer_row_reset(void)
 {
-    io_set(layer_row_pin, false);
-    io_set(layer_row_previous_pin, false);
+    IO_PTR_CLR(layer_row_pin);
+    IO_PTR_CLR(layer_row_previous_pin);
     
     layer_row_pin = layer_pins;
     layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_ROWS - 1];
@@ -181,11 +176,11 @@ static void layer_row_reset(void)
 
 inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void)
 {   
-    if(io_read(&layer_pins[layer_row_index]))
+    if(IO_READ(layer_pins[layer_row_index]))
         return (layer_row_index + 1) % LAYER_NUM_OF_ROWS;
     
-    // This means that {() was just called (or a CPU reset)
-    // and we have yet to make the first row active in tlc5940_latch_callback())
+    // This means that layer_row_reset() was just called (or a CPU reset)
+    // and we have yet to make the first row active in tlc5940_latch_callback
     return 0; 
 }
 
@@ -218,8 +213,8 @@ void tlc5940_update_handler(void)
 
 void tlc5940_latch_handler(void)
 {        
-    io_set(layer_row_previous_pin, false);
-    io_set(layer_row_pin, true);
+    IO_PTR_CLR(layer_row_previous_pin);
+    IO_PTR_SET(layer_row_pin);
     
     layer_row_index = (unsigned int)(layer_row_pin - layer_pins);
     layer_row_previous_pin = layer_row_pin;
@@ -239,10 +234,9 @@ static int layer_rtask_init(void)
     sys_lock();
     
     // Configure IO
-    REG_CLR(LAYER_SS_ANSEL, LAYER_SS_PIN_MASK);
-    REG_SET(LAYER_SDI_TRIS, LAYER_SDI_PIN_MASK);
-    REG_SET(LAYER_SCK_TRIS, LAYER_SCK_PIN_MASK);
-    REG_SET(LAYER_SS_TRIS, LAYER_SS_PIN_MASK);
+    io_configure(IO_DIRECTION_DIN, &layer_sdi_pin, 1);
+    io_configure(IO_DIRECTION_DIN, &layer_sck_pin, 1);
+    io_configure(IO_DIRECTION_DIN, &layer_ss_pin, 1);
     io_configure(IO_DIRECTION_DOUT_LOW, layer_pins, LAYER_NUM_OF_ROWS);
             
     // Initialize timer

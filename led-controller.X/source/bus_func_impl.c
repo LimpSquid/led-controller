@@ -89,6 +89,7 @@ static enum bus_response_code bus_func_sys_version(
     response_data->by_bytes.b1 = SYS_VERSION_MAJOR;
     response_data->by_bytes.b2 = SYS_VERSION_MINOR;
     response_data->by_bytes.b3 = SYS_VERSION_PATCH;
+    response_data->by_bytes.b4 = 0; // Reserved
     return BUS_OK;
 }
 

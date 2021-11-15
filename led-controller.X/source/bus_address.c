@@ -8,6 +8,8 @@
 #define BUS_ADDRESS_SAMPLE_COUNT    2 // How many reads must yield the same result after an address change is detected before the new address is latched into actual address
 #define BUS_ADDRESS_INVALID         255
 
+STATIC_ASSERT(BIT_SHIFT(BUS_ADDRESS_BITS) < BUS_ADDRESS_INVALID)
+
 static const struct io_pin bus_address_pins[BUS_ADDRESS_BITS] =
 {
     IO_ANSEL_PIN(2, B), // Bit 0
@@ -26,12 +28,14 @@ static unsigned char bus_address_read(void)
 {
     unsigned char address = 0;
     for(unsigned int i = 0; i < BUS_ADDRESS_BITS; ++i)
-        address |= MASK_SHIFT(io_read(&bus_address_pins[i]), i);
+        address |= MASK_SHIFT(IO_READ(bus_address_pins[i]), i);
     return address;
 }
 
 static void bus_address_sample(struct timer_module* module)
 {
+    (void)module;
+    
     unsigned char address = bus_address_read();
     if(address != bus_address_sampling) {
         bus_address_sample_count = 0;
@@ -60,7 +64,7 @@ void bus_address_init(void)
 
 bool bus_address_valid(void)
 {
-    return bus_address_actual >= 0 && bus_address_actual < 32;
+    return bus_address_actual >= 0 && bus_address_actual < BIT_SHIFT(BUS_ADDRESS_BITS);
 }
 
 unsigned char bus_address_get(void)
