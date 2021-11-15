@@ -345,9 +345,14 @@ void layer_dma_reset(void)
     layer_dma_state = LAYER_DMA_RECV_FRAME;
 }
 
+bool layer_dma_ready_to_recv(void)
+{
+    return layer_dma_state == LAYER_DMA_RECV_FRAME_WAIT;
+}
+
 bool layer_dma_swap_buffers(void)
 {
-    if (layer_dma_state != LAYER_DMA_SWAP_BUFFERS)
+    if(layer_dma_state != LAYER_DMA_SWAP_BUFFERS)
         return false;
     
     layer_flags.need_buffer_swap = true;

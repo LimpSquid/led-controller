@@ -15,6 +15,7 @@ enum
     BUS_COMMAND_LAYER_READY = 0,
     BUS_COMMAND_LAYER_EXEC_LOD,
     BUS_COMMAND_LAYER_DMA_RESET,
+    BUS_COMMAND_LAYER_DMA_READY_TO_RECV,
     BUS_COMMAND_LAYER_DMA_SWAP_BUFFERS,
     BUS_COMMAND_SYS_VERSION,
     BUS_COMMAND_SYS_CPU_RESET,
@@ -51,6 +52,17 @@ static enum bus_response_code bus_func_layer_dma_reset(
     UNUSED3(broadcast, request_data, response_data);
     
     layer_dma_reset();
+    return BUS_OK;
+}
+
+static enum bus_response_code bus_func_layer_dma_ready_to_recv(
+    bool broadcast,
+    const union bus_data* request_data,
+    union bus_data* response_data)
+{
+    UNUSED2(broadcast, request_data);
+
+    response_data->by_bool = layer_dma_ready_to_recv();
     return BUS_OK;
 }
 
@@ -108,6 +120,7 @@ const bus_func_t bus_funcs[] =
     bus_func_layer_ready,
     bus_func_layer_exec_lod,
     bus_func_layer_dma_reset,
+    bus_func_layer_dma_ready_to_recv,
     bus_func_layer_dma_swap_buffers,
     bus_func_sys_version,
     bus_func_sys_cpu_reset,
