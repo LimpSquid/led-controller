@@ -71,7 +71,7 @@
         <targetDevice>PIC32MX330F064H</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>noID</platformTool>
+        <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>3.01</languageToolchainVersion>
         <platform>2</platform>
@@ -818,7 +818,7 @@
         <targetDevice>PIC32MX330F064H</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>Simulator</platformTool>
+        <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>3.01</languageToolchainVersion>
         <platform>2</platform>
@@ -871,7 +871,7 @@
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros"
-                  value="_SYS_CLK=80000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC"/>
+                  value="_SYS_CLK=80000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;LAYER_LOD_ON_BOOT"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>

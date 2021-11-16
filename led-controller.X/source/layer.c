@@ -20,6 +20,8 @@
 #define LAYER_BLUE_OFFSET           (LAYER_NUM_OF_LEDS * 2)
 #define LAYER_FRAME_DEPTH           3 // RGB
 #define LAYER_FRAME_BUFFER_SIZE     (LAYER_NUM_OF_LEDS * LAYER_FRAME_DEPTH)
+#define LAYER_LOD_SETTLE_DELAY      10 // In microseconds, datasheet specs atleast 15 * td (20ns) + tpd2 (1us typ.)
+#define LAYER_LOD_ERROR_DELAY       1000 // In milliseconds
 #define LAYER_OFFSET(index)         (index * LAYER_NUM_OF_COLS)
 
 #define LAYER_SPI_CHANNEL           SPI_CHANNEL1
@@ -36,7 +38,16 @@ struct layer_flags
 
 enum layer_state
 {
-    LAYER_IDLE = 0,
+    LAYER_SWITCH_ENABLED_MODE = 0, // Jump to this state to switch to enabled mode before going idle
+    LAYER_SWITCH_ENABLED_MODE_WAIT,
+    LAYER_IDLE,
+    
+    LAYER_EXEC_LOD,
+    LAYER_EXEC_LOD_SWITCH_MODE,
+    LAYER_EXEC_LOD_SWITCH_MODE_WAIT,
+    LAYER_EXEC_LOD_ADVANCE,
+    LAYER_EXEC_LOD_SETTLE_WAIT,
+    LAYER_EXEC_LOD_ERROR_WAIT,
 };
 
 enum layer_dma_state
@@ -160,18 +171,28 @@ static const struct io_pin* layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_RO
 static struct dma_channel* layer_dma_channel = NULL;
 static struct spi_module* layer_spi_module = NULL;
 static struct timer_module* layer_countdown_timer = NULL;
-static enum layer_state layer_state = LAYER_IDLE;
+#ifdef LAYER_LOD_ON_BOOT
+#warning "LAYER_LOD_ON_BOOT defined"
+static enum layer_state layer_state = LAYER_EXEC_LOD;
+#else
+static enum layer_state layer_state = LAYER_SWITCH_ENABLED_MODE;
+#endif
 static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME;
 static unsigned int layer_row_index = 0; // Active row, corresponding row IO is layer_pins[layer_row_index]
 
 static void layer_row_reset(void)
 {
-    IO_PTR_CLR(layer_row_pin);
     IO_PTR_CLR(layer_row_previous_pin);
+    IO_PTR_CLR(layer_row_pin);
     
     layer_row_pin = layer_pins;
     layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_ROWS - 1];
     layer_row_index = 0;
+}
+
+inline static bool __attribute__((always_inline)) layer_row_at_end(void)
+{
+    return layer_row_index == (LAYER_NUM_OF_ROWS - 1);
 }
 
 inline static unsigned int __attribute__((always_inline)) layer_next_row_index(void)
@@ -194,6 +215,20 @@ inline static void  __attribute__((always_inline)) layer_possibly_swap_buffers(v
     }
 }
 
+inline static void  __attribute__((always_inline)) layer_advance_row(void)
+{
+    IO_PTR_CLR(layer_row_previous_pin);
+    IO_PTR_SET(layer_row_pin);
+    
+    layer_row_index = (unsigned int)(layer_row_pin - layer_pins);
+    layer_row_previous_pin = layer_row_pin;
+    if(layer_row_at_end()) {
+        layer_possibly_swap_buffers();
+        layer_row_pin = layer_pins;
+    } else
+        layer_row_pin++;
+}
+
 void tlc5940_update_handler(void)
 {
     unsigned int offset = layer_offset[layer_next_row_index()];
@@ -213,16 +248,7 @@ void tlc5940_update_handler(void)
 
 void tlc5940_latch_handler(void)
 {        
-    IO_PTR_CLR(layer_row_previous_pin);
-    IO_PTR_SET(layer_row_pin);
-    
-    layer_row_index = (unsigned int)(layer_row_pin - layer_pins);
-    layer_row_previous_pin = layer_row_pin;
-    if(layer_row_index >= (LAYER_NUM_OF_ROWS - 1)) {
-        layer_possibly_swap_buffers();
-        layer_row_pin = layer_pins;
-    } else
-        layer_row_pin++;
+    layer_advance_row();
 }
 
 static int layer_rtask_init(void)
@@ -255,12 +281,6 @@ static int layer_rtask_init(void)
         goto fail_spi;
     spi_configure_dma_src(layer_spi_module, layer_dma_channel); // SPI module is the source of the dma module
     spi_enable(layer_spi_module);
-    
-    // Enables the TLC5940's by which the update & latch handlers will be getting called
-    tlc5940_enable();
-    
-    // Detect open LEDs on boot
-    layer_exec_lod();
    
     return KERN_INIT_SUCCESS;
 
@@ -277,7 +297,54 @@ static void layer_rtask_execute(void)
 {
     switch(layer_state) {
         default:
+        case LAYER_SWITCH_ENABLED_MODE:
+            tlc5940_switch_mode(TLC5940_MODE_ENABLED);
+            layer_state = LAYER_SWITCH_ENABLED_MODE_WAIT;
+            break;
+        case LAYER_SWITCH_ENABLED_MODE_WAIT:
+            if(tlc5940_get_mode() == TLC5940_MODE_ENABLED) {
+                layer_row_reset(); // Reset once we are enabled
+                layer_state = LAYER_IDLE;
+            }
+            break;
         case LAYER_IDLE:
+            break;
+            
+        case LAYER_EXEC_LOD:
+        case LAYER_EXEC_LOD_SWITCH_MODE:
+            tlc5940_switch_mode(TLC5940_MODE_LOD);
+            layer_state = LAYER_EXEC_LOD_SWITCH_MODE_WAIT;
+            break;
+        case LAYER_EXEC_LOD_SWITCH_MODE_WAIT:
+            if(tlc5940_get_mode() == TLC5940_MODE_LOD) {
+                layer_row_reset();
+                layer_state = LAYER_EXEC_LOD_ADVANCE;
+            }
+            break;
+        case LAYER_EXEC_LOD_ADVANCE:
+            layer_advance_row();
+            
+            timer_start(layer_countdown_timer, LAYER_LOD_SETTLE_DELAY, TIMER_TIME_UNIT_US);
+            layer_state = LAYER_EXEC_LOD_SETTLE_WAIT;
+            break;
+        case LAYER_EXEC_LOD_SETTLE_WAIT:
+            if(timer_timed_out(layer_countdown_timer)) {
+                bool error = tlc5940_get_lod_error();
+                if(error) {
+                    timer_start(layer_countdown_timer, LAYER_LOD_ERROR_DELAY, TIMER_TIME_UNIT_MS);
+                    layer_state = LAYER_EXEC_LOD_ERROR_WAIT;
+                } else
+                    layer_state = layer_row_at_end() 
+                        ? LAYER_SWITCH_ENABLED_MODE // Done
+                        : LAYER_EXEC_LOD_ADVANCE;
+            }
+            break;
+        case LAYER_EXEC_LOD_ERROR_WAIT:
+            if(timer_timed_out(layer_countdown_timer)) {
+                layer_state = layer_row_at_end() 
+                    ? LAYER_SWITCH_ENABLED_MODE // Done
+                    : LAYER_EXEC_LOD_ADVANCE;
+            }
             break;
     }
 }
@@ -327,7 +394,7 @@ bool layer_exec_lod(void)
     if(layer_busy())
         return false;
     
-    // @Todo: eventually start LOD execution
+    layer_state = LAYER_EXEC_LOD;
     return true;
 }
 
