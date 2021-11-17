@@ -28,8 +28,8 @@
     {                                                                   \
         .init_done = false,                                             \
         .priority = KERN_TTASK_PRIORITY_NORMAL,                         \
-        .ticks = 0,                                                     \
         .interval = 0x7fffffffL,                                        \
+        .time_point = 0,                                                \
         .next = ((void*)0)                                              \
     };                                                                  \
     static const struct kernel_ttask __ttask_##name                     \
@@ -50,8 +50,6 @@ enum
     KERN_INIT_LATE = 0,
     KERN_INIT_CORE,
     KERN_INIT_EARLY,
-    
-    __KERN_INIT_COUNT
 };
 
 enum
@@ -66,7 +64,8 @@ enum
     KERN_TTASK_PRIORITY_NORMAL,
     KERN_TTASK_PRIORITY_HIGH,
     
-    __KERN_TTASK_PRIORITY_COUNT
+    __KERN_TTASK_PRIORITY_COUNT,
+    __KERN_TTASK_PRIORITY_UPPER_BOUND = (__KERN_TTASK_PRIORITY_COUNT - 1)
 };
 
 enum
@@ -95,8 +94,8 @@ struct kernel_ttask_param
 {
     bool init_done;
     int priority;
-    int ticks;
     int interval;
+    long long time_point;
     
     const struct kernel_ttask* next;
 };

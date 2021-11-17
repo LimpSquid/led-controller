@@ -865,12 +865,12 @@
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="false"/>
         <property key="make-warnings-into-errors" value="false"/>
-        <property key="optimization-level" value=""/>
+        <property key="optimization-level" value="-O2"/>
         <property key="place-data-into-section" value="false"/>
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros"
-                  value="_SYS_CLK=80000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;LAYER_LOD_ON_BOOT"/>
+                  value="_SYS_CLK=80000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;LED_CONTROLLER_TEST_SUITE"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>

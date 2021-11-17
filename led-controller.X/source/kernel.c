@@ -20,14 +20,15 @@
     #error "System tick could not be calculated, please define 'KERN_TMR_CLKIN_FREQ'"
 #endif
 
+// Data type must be unsigned
+STATIC_ASSERT((KERN_TMR_REG_DATA_TYPE)(-1) > 0)
+
 #define KERNEL_SYSTEM_TICK ((1000000.0F / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER)
 
 #define kernel_restore_rtask_iterator()                                 \
             kernel_rtask_iterator = &__kernel_rstack_begin
 #define kernel_restore_ttask_iterator()                                 \
             kernel_ttask_iterator = &__kernel_tstack_begin
-#define kernel_restore_ttask_sorted_iterator()                          \
-            kernel_ttask_sorted_iterator = kernel_ttask_sorted_begin
 
 #define kernel_rtask_size()                                             \
             (int)(&__kernel_rstack_end - &__kernel_rstack_begin)
@@ -48,14 +49,13 @@ static const struct kernel_rtask* const kernel_rtask_end = &__kernel_rstack_end;
 static const struct kernel_ttask* kernel_ttask_iterator = &__kernel_tstack_begin;
 static const struct kernel_ttask* const kernel_ttask_end = &__kernel_tstack_end;
 
-static const struct kernel_ttask* kernel_ttask_sorted_iterator = NULL;
 static const struct kernel_ttask* kernel_ttask_sorted_begin = NULL;
 static const struct kernel_ttask* kernel_ttask_sorted_end = NULL;
 
 static void (*kernel_exec_func)(void) = NULL;
-
-static timer_size_t elapsed_ticks = 0;
-static timer_size_t previous_ticks = 0;
+static long long kernel_ticks = 0;
+static timer_size_t kernel_elapsed_ticks = 0;
+static timer_size_t kernel_previous_ticks = 0;
 
 static void kernel_init_configure_ttask(void)
 {
@@ -79,7 +79,7 @@ static void kernel_init_configure_rtask(void)
 
 static void kernel_init_ttask_call_sequence(void)
 {
-    int priority = KERN_TTASK_PRIORITY_HIGH;
+    int priority = __KERN_TTASK_PRIORITY_UPPER_BOUND;
     const struct kernel_ttask** ttask = NULL;
 
     do {
@@ -110,7 +110,6 @@ static void kernel_init_ttask_call_sequence(void)
     // Create circular linked list
     if(ttask != NULL)
         *ttask = kernel_ttask_sorted_begin;
-    kernel_restore_ttask_sorted_iterator();
 }
 
 static void kernel_init_task_init(void)
@@ -159,21 +158,22 @@ static void kernel_init_task_init(void)
 
 inline static void __attribute__((always_inline)) kernel_execute_ttask(void)
 {
-    struct kernel_ttask_param* param;
+    const struct kernel_ttask* task = kernel_ttask_sorted_begin;
+    struct kernel_ttask_param* param = NULL;
 
-    elapsed_ticks = (timer_size_t)(KERN_TMR_REG - previous_ticks);
-    previous_ticks += elapsed_ticks;
+    kernel_elapsed_ticks = (timer_size_t)(KERN_TMR_REG - kernel_previous_ticks);
+    kernel_previous_ticks += kernel_elapsed_ticks;
+    kernel_ticks += kernel_elapsed_ticks;
 
     do {
-        param = kernel_ttask_sorted_iterator->param;
-        if(param->ticks <= elapsed_ticks) {
-            param->ticks = param->interval;
-            kernel_ttask_sorted_iterator->exec();
-        } else
-            param->ticks -= elapsed_ticks;
+        param = task->param;
+        if(kernel_ticks >= param->time_point) {
+            param->time_point += param->interval;
+            task->exec();
+        }
 
-        kernel_ttask_sorted_iterator = param->next;
-    } while(kernel_ttask_sorted_iterator != kernel_ttask_sorted_begin);
+        task = param->next;
+    } while(task != kernel_ttask_sorted_begin);
 }
 
 inline static void __attribute__((always_inline)) kernel_execute_rtask(void)
