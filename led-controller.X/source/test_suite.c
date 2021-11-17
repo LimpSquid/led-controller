@@ -21,12 +21,12 @@ enum test_suite_state
     TEST_SUITE_EXEC_LOD,
     TEST_SUITE_EXEC_LOD_WAIT,
     
-    // Cycle through the three base colors
+    // Cycle through different colors
     TEST_SUITE_CYCLE_COLORS_INIT,
     TEST_SUITE_CYCLE_COLORS_DRAW,
     
     // Generic stuff down below
-    TEST_SUITE_FINISHED // Test suite finished
+    TEST_SUITE_FINISHED
 };
 
 static int test_suite_init(void);
@@ -41,6 +41,10 @@ static const struct layer_color test_suite_cycle_colors[] =
     { .r = 255, .g = 255, .b = 000 },
     { .r = 255, .g = 000, .b = 255 },
     { .r = 000, .g = 255, .b = 255 },
+    { .r = 000, .g = 000, .b = 000 }, // Give eyes some time to adjust before looking at the dim white color
+    { .r = 010, .g = 010, .b = 010 },
+    { .r = 063, .g = 063, .b = 063 },
+    { .r = 127, .g = 127, .b = 127 },
     { .r = 255, .g = 255, .b = 255 },
 };
 
