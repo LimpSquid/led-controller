@@ -6,7 +6,6 @@
 #include <dma.h>
 #include <timer.h>
 #include <sys.h>
-#include <atomic_reg.h>
 #include <util.h>
 #include <stddef.h>
 #include <string.h>

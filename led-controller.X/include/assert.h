@@ -34,7 +34,11 @@ void __assert_print_no_block(const char* format, ...);
 #define SOFT_ASSERT(expression)     ((void)0)
 #endif
 
-// Use extern keyword to allow usage inside function, e.g. avoiding the multiple declaration error
-#define STATIC_ASSERT(expression)   extern char __attribute__((unused)) __assert[(expression) ? 0 : -1];
+#if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40600
+// GCC >= 4.6 implements _Static_assert(expr, msg)
+#define STATIC_ASSERT(expression)   _Static_assert(expression,  "Assertion failed: " #expression);
+#else
+#define STATIC_ASSERT(expression)   typedef char __assert[(expression) ? 0 : -1];
+#endif
 
 #endif    /* ASSERT_H */

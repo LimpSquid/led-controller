@@ -1,6 +1,6 @@
 #include <spi.h>
 #include <assert_util.h>
-#include <atomic_reg.h>
+#include <util.h>
 #include <sys.h>
 #include <dma.h>
 #include <stddef.h>
@@ -20,17 +20,17 @@
 
 struct spi_register_map
 {
-    atomic_reg(spicon);
-    atomic_reg(spistat);
-    atomic_reg(spibuf);
-    atomic_reg(spibrg);
-    atomic_reg(spicon2);
+    ATOMIC_REG(spicon);
+    ATOMIC_REG(spistat);
+    ATOMIC_REG(spibuf);
+    ATOMIC_REG(spibrg);
+    ATOMIC_REG(spicon2);
 };
 
 struct spi_interrupt_map
 {
-    atomic_reg_ptr(ifs);
-    atomic_reg_ptr(iec);
+    ATOMIC_REG_PTR(ifs);
+    ATOMIC_REG_PTR(iec);
 
     unsigned int fault_mask;
     unsigned int receive_mask;
@@ -43,8 +43,8 @@ struct spi_interrupt_map
 static const struct spi_interrupt_map spi_module_interrupts[] =
 {
     [SPI_CHANNEL1] = {
-        .ifs = atomic_reg_ptr_cast(&IFS1),
-        .iec = atomic_reg_ptr_cast(&IEC1),
+        .ifs = ATOMIC_REG_PTR_CAST(&IFS1),
+        .iec = ATOMIC_REG_PTR_CAST(&IEC1),
         .fault_mask = BIT(3),
         .receive_mask = BIT(4),
         .transfer_mask = BIT(5),
@@ -53,8 +53,8 @@ static const struct spi_interrupt_map spi_module_interrupts[] =
         .transfer_irq = _SPI1_TX_IRQ,
     },
     [SPI_CHANNEL2] = {
-        .ifs = atomic_reg_ptr_cast(&IFS2),
-        .iec = atomic_reg_ptr_cast(&IEC2),
+        .ifs = ATOMIC_REG_PTR_CAST(&IFS2),
+        .iec = ATOMIC_REG_PTR_CAST(&IEC2),
         .fault_mask = BIT(21),
         .receive_mask = BIT(22),
         .transfer_mask = BIT(23),
@@ -110,7 +110,7 @@ void spi_destruct(struct spi_module* module)
 {
     ASSERT_NOT_NULL(module);
 
-    atomic_reg_clr(module->spi_reg->spicon, SPI_ON);
+    ATOMIC_REG_CLR(module->spi_reg->spicon, SPI_ON);
     module->assigned = false;
 }
 
@@ -121,19 +121,19 @@ void spi_configure(struct spi_module* module, struct spi_config config)
     const struct spi_interrupt_map* const spi_int = module->spi_int;
 
     // Disable module first
-    atomic_reg_clr(spi_reg->spicon, SPI_ON);
+    ATOMIC_REG_CLR(spi_reg->spicon, SPI_ON);
 
     // For now interrupts are not supported, always disable them
-    atomic_reg_ptr_clr(spi_int->iec, spi_int->fault_mask);
-    atomic_reg_ptr_clr(spi_int->iec, spi_int->receive_mask);
-    atomic_reg_ptr_clr(spi_int->iec, spi_int->transfer_mask);
-    atomic_reg_ptr_clr(spi_int->ifs, spi_int->fault_mask);
-    atomic_reg_ptr_clr(spi_int->ifs, spi_int->receive_mask);
-    atomic_reg_ptr_clr(spi_int->ifs, spi_int->transfer_mask);
+    ATOMIC_REG_PTR_CLR(spi_int->iec, spi_int->fault_mask);
+    ATOMIC_REG_PTR_CLR(spi_int->iec, spi_int->receive_mask);
+    ATOMIC_REG_PTR_CLR(spi_int->iec, spi_int->transfer_mask);
+    ATOMIC_REG_PTR_CLR(spi_int->ifs, spi_int->fault_mask);
+    ATOMIC_REG_PTR_CLR(spi_int->ifs, spi_int->receive_mask);
+    ATOMIC_REG_PTR_CLR(spi_int->ifs, spi_int->transfer_mask);
 
     // Configure SPI
-    atomic_reg_value(spi_reg->spibrg) = config.baudrate > 0 ? SPI_BRG(config.baudrate) : 0;
-    atomic_reg_value(spi_reg->spicon) = config.spi_con_flags;
+    ATOMIC_REG_VALUE(spi_reg->spibrg) = config.baudrate > 0 ? SPI_BRG(config.baudrate) : 0;
+    ATOMIC_REG_VALUE(spi_reg->spicon) = config.spi_con_flags;
     module->fifo_depth = SPI_FIFO_DEPTH_MODE8;
     module->fifo_size = SPI_FIFO_SIZE_MODE8;
 
@@ -194,27 +194,27 @@ void spi_enable(struct spi_module* module)
 {
     ASSERT_NOT_NULL(module);
 
-    atomic_reg_set(module->spi_reg->spicon, SPI_ON);
+    ATOMIC_REG_SET(module->spi_reg->spicon, SPI_ON);
 }
 
 void spi_disable(struct spi_module* module)
 {
     ASSERT_NOT_NULL(module);
 
-    atomic_reg_clr(module->spi_reg->spicon, SPI_ON);
+    ATOMIC_REG_CLR(module->spi_reg->spicon, SPI_ON);
 }
 
 bool spi_transmit_mode32(struct spi_module* module, unsigned int* buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(module);
-    ASSERT(atomic_reg_value(module->spi_reg->spicon) & SPI_ON);
+    ASSERT(ATOMIC_REG_VALUE(module->spi_reg->spicon) & SPI_ON);
     const struct spi_register_map* const spi_reg = module->spi_reg;
     bool result = false;
 
-    if(size && atomic_reg_value(spi_reg->spicon) & SPI_MSTEN) {
+    if(size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
         while(size--) {
-            while(atomic_reg_value(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
-            atomic_reg_value(spi_reg->spibuf) = *buffer++;
+            while(ATOMIC_REG_VALUE(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
+            ATOMIC_REG_VALUE(spi_reg->spibuf) = *buffer++;
         }
         result = true;
     }
@@ -224,14 +224,14 @@ bool spi_transmit_mode32(struct spi_module* module, unsigned int* buffer, unsign
 bool spi_transmit_mode8(struct spi_module* module, unsigned char* buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(module);
-    ASSERT(atomic_reg_value(module->spi_reg->spicon) & SPI_ON);
+    ASSERT(ATOMIC_REG_VALUE(module->spi_reg->spicon) & SPI_ON);
     const struct spi_register_map* const spi_reg = module->spi_reg;
     bool result = false;
 
-    if(size && atomic_reg_value(spi_reg->spicon) & SPI_MSTEN) {
+    if(size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
         while(size--) {
-            while(atomic_reg_value(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
-            atomic_reg_value(spi_reg->spibuf) = *buffer++;
+            while(ATOMIC_REG_VALUE(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
+            ATOMIC_REG_VALUE(spi_reg->spibuf) = *buffer++;
         }
         result = true;
     }

@@ -11,18 +11,18 @@ void io_configure(enum io_direction direction, const struct io_pin* pins, unsign
             default:
             case IO_DIRECTION_DIN:
                 if(pin->ansel != NULL)
-                    atomic_reg_ptr_clr(pin->ansel, pin->mask);
-                atomic_reg_ptr_set(pin->tris, pin->mask);
+                    ATOMIC_REG_PTR_CLR(pin->ansel, pin->mask);
+                ATOMIC_REG_PTR_SET(pin->tris, pin->mask);
                 break;
             case IO_DIRECTION_DOUT_LOW:
             case IO_DIRECTION_DOUT_HIGH:
                 if(pin->ansel != NULL)
-                    atomic_reg_ptr_clr(pin->ansel, pin->mask);
-                atomic_reg_ptr_clr(pin->tris, pin->mask);
+                    ATOMIC_REG_PTR_CLR(pin->ansel, pin->mask);
+                ATOMIC_REG_PTR_CLR(pin->tris, pin->mask);
                 if(direction == IO_DIRECTION_DOUT_LOW)
-                    atomic_reg_ptr_clr(pin->lat, pin->mask);
+                    ATOMIC_REG_PTR_CLR(pin->lat, pin->mask);
                 else
-                    atomic_reg_ptr_set(pin->lat, pin->mask);
+                    ATOMIC_REG_PTR_SET(pin->lat, pin->mask);
                 break;
         }
         ++pin;

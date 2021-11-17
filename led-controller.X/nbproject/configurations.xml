@@ -21,7 +21,6 @@
       <itemPath>include/assert_util.h</itemPath>
       <itemPath>include/rs485.h</itemPath>
       <itemPath>include/bus.h</itemPath>
-      <itemPath>include/atomic_reg.h</itemPath>
       <itemPath>include/bus_address.h</itemPath>
       <itemPath>include/util.h</itemPath>
     </logicalFolder>

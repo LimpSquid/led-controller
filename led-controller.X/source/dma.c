@@ -1,6 +1,5 @@
 #include <dma.h>
 #include <assert_util.h>
-#include <atomic_reg.h>
 #include <util.h>
 #include <xc.h>
 #include <sys/attribs.h>
@@ -28,25 +27,25 @@
 
 struct dma_register_map
 {
-    atomic_reg(dchcon);
-    atomic_reg(dchecon);
-    atomic_reg(dchint);
-    atomic_reg(dchssa);
-    atomic_reg(dchdsa);
-    atomic_reg(dchssiz);
-    atomic_reg(dchdsiz);
-    atomic_reg(dchsptr);
-    atomic_reg(dchdptr);
-    atomic_reg(dchcsiz);
-    atomic_reg(dchcptr);
-    atomic_reg(dchdat);
+    ATOMIC_REG(dchcon);
+    ATOMIC_REG(dchecon);
+    ATOMIC_REG(dchint);
+    ATOMIC_REG(dchssa);
+    ATOMIC_REG(dchdsa);
+    ATOMIC_REG(dchssiz);
+    ATOMIC_REG(dchdsiz);
+    ATOMIC_REG(dchsptr);
+    ATOMIC_REG(dchdptr);
+    ATOMIC_REG(dchcsiz);
+    ATOMIC_REG(dchcptr);
+    ATOMIC_REG(dchdat);
 };
 
 struct dma_interrupt_map
 {
-    atomic_reg_ptr(ifs);
-    atomic_reg_ptr(iec);
-    atomic_reg_ptr(ipc);
+    ATOMIC_REG_PTR(ifs);
+    ATOMIC_REG_PTR(iec);
+    ATOMIC_REG_PTR(ipc);
 
     unsigned int mask;
     unsigned int priority_mask;
@@ -65,33 +64,33 @@ struct dma_channel
 static const struct dma_interrupt_map dma_channel_interrupts[] =
 {
     {
-        .ifs = atomic_reg_ptr_cast(&IFS2),
-        .iec = atomic_reg_ptr_cast(&IEC2),
-        .ipc = atomic_reg_ptr_cast(&IPC10),
+        .ifs = ATOMIC_REG_PTR_CAST(&IFS2),
+        .iec = ATOMIC_REG_PTR_CAST(&IEC2),
+        .ipc = ATOMIC_REG_PTR_CAST(&IPC10),
         .mask = BIT(8),
         .priority_mask = MASK(0x7, 18),
         .priority_shift = 18,
     },
     {
-        .ifs = atomic_reg_ptr_cast(&IFS2),
-        .iec = atomic_reg_ptr_cast(&IEC2),
-        .ipc = atomic_reg_ptr_cast(&IPC10),
+        .ifs = ATOMIC_REG_PTR_CAST(&IFS2),
+        .iec = ATOMIC_REG_PTR_CAST(&IEC2),
+        .ipc = ATOMIC_REG_PTR_CAST(&IPC10),
         .mask = BIT(9),
         .priority_mask = MASK(0x7, 26),
         .priority_shift = 26,
     },
     {
-        .ifs = atomic_reg_ptr_cast(&IFS2),
-        .iec = atomic_reg_ptr_cast(&IEC2),
-        .ipc = atomic_reg_ptr_cast(&IPC11),
+        .ifs = ATOMIC_REG_PTR_CAST(&IFS2),
+        .iec = ATOMIC_REG_PTR_CAST(&IEC2),
+        .ipc = ATOMIC_REG_PTR_CAST(&IPC11),
         .mask = BIT(10),
         .priority_mask = MASK(0x7, 2),
         .priority_shift = 2,
     },
     {
-        .ifs = atomic_reg_ptr_cast(&IFS2),
-        .iec = atomic_reg_ptr_cast(&IEC2),
-        .ipc = atomic_reg_ptr_cast(&IPC11),
+        .ifs = ATOMIC_REG_PTR_CAST(&IFS2),
+        .iec = ATOMIC_REG_PTR_CAST(&IEC2),
+        .ipc = ATOMIC_REG_PTR_CAST(&IPC11),
         .mask = BIT(11),
         .priority_mask = MASK(0x7, 10),
         .priority_shift = 10,
@@ -126,7 +125,7 @@ void dma_init(void)
 {
     // Disable interrupt on each channel
     for(unsigned int i = 0; i < DMA_NUMBER_OF_CHANNELS; ++i)
-        atomic_reg_ptr_clr(dma_channels[i].dma_int->iec, dma_channels[i].dma_int->mask);
+        ATOMIC_REG_PTR_CLR(dma_channels[i].dma_int->iec, dma_channels[i].dma_int->mask);
 
     // Configure DMA
     DMA_DMACON_REG = DMA_DMACON_WORD;
@@ -156,7 +155,7 @@ void dma_destruct(struct dma_channel* channel)
 {
     ASSERT_NOT_NULL(channel);
 
-    atomic_reg_clr(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+    ATOMIC_REG_CLR(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
     channel->assigned = false;
 }
 
@@ -167,42 +166,42 @@ void dma_configure(struct dma_channel* channel, struct dma_config config)
     const struct dma_interrupt_map* const dma_int = channel->dma_int;
 
     // Disable channel first
-    atomic_reg_clr(dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+    ATOMIC_REG_CLR(dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 
     // Configure DMA
-    atomic_reg_value(dma_reg->dchssa) = DMA_PHY_ADDR(config.src_mem);
-    atomic_reg_value(dma_reg->dchdsa) = DMA_PHY_ADDR(config.dst_mem);
-    atomic_reg_value(dma_reg->dchssiz) = config.src_size;
-    atomic_reg_value(dma_reg->dchdsiz) = config.dst_size;
-    atomic_reg_value(dma_reg->dchcsiz) = config.cell_size;
+    ATOMIC_REG_VALUE(dma_reg->dchssa) = DMA_PHY_ADDR(config.src_mem);
+    ATOMIC_REG_VALUE(dma_reg->dchdsa) = DMA_PHY_ADDR(config.dst_mem);
+    ATOMIC_REG_VALUE(dma_reg->dchssiz) = config.src_size;
+    ATOMIC_REG_VALUE(dma_reg->dchdsiz) = config.dst_size;
+    ATOMIC_REG_VALUE(dma_reg->dchcsiz) = config.cell_size;
 
     // Configure events
     dma_configure_start_event(channel, config.start_event);
     dma_configure_abort_event(channel, config.abort_event);
 
     // Configure interrupts
-    atomic_reg_ptr_clr(dma_int->iec, dma_int->mask);
-    atomic_reg_ptr_clr(dma_int->ifs, dma_int->mask);
-    atomic_reg_ptr_clr(dma_int->ipc, dma_int->priority_mask);
-    atomic_reg_clr(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
+    ATOMIC_REG_PTR_CLR(dma_int->iec, dma_int->mask);
+    ATOMIC_REG_PTR_CLR(dma_int->ifs, dma_int->mask);
+    ATOMIC_REG_PTR_CLR(dma_int->ipc, dma_int->priority_mask);
+    ATOMIC_REG_CLR(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
 
     if(config.block_transfer_complete != NULL) {
         channel->block_transfer_complete = config.block_transfer_complete;
-        atomic_reg_ptr_set(dma_int->ipc, MASK(DMA_INTERRUPT_PRIORITY, dma_int->priority_shift) & dma_int->priority_mask);
-        atomic_reg_set(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
+        ATOMIC_REG_PTR_SET(dma_int->ipc, MASK(DMA_INTERRUPT_PRIORITY, dma_int->priority_shift) & dma_int->priority_mask);
+        ATOMIC_REG_SET(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
     }
 
     // Has interrupts enabled?
-    if(atomic_reg_value(dma_reg->dchint) & DMA_DCHINT_ENABLE_BITS_MASK)
-        atomic_reg_ptr_set(dma_int->iec, dma_int->mask);
+    if(ATOMIC_REG_VALUE(dma_reg->dchint) & DMA_DCHINT_ENABLE_BITS_MASK)
+        ATOMIC_REG_PTR_SET(dma_int->iec, dma_int->mask);
 }
 void dma_configure_src(struct dma_channel* channel, const void* mem, unsigned short size)
 {
     ASSERT_NOT_NULL(channel);
     const struct dma_register_map* const dma_reg = channel->dma_reg;
 
-    atomic_reg_value(dma_reg->dchssa) = DMA_PHY_ADDR(mem);
-    atomic_reg_value(dma_reg->dchssiz) = size;
+    ATOMIC_REG_VALUE(dma_reg->dchssa) = DMA_PHY_ADDR(mem);
+    ATOMIC_REG_VALUE(dma_reg->dchssiz) = size;
 }
 
 void dma_configure_dst(struct dma_channel* channel, const void* mem, unsigned short size)
@@ -210,15 +209,15 @@ void dma_configure_dst(struct dma_channel* channel, const void* mem, unsigned sh
     ASSERT_NOT_NULL(channel);
     const struct dma_register_map* const dma_reg = channel->dma_reg;
 
-    atomic_reg_value(dma_reg->dchdsa) = DMA_PHY_ADDR(mem);
-    atomic_reg_value(dma_reg->dchdsiz) = size;
+    ATOMIC_REG_VALUE(dma_reg->dchdsa) = DMA_PHY_ADDR(mem);
+    ATOMIC_REG_VALUE(dma_reg->dchdsiz) = size;
 }
 
 void dma_configure_cell(struct dma_channel* channel, unsigned short size)
 {
     ASSERT_NOT_NULL(channel);
 
-    atomic_reg_value(channel->dma_reg->dchcsiz) = size;
+    ATOMIC_REG_VALUE(channel->dma_reg->dchcsiz) = size;
 }
 
 void dma_configure_start_event(struct dma_channel* channel, struct dma_event event)
@@ -226,11 +225,11 @@ void dma_configure_start_event(struct dma_channel* channel, struct dma_event eve
     ASSERT_NOT_NULL(channel);
     const struct dma_register_map* const dma_reg = channel->dma_reg;
 
-    atomic_reg_clr(dma_reg->dchecon, DMA_DCHECON_CHSIRQ_MASK);
-    atomic_reg_clr(dma_reg->dchecon, DMA_DCHECON_SIRQEN_MASK);
+    ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_CHSIRQ_MASK);
+    ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_SIRQEN_MASK);
     if(event.enable) {
-        atomic_reg_set(dma_reg->dchecon, MASK_SHIFT(event.irq_vector, DMA_DCHECON_CHSIRQ_SHIFT) & DMA_DCHECON_CHSIRQ_MASK);
-        atomic_reg_set(dma_reg->dchecon, DMA_DCHECON_SIRQEN_MASK);
+        ATOMIC_REG_SET(dma_reg->dchecon, MASK_SHIFT(event.irq_vector, DMA_DCHECON_CHSIRQ_SHIFT) & DMA_DCHECON_CHSIRQ_MASK);
+        ATOMIC_REG_SET(dma_reg->dchecon, DMA_DCHECON_SIRQEN_MASK);
     }
 }
 
@@ -239,11 +238,11 @@ void dma_configure_abort_event(struct dma_channel* channel, struct dma_event eve
     ASSERT_NOT_NULL(channel);
     const struct dma_register_map* const dma_reg = channel->dma_reg;
 
-    atomic_reg_clr(dma_reg->dchecon, DMA_DCHECON_CHAIRQ_MASK);
-    atomic_reg_clr(dma_reg->dchecon, DMA_DCHECON_AIRQEN_MASK);
+    ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_CHAIRQ_MASK);
+    ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_AIRQEN_MASK);
     if(event.enable) {
-        atomic_reg_set(dma_reg->dchecon, MASK_SHIFT(event.irq_vector, DMA_DCHECON_CHAIRQ_SHIFT) & DMA_DCHECON_CHAIRQ_MASK);
-        atomic_reg_set(dma_reg->dchecon, DMA_DCHECON_AIRQEN_MASK);
+        ATOMIC_REG_SET(dma_reg->dchecon, MASK_SHIFT(event.irq_vector, DMA_DCHECON_CHAIRQ_SHIFT) & DMA_DCHECON_CHAIRQ_MASK);
+        ATOMIC_REG_SET(dma_reg->dchecon, DMA_DCHECON_AIRQEN_MASK);
     }
 }
 
@@ -251,21 +250,21 @@ void dma_enable_transfer(struct dma_channel* channel)
 {
     ASSERT_NOT_NULL(channel);
 
-    atomic_reg_set(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+    ATOMIC_REG_SET(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 }
 
 void dma_disable_transfer(struct dma_channel* channel)
 {
     ASSERT_NOT_NULL(channel);
 
-    atomic_reg_clr(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+    ATOMIC_REG_CLR(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 }
 
 bool dma_busy(struct dma_channel* channel)
 {
     ASSERT_NOT_NULL(channel);
 
-    return atomic_reg_value(channel->dma_reg->dchcon) & DMA_DCHCON_CHBUSY_MASK;
+    return ATOMIC_REG_VALUE(channel->dma_reg->dchcon) & DMA_DCHCON_CHBUSY_MASK;
 }
 
 bool dma_ready(struct dma_channel* channel)
@@ -275,11 +274,11 @@ bool dma_ready(struct dma_channel* channel)
 
 static void dma_handle_interrupt(struct dma_channel* channel)
 {
-    unsigned int int_flags = atomic_reg_value(channel->dma_reg->dchint);
+    unsigned int int_flags = ATOMIC_REG_VALUE(channel->dma_reg->dchint);
 
     if(int_flags & DMA_DCHINT_CHBCIF_MASK) {
         channel->block_transfer_complete(channel);
-        atomic_reg_clr(channel->dma_reg->dchint, DMA_DCHINT_CHBCIF_MASK);
+        ATOMIC_REG_CLR(channel->dma_reg->dchint, DMA_DCHINT_CHBCIF_MASK);
     }
 }
 
