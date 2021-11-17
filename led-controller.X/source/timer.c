@@ -18,7 +18,6 @@ struct timer_module
         unsigned char type        :3;
         unsigned char assigned    :1;
         unsigned char suspended   :1;
-        unsigned char timedout    :1;
         unsigned char reserved    :2;
     } opt;
 };
@@ -75,18 +74,15 @@ static void timer_ttask_execute(void)
     for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i) {
         if(timer->opt.assigned && !timer->opt.suspended) {
 
-            // Decrement tick count
+            bool timed_out = true;
             if(timer->ticks > 0)
-                timer->opt.timedout = !!!(--timer->ticks); // Determine if timer timed out after decrement.
-            else
-                timer->opt.timedout = true;
+                timed_out = !!!(--timer->ticks);
 
-            if(timer->opt.timedout) {
+            if(timed_out) {
                 switch(timer->opt.type) {
                     case TIMER_TYPE_SOFT:
                         if(execute == NULL) { // Yay, we can execute this timer's handle
                             timer->ticks = timer->interval; // Reset tick count
-                            timer->opt.timedout = false;
                             execute = timer->execute;
                         }
                         break;
@@ -141,7 +137,6 @@ struct timer_module* timer_construct(int type, void (*execute)(struct timer_modu
         timer->execute = execute;
         timer->opt.type = type;
         timer->opt.suspended = true;
-        timer->opt.timedout = false;
         timer->opt.assigned = true;
     }
     return timer;
@@ -167,7 +162,6 @@ void timer_start(struct timer_module* timer, int time, int unit)
     ASSERT_NOT_NULL(timer);
     
     timer_set_time(timer, time, unit);
-    timer->opt.timedout = false;
     timer->opt.suspended = false;
 }
 
@@ -183,15 +177,14 @@ void timer_restart(struct timer_module* timer)
     ASSERT_NOT_NULL(timer);
 
     timer->ticks = timer->interval;
-    timer->opt.timedout = false;
     timer->opt.suspended = false;
 }
 
-bool timer_timed_out(const struct timer_module* timer)
+bool timer_is_running(const struct timer_module* timer)
 {
     ASSERT_NOT_NULL(timer);
 
-    return timer->opt.timedout;
+    return !timer->opt.suspended;
 }
 
 bool timer_is_valid(const struct timer_module* timer)

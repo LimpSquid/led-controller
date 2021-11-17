@@ -50,6 +50,7 @@
       <itemPath>source/bus_func_impl.c</itemPath>
       <itemPath>source/bus_address.c</itemPath>
       <itemPath>source/io.c</itemPath>
+      <itemPath>source/test_suite.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -870,7 +871,7 @@
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros"
-                  value="_SYS_CLK=80000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;LED_CONTROLLER_TEST_SUITE"/>
+                  value="_SYS_CLK=80000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;TEST_SUITE_ENABLE"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>

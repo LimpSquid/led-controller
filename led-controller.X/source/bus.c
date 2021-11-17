@@ -171,7 +171,7 @@ static void bus_rtask_execute(void)
             bus_state = BUS_ERROR_BACKOFF_WAIT;
             break;
         case BUS_ERROR_BACKOFF_WAIT:
-            if(timer_timed_out(bus_backoff_timer))
+            if(!timer_is_running(bus_backoff_timer))
                 bus_state = BUS_ERROR_RESET;
             break;
         case BUS_ERROR_RESET:

@@ -178,7 +178,7 @@ static void rs485_rtask_execute(void)
             if(rs485_rx_available()) {
                 rs485_status = RS485_STATUS_RECEIVING;
                 rs485_state = RS485_RECEIVE;
-            } else if(rs485_tx_available() && timer_timed_out(rs485_backoff_tx_timer)) {
+            } else if(rs485_tx_available() && !timer_is_running(rs485_backoff_tx_timer)) {
                 rs485_status = RS485_STATUS_TRANSFERRING;
                 rs485_state = RS485_TRANSFER;
             }
