@@ -44,8 +44,8 @@ typedef struct
 #define IO_CLR(pin)             ATOMIC_REG_PTR_CLR((pin).lat, (pin).mask)
 #define IO_INV(pin)             ATOMIC_REG_PTR_INV((pin).lat, (pin).mask)
 #define IO_PULSE(pin)           do { IO_INV(pin); IO_INV(pin); } while(0)
-#define IO_HI_PULSE(pin)        do { IO_SET(pin); IO_INV(pin); } while(0)
-#define IO_LO_PULSE(pin)        do { IO_CLR(pin); IO_INV(pin); } while(0)
+#define IO_SETCLR(pin)          do { IO_SET(pin); IO_CLR(pin); } while(0)
+#define IO_CLRSET(pin)          do { IO_CLR(pin); IO_SET(pin); } while(0)
 
 // Variant for struct io_pin pointers
 #define IO_PTR_READ(pin)        !!(ATOMIC_REG_PTR_VALUE(pin->port) & pin->mask)
@@ -53,8 +53,8 @@ typedef struct
 #define IO_PTR_CLR(pin)         ATOMIC_REG_PTR_CLR(pin->lat, pin->mask)
 #define IO_PTR_INV(pin)         ATOMIC_REG_PTR_INV(pin->lat, pin->mask)
 #define IO_PTR_PULSE(pin)       do { IO_PTR_INV(pin); IO_PTR_INV(pin); } while(0)
-#define IO_PTR_HI_PULSE(pin)    do { IO_PTR_SET(pin); IO_PTR_INV(pin); } while(0)
-#define IO_PTR_LO_PULSE(pin)    do { IO_PTR_CLR(pin); IO_PTR_INV(pin); } while(0)
+#define IO_PTR_SETCLR(pin)      do { IO_PTR_SET(pin); IO_PTR_CLR(pin); } while(0)
+#define IO_PTR_CLRSET(pin)      do { IO_PTR_CLR(pin); IO_PTR_SET(pin); } while(0)
 
 #define IO_PIN(pin, bank) \
     { \

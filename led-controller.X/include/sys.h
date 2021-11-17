@@ -10,6 +10,9 @@
     #error "System peripheral bus clock could not be calculated, please define the _SYS_CLK and _PB_DIV." 
 #endif
 
+#define SYS_FAIL_IF(expression)     if(expression) { abort(); }
+#define SYS_FAIL_IF_NOT(expression) SYS_FAIL_IF(!(expression))
+
 // Version ranges between 0 - 255
 #define SYS_VERSION_MAJOR           0
 #define SYS_VERSION_MINOR           0

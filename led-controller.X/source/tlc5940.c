@@ -19,7 +19,7 @@
 #endif
 
 STATIC_ASSERT(TLC5940_NUM_OF_DEVICES > 0)
-STATIC_ASSERT(TLC5940_GSCLK_PERIOD >= 750 && TLC5940_GSCLK_PERIOD <= 50000) // Limit values to something reasonable
+STATIC_ASSERT(TLC5940_GSCLK_PERIOD >= 950 && TLC5940_GSCLK_PERIOD <= 50000) // Limit values to something reasonable
 
 // The hardware allows for a current of Imax = (Iref / Riref) * 31.5 = (1.24 / 2700) * 31.5 = 15mA per channel.
 // Turning all channels on for a single LED (r, g, b) we have a sum of 45mA. I don't have the specs for our LEDs, but I think
@@ -80,7 +80,7 @@ static const struct dma_config tlc5940_dma_config; // No special config needed
 static const struct spi_config tlc5940_spi_config =
 {
     .spi_con_flags = SPI_MSTEN | SPI_STXISEL_COMPLETE | SPI_DISSDI | SPI_MODE8 | SPI_CKP,
-    .baudrate = 20000000,
+    .baudrate = 40000000,
 };
 
 static const struct pwm_config tlc5940_pwm_config =
@@ -131,12 +131,7 @@ void pwm_period_callback(void)
 {
     // Blank and shift in data
     IO_SET(tlc5940_blank_pin);
-    IO_HI_PULSE(tlc5940_xlat_pin);
-
-    // Shift diagnostic data
-    spi_disable(tlc5940_spi_module);
-    IO_PULSE(tlc5940_sck_pin);
-    spi_enable(tlc5940_spi_module);
+    IO_SETCLR(tlc5940_xlat_pin);
 
     tlc5940_latch_handler();
     
@@ -145,7 +140,10 @@ void pwm_period_callback(void)
     // Means that the update routine in the robin task did not
     // complete before the GSCLK period finished, consider lowering
     // the value of TLC5940_GSCLK_PERIOD
-    ASSERT(!tlc5940_flags.need_update); 
+    ASSERT(!tlc5940_flags.need_update);
+    
+    // Also abort in release mode, that way we atleast notice that something's wrong
+    SYS_FAIL_IF(tlc5940_flags.need_update);
 
     tlc5940_flags.need_update = true;
 }
@@ -204,7 +202,7 @@ static void tlc5940_rtask_execute(void)
         case TLC5940_INIT_WRITE_DOT_CORRECTION:
             IO_SET(tlc5940_vprg_pin);
             spi_transmit_mode8(tlc5940_spi_module, tlc5940_dot_corr_buffer, TLC5940_BUFFER_SIZE_DOT_CORR);
-            IO_HI_PULSE(tlc5940_xlat_pin);
+            IO_SETCLR(tlc5940_xlat_pin);
             IO_CLR(tlc5940_vprg_pin);
             tlc5940_state = TLC5940_IDLE;
             break;
@@ -239,7 +237,7 @@ static void tlc5940_rtask_execute(void)
             break;
             
         case TLC5940_SWITCH_MODE_ENABLE:
-            IO_HI_PULSE(tlc5940_blank_pin);
+            IO_SETCLR(tlc5940_blank_pin);
             pwm_enable();
             
             tlc5940_flags.switch_mode_enable = false;
@@ -248,7 +246,7 @@ static void tlc5940_rtask_execute(void)
             break;
         case TLC5940_SWITCH_MODE_DISABLE:
             pwm_disable();
-            IO_HI_PULSE(tlc5940_blank_pin);
+            IO_SETCLR(tlc5940_blank_pin);
             
             tlc5940_flags.switch_mode_disable = false;
             tlc5940_mode = TLC5940_MODE_DISABLED;
@@ -265,16 +263,11 @@ static void tlc5940_rtask_execute(void)
             
             // Blank and latch in data
             IO_SET(tlc5940_blank_pin);
-            IO_HI_PULSE(tlc5940_xlat_pin);
-
-            // Shift diagnostic data
-            spi_disable(tlc5940_spi_module);
-            IO_PULSE(tlc5940_sck_pin);
-            spi_enable(tlc5940_spi_module);
+            IO_SETCLR(tlc5940_xlat_pin);
             
             // Enable output so we can read LOD errors
             IO_CLR(tlc5940_blank_pin);
-            IO_HI_PULSE(tlc5940_gsclk_pin);
+            IO_SETCLR(tlc5940_gsclk_pin);
             
             tlc5940_flags.switch_mode_lod = false;
             tlc5940_mode = TLC5940_MODE_LOD;

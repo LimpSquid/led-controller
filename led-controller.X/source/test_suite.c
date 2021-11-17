@@ -11,7 +11,7 @@
 #define TEST_SUITE_NUM_OF_CYCLE_COLORS  (sizeof(test_suite_cycle_colors) / sizeof(test_suite_cycle_colors[0]))
 
 #define TEST_SUITE_CYCLE_COLORS_DELAY   2000 // In milliseconds
-#define TEST_SUITE_FINISHED_DELAY       175 // In milliseconds
+#define TEST_SUITE_FINISHED_DELAY       250 // In milliseconds
 
 enum test_suite_state
 {
@@ -101,15 +101,18 @@ static void test_suite_execute(void)
                 test_suite_state = TEST_SUITE_FINISHED;
             break;
            
-        case TEST_SUITE_FINISHED:
-            for(unsigned char x = 0; x < TEST_SUITE_X_PIXELS; ++x) {
-                struct layer_color color = { .r = rand() % 256, .g = rand() % 128, .b = rand() % 256 };
-                for(unsigned char y = 0; y < TEST_SUITE_Y_PIXELS; ++y)
-                    layer_draw_pixel(x, y, color);
-            }
+        case TEST_SUITE_FINISHED: {
+            struct layer_color color = 
+            { 
+                .r = rand() % 256, 
+                .g = rand() % 256, 
+                .b = rand() % 256
+            };
+            layer_draw_all_pixels(color);
             layer_swap_buffers();
             timer_start(test_suite_countdown_timer, TEST_SUITE_FINISHED_DELAY, TIMER_TIME_UNIT_MS);
             break;
+        }
     }
 }
 #endif
