@@ -418,14 +418,14 @@ bool layer_dma_swap_buffers(void)
 void layer_draw_pixel(unsigned char x, unsigned char y, struct layer_color color)
 {
     if(x >= LAYER_NUM_OF_COLS)
-		x = LAYER_NUM_OF_COLS - 1;
-	if(y >= LAYER_NUM_OF_ROWS)
-		y = LAYER_NUM_OF_ROWS - 1;
+        x = LAYER_NUM_OF_COLS - 1;
+    if(y >= LAYER_NUM_OF_ROWS)
+        y = LAYER_NUM_OF_ROWS - 1;
 
-	unsigned int pos = x + y * LAYER_NUM_OF_ROWS;
-	layer_draw_ptr[pos + LAYER_RED_OFFSET] = color.r;
-	layer_draw_ptr[pos + LAYER_GREEN_OFFSET] = color.g;
-	layer_draw_ptr[pos + LAYER_BLUE_OFFSET] = color.b;
+    unsigned int pos = x + y * LAYER_NUM_OF_ROWS;
+    layer_draw_ptr[pos + LAYER_RED_OFFSET] = color.r;
+    layer_draw_ptr[pos + LAYER_GREEN_OFFSET] = color.g;
+    layer_draw_ptr[pos + LAYER_BLUE_OFFSET] = color.b;
 }
 void layer_draw_all_pixels(struct layer_color color)
 {

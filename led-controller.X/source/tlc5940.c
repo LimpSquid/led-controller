@@ -220,7 +220,7 @@ static void tlc5940_rtask_execute(void)
         case TLC5940_UPDATE:
             tlc5940_update_handler();
             tlc5940_state = TLC5940_UPDATE_DMA_TRANSFER;
-            break;
+            // no break
         case TLC5940_UPDATE_DMA_TRANSFER:
             if(dma_ready(tlc5940_dma_channel)) {
                 dma_configure_src(tlc5940_dma_channel, tlc5940_buffer, TLC5940_BUFFER_SIZE);
@@ -230,8 +230,8 @@ static void tlc5940_rtask_execute(void)
             break;
         case TLC5940_UPDATE_DMA_TRANSFER_WAIT:
             if(dma_ready(tlc5940_dma_channel)) {
-                memset(tlc5940_buffer, 0x00, TLC5940_BUFFER_SIZE); // Because we are OR'ing in tlc5940_write
                 tlc5940_flags.need_update = false;
+                memset(tlc5940_buffer, 0x00, TLC5940_BUFFER_SIZE); // Because we are OR'ing in tlc5940_write
                 tlc5940_state = TLC5940_IDLE;
             }
             break;
