@@ -5,13 +5,11 @@
 #define SYS_OSCCON_REG                  OSCCON
 #define SYS_INTCON_REG                  INTCON
 #define SYS_CFGCON_REG                  CFGCON
-#define SYS_RSWRST_REG                  RSWRST
 
 #define SYS_OSCCON_CLK_LCK_MASK         BIT(7)
 #define SYS_OSCCON_CF_MASK              BIT(3)
 #define SYS_INTCON_MVEC_MASK            BIT(12)
 #define SYS_CFGCON_IOLOCK_MASK          BIT(12)
-#define SYS_RSWRST_SWRST_MASK           BIT(0)
 
 void sys_lock(void)
 {
@@ -53,7 +51,5 @@ void sys_cpu_early_init(void)
 
 void sys_cpu_reset(void)
 {
-    sys_unlock();
-    REG_SET(SYS_RSWRST_REG, SYS_RSWRST_SWRST_MASK);
-    sys_lock();
+    abort();
 }

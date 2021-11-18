@@ -104,8 +104,8 @@ static void test_suite_execute(void)
         case TEST_SUITE_FINISHED: {
             struct layer_color color = 
             { 
-                .r = rand() % 256, 
-                .g = rand() % 256, 
+                .r = rand() % 256,
+                .g = rand() % 256,
                 .b = rand() % 256
             };
             layer_draw_all_pixels(color);
