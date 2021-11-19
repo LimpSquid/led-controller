@@ -51,5 +51,5 @@ void sys_cpu_early_init(void)
 
 void sys_cpu_reset(void)
 {
-    abort();
+    exit(EXIT_SUCCESS);
 }

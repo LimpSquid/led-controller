@@ -19,7 +19,7 @@
 #endif
 
 STATIC_ASSERT(TLC5940_NUM_OF_DEVICES > 0)
-STATIC_ASSERT(TLC5940_GSCLK_PERIOD >= 950 && TLC5940_GSCLK_PERIOD <= 50000) // Limit values to something reasonable
+STATIC_ASSERT(TLC5940_GSCLK_PERIOD >= 750 && TLC5940_GSCLK_PERIOD <= 50000) // Limit values to something reasonable
 
 // The hardware allows for a current of Imax = (Iref / Riref) * 31.5 = (1.24 / 2700) * 31.5 = 15mA per channel.
 // Turning all channels on for a single LED (r, g, b) we have a sum of 45mA. I don't have the specs for our LEDs, but I think
