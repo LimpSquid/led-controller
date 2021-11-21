@@ -23,7 +23,8 @@
 // Data type must be unsigned
 STATIC_ASSERT((KERN_TMR_REG_DATA_TYPE)(-1) > 0)
 
-#define KERNEL_SYSTEM_TICK ((1000000.0F / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER)
+#define KERNEL_SYSTEM_TICK              ((1000000.0 / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER) // Microseconds per tick, is a floating-point number
+#define KERNEL_JITTER_AVOIDANCE_COEFF   (33 * KERNEL_SYSTEM_TICK) // 33us
 
 #define kernel_restore_rtask_iterator()                                 \
             kernel_rtask_iterator = &__kernel_rstack_begin
@@ -59,9 +60,23 @@ static timer_size_t kernel_previous_ticks = 0;
 
 static void kernel_init_configure_ttask(void)
 {
+    int x = 0;
+
     while(kernel_ttask_iterator != kernel_ttask_end) {
         if(kernel_ttask_iterator->configure != NULL)
             (*kernel_ttask_iterator->configure)(kernel_ttask_iterator->param);
+
+        // Suppose that two tasks had the same execution interval, meaning that the kernel has 
+        // to service two tasks at exactly the same time. This isn't something we can actually
+        // do with only one CPU and would've resulted in one task being delayed by the execution 
+        // time of the other. A task's execution time is of jittery nature, e.g. sometimes a
+        // task has to do nothing (zero CPU time), sometimes it needs to do a lot (a significant 
+        // amount of CPU time). Because of this, the 2nd task (which immediately runs after
+        // the completion of the 1st task) will also experience this jitter. Obviously this
+        // is something we want to avoid as much as possible. By introducing an initial 
+        // execution time offset we will make sure that tasks with the same interval will not
+        // be scheduled/serviced at the same point in time, thus preventing task jitter.
+        kernel_ttask_iterator->param->exec_time_point = (x++ * KERNEL_JITTER_AVOIDANCE_COEFF);
         kernel_ttask_iterator++;
     }
     kernel_restore_ttask_iterator();
@@ -166,8 +181,8 @@ inline static void __attribute__((always_inline)) kernel_execute_ttask(void)
 
     do {
         param = task->param;
-        if(kernel_ticks >= param->time_point) {
-            param->time_point += param->interval;
+        if(kernel_ticks >= param->exec_time_point) {
+            param->exec_time_point += param->interval;
             task->exec();
         }
 

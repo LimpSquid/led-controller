@@ -29,7 +29,7 @@
         .init_done = false,                                             \
         .priority = KERN_TTASK_PRIORITY_NORMAL,                         \
         .interval = 0x7fffffffL,                                        \
-        .time_point = 0,                                                \
+        .exec_time_point = 0,                                           \
         .next = ((void*)0)                                              \
     };                                                                  \
     static const struct kernel_ttask __ttask_##name                     \
@@ -95,7 +95,7 @@ struct kernel_ttask_param
     bool init_done;
     int priority;
     int interval;
-    long long time_point;
+    long long exec_time_point;
     
     const struct kernel_ttask* next;
 };
