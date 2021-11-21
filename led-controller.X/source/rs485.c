@@ -11,8 +11,6 @@
 #define RS485_RX_FIFO_SIZE      100
 #define RS485_TX_OVERRUN_ERR    (RS485_TX_FIFO_SIZE - (RS485_TX_FIFO_SIZE >> 3) - 1) // Used to detect possible TX overrun errors in debug mode only
 #define RS485_RX_OVERRUN_ERR    (RS485_RX_FIFO_SIZE - (RS485_RX_FIFO_SIZE >> 3) - 1) // Used to detect possible RX overrun errors in debug mode only
-#define RS485_TX_BURST          (RS485_TX_FIFO_SIZE >> 2)
-#define RS485_RX_BURST          (RS485_RX_FIFO_SIZE >> 2)
 
 // In us, note that this time may not be accurate because of the software timer's resolution.
 // Ideally we use a hardware timer to avoid the software timer's resolution altogether.
@@ -41,11 +39,10 @@ enum rs485_state
     RS485_IDLE_WAIT_EVENT,
 
     RS485_RECEIVE,
-    RS485_RECEIVE_STATUS,
-    RS485_RECEIVE_BURST_READ,
+    RS485_RECEIVE_READ,
 
     RS485_TRANSFER,
-    RS485_TRANSFER_BURST_WRITE,
+    RS485_TRANSFER_WRITE,
     RS485_TRANSFER_WAIT_COMPLETION,
 
     RS485_ERROR,
@@ -91,7 +88,6 @@ static unsigned char* rs485_rx_producer = &rs485_rx_fifo[0];
 
 inline static bool __attribute__((always_inline)) rs485_rx_available()
 {
-    // Can we read data from the UART module's buffer?
     return RS485_USTA_REG & RS485_URXDA_MASK;
 }
 
@@ -191,38 +187,35 @@ static void rs485_rtask_execute(void)
             } else if(rs485_tx_available() && !timer_is_running(rs485_backoff_tx_timer)) {
                 rs485_status = RS485_STATUS_TRANSFERRING;
                 rs485_state = RS485_TRANSFER;
+            } else {
+                rs485_error_reg.by_byte |= (RS485_USTA_REG & RS485_ERROR_BITS_MASK) >> 1; // Latch errors
+                rs485_state = rs485_error_reg.by_byte 
+                    ? RS485_ERROR 
+                    : RS485_IDLE_WAIT_EVENT;
             }
             break;
 
         // Receive routine
         case RS485_RECEIVE:
-        case RS485_RECEIVE_STATUS:
-            rs485_error_reg.by_byte |= (RS485_USTA_REG & RS485_ERROR_BITS_MASK) >> 1;
-            rs485_state = rs485_error_reg.by_byte 
-                    ? RS485_ERROR 
-                    : RS485_RECEIVE_BURST_READ;
-            break;
-        case RS485_RECEIVE_BURST_READ:
-            for(unsigned int i = 0; rs485_rx_available() && i < RS485_RX_BURST; ++i)
+        case RS485_RECEIVE_READ:
+            while(rs485_rx_available())
                 rs485_receive(RS485_RX_REG);
-            
-            if (rs485_rx_available())
-                rs485_state = RS485_RECEIVE_STATUS; // Get status in-between burst reads
-            else {
-                timer_restart(rs485_backoff_tx_timer);
-                rs485_state = RS485_IDLE;
-            }
+
+            timer_restart(rs485_backoff_tx_timer);
+            rs485_state = RS485_IDLE;
             break;
            
         // Transfer routine
         case RS485_TRANSFER:
             IO_SET(rs485_dir_pin); // Put transceiver into transfer mode
             // no break
-        case RS485_TRANSFER_BURST_WRITE:
-            for(unsigned int i = 0; rs485_tx_available() && i < RS485_TX_BURST; ++i)
+        case RS485_TRANSFER_WRITE: {
+            bool avail;
+            while(avail = rs485_tx_available())
                 rs485_write(rs485_tx_take());
-            rs485_state = rs485_tx_available() 
-                    ? RS485_TRANSFER_BURST_WRITE 
+
+            rs485_state = avail
+                    ? RS485_TRANSFER_WRITE 
                     : RS485_TRANSFER_WAIT_COMPLETION;
             break;
         case RS485_TRANSFER_WAIT_COMPLETION:
@@ -231,13 +224,17 @@ static void rs485_rtask_execute(void)
                 rs485_state = RS485_IDLE;
             }
             break;
+        }
 
         // Error routine
         case RS485_ERROR:
             REG_CLR(RS485_UMODE_REG, RS485_ON_MASK); // Disable module
-            rs485_error_notify();
             rs485_status = RS485_STATUS_ERROR;
             rs485_state = RS485_ERROR_IDLE;
+
+            // Call after changing the state, in case rs485_reset is
+            // executed in one of the error notifier's callback.
+            rs485_error_notify();  
             break;
         case RS485_ERROR_IDLE:
             break;
@@ -273,6 +270,7 @@ void rs485_reset(void)
     rs485_rx_consumer = rs485_rx_begin;
 
     // Clear errors and enable module
+    rs485_error_reg.by_byte = 0;
     REG_CLR(RS485_USTA_REG, RS485_ERROR_BITS_MASK);
     REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
 }
