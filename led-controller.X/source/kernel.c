@@ -26,17 +26,6 @@ STATIC_ASSERT((KERN_TMR_REG_DATA_TYPE)(-1) > 0)
 #define KERNEL_SYSTEM_TICK              ((1000000.0 / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER) // Microseconds per tick, is a floating-point number
 #define KERNEL_JITTER_AVOIDANCE_COEFF   (33 * KERNEL_SYSTEM_TICK) // 33us
 
-#define kernel_restore_rtask_iterator()                                 \
-            kernel_rtask_iterator = &__kernel_rstack_begin
-#define kernel_restore_ttask_iterator()                                 \
-            kernel_ttask_iterator = &__kernel_tstack_begin
-
-#define kernel_rtask_size()                                             \
-            (int)(&__kernel_rstack_end - &__kernel_rstack_begin)
-
-#define kernel_ttask_size()                                             \
-            (int)(&__kernel_tstack_end - &__kernel_tstack_begin)
-
 typedef KERN_TMR_REG_DATA_TYPE timer_size_t;
 
 // Nice info explaining this: https://mcuoneclipse.com/2016/11/01/getting-the-memory-range-of-sections-with-gnu-linker-files/
@@ -57,6 +46,26 @@ static void (*kernel_exec_func)(void) = NULL;
 static long long kernel_ticks = 0;
 static timer_size_t kernel_elapsed_ticks = 0;
 static timer_size_t kernel_previous_ticks = 0;
+
+inline static void __attribute__((always_inline)) kernel_restore_rtask_iterator()
+{
+    kernel_rtask_iterator = &__kernel_rstack_begin;
+}
+
+inline static void __attribute__((always_inline)) kernel_restore_ttask_iterator()
+{
+    kernel_ttask_iterator = &__kernel_tstack_begin;
+}
+
+inline static int __attribute__((always_inline)) kernel_rtask_size()
+{
+    return (int)(&__kernel_rstack_end - &__kernel_rstack_begin);
+}
+
+inline static int __attribute__((always_inline)) kernel_ttask_size()
+{
+    return (int)(&__kernel_tstack_end - &__kernel_tstack_begin);
+}
 
 static void kernel_init_configure_ttask(void)
 {

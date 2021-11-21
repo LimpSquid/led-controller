@@ -90,14 +90,14 @@ static const struct pwm_config tlc5940_pwm_config =
     .period_callback_div = TLC5940_MAX_PWM_VALUE // Number of PWM pulses for one GSCLK period to complete
 };
 
-static const struct io_pin tlc5940_sdo_pin = IO_ANSEL_PIN(7, G);
-static const struct io_pin tlc5940_sck_pin = IO_ANSEL_PIN(6, G);
-static const struct io_pin tlc5940_blank_pin = IO_ANSEL_PIN(7, E);
-static const struct io_pin tlc5940_xlat_pin = IO_ANSEL_PIN(6, E);
-static const struct io_pin tlc5940_dcprg_pin = IO_ANSEL_PIN(5, B);
-static const struct io_pin tlc5940_gsclk_pin = IO_ANSEL_PIN(5, E); // This pin can only be controlled when PWM module is disabled, they are mutually exclusive
-static const struct io_pin tlc5940_vprg_pin = IO_ANSEL_PIN(9, G);
-static const struct io_pin tlc5940_xerr_pin = IO_ANSEL_PIN(4, E);
+static const struct io_pin tlc5940_sdo_pin = IO_ANLG_PIN(7, G);
+static const struct io_pin tlc5940_sck_pin = IO_ANLG_PIN(6, G);
+static const struct io_pin tlc5940_blank_pin = IO_ANLG_PIN(7, E);
+static const struct io_pin tlc5940_xlat_pin = IO_ANLG_PIN(6, E);
+static const struct io_pin tlc5940_dcprg_pin = IO_ANLG_PIN(5, B);
+static const struct io_pin tlc5940_gsclk_pin = IO_ANLG_PIN(5, E); // This pin can only be controlled when PWM module is disabled, they are mutually exclusive
+static const struct io_pin tlc5940_vprg_pin = IO_ANLG_PIN(9, G);
+static const struct io_pin tlc5940_xerr_pin = IO_ANLG_PIN(4, E);
 
 // Volatile because flags are accessed from ISR and we want to avoid weird optimizations
 static volatile struct tlc5940_flags tlc5940_flags =

@@ -17,11 +17,11 @@
 #define SYS_VERSION_MAJOR           0
 #define SYS_VERSION_MINOR           0
 #define SYS_VERSION_PATCH           0
-#define SYS_BONZO_IS_HUNGRY         true
 
-#define sys_goodnight_bonzo()       WDTCONbits.ON = 0
-#define sys_wakeup_bonzo()          WDTCONbits.ON = 1
-#define sys_feed_bonzo()            WDTCONbits.WDTCLR = 1
+// Macros for performance reasons
+#define SYS_GOODNIGHT_BONZO()       WDTCONbits.ON = 0
+#define SYS_WAKEUP_BONZO()          WDTCONbits.ON = 1
+#define SYS_FEED_BONZO()            WDTCONbits.WDTCLR = 1
 
 void sys_lock(void);
 void sys_unlock(void);

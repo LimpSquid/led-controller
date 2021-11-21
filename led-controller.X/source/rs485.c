@@ -35,13 +35,6 @@
 #define RS485_UTXBF_MASK        BIT(9)
 #define RS485_TRMT_MASK         BIT(8)
 
-#define rs485_rx_available()    (RS485_USTA_REG & RS485_URXDA_MASK) // Can we read data from the UART module's buffer?
-#define rs485_tx_available()    (rs485_tx_consumer != rs485_tx_producer && !(RS485_USTA_REG & RS485_UTXBF_MASK)) // Can we read data from the tx buffer and write it to the UART module's buffer?
-#define rs485_tx_complete()     (RS485_USTA_REG & RS485_TRMT_MASK) // Is transfer completed?
-#define rs485_dir_rx()          IO_CLR(rs485_dir_pin)
-#define rs485_dir_tx()          IO_SET(rs485_dir_pin)
-#define rs485_dir_is_rx()       (!IO_READ(rs485_dir_pin))
-
 enum rs485_state
 {
     RS485_IDLE = 0,
@@ -76,7 +69,7 @@ static struct rs485_error_notifier rs485_notifier =
     .next = NULL
 };
 static const struct rs485_error_notifier** rs485_notifier_next = &rs485_notifier.next;
-static const struct io_pin rs485_dir_pin = IO_ANSEL_PIN(7, B);
+static const struct io_pin rs485_dir_pin = IO_ANLG_PIN(7, B);
 
 // When we stop receiving data we want to make sure the other end
 // has put its transceiver in receive mode before we're doing a transfer.
@@ -95,6 +88,23 @@ static unsigned char* const rs485_rx_begin = &rs485_rx_fifo[0];
 static unsigned char* const rs485_rx_end = &rs485_rx_fifo[RS485_RX_FIFO_SIZE - 1];
 static unsigned char* rs485_rx_consumer = &rs485_rx_fifo[0];
 static unsigned char* rs485_rx_producer = &rs485_rx_fifo[0];
+
+inline static bool __attribute__((always_inline)) rs485_rx_available()
+{
+    // Can we read data from the UART module's buffer?
+    return RS485_USTA_REG & RS485_URXDA_MASK;
+}
+
+inline static bool __attribute__((always_inline)) rs485_tx_available()
+{
+    // Can we read data from the tx buffer and write it to the UART module's buffer?
+    return (rs485_tx_consumer != rs485_tx_producer && !(RS485_USTA_REG & RS485_UTXBF_MASK));
+}
+
+inline static bool __attribute__((always_inline)) rs485_tx_complete()
+{
+    return RS485_USTA_REG & RS485_TRMT_MASK;
+}
 
 static void rs485_receive(unsigned char data)
 {
@@ -168,8 +178,8 @@ static void rs485_rtask_execute(void)
     switch(rs485_state) {
         default:
         case RS485_IDLE:
-            ASSERT(rs485_dir_is_rx());
-            rs485_dir_rx(); // Shouldn't be necessary, but can't hurt
+            ASSERT(!IO_READ(rs485_dir_pin));
+            IO_CLR(rs485_dir_pin); // Shouldn't be necessary, but can't hurt
             
             rs485_status = RS485_STATUS_IDLE;
             rs485_state = RS485_IDLE_WAIT_EVENT;
@@ -206,7 +216,7 @@ static void rs485_rtask_execute(void)
            
         // Transfer routine
         case RS485_TRANSFER:
-            rs485_dir_tx(); // Put transceiver into transfer mode
+            IO_SET(rs485_dir_pin); // Put transceiver into transfer mode
             // no break
         case RS485_TRANSFER_BURST_WRITE:
             for(unsigned int i = 0; rs485_tx_available() && i < RS485_TX_BURST; ++i)
@@ -217,7 +227,7 @@ static void rs485_rtask_execute(void)
             break;
         case RS485_TRANSFER_WAIT_COMPLETION:
             if(rs485_tx_complete()) {
-                rs485_dir_rx(); // Put transceiver back into receive mode
+                IO_CLR(rs485_dir_pin); // Put transceiver back into receive mode
                 rs485_state = RS485_IDLE;
             }
             break;

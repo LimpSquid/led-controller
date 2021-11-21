@@ -94,16 +94,16 @@ static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 {
     IO_PIN(6, D), // Row 1
     IO_PIN(4, D), // Row 3
-    IO_ANSEL_PIN(2, D), // ...
+    IO_ANLG_PIN(2, D), // ...
     IO_PIN(0, D),
-    IO_ANSEL_PIN(2, E), 
+    IO_ANLG_PIN(2, E), 
     IO_PIN(0, E),
     IO_PIN(10, D),
     IO_PIN(8, D),
     IO_PIN(7, D), // Row 0
     IO_PIN(5, D), // Row 2
-    IO_ANSEL_PIN(3, D), // ...
-    IO_ANSEL_PIN(1, D),
+    IO_ANLG_PIN(3, D), // ...
+    IO_ANLG_PIN(1, D),
     IO_PIN(3, E),
     IO_PIN(1, E),
     IO_PIN(11, D),
@@ -136,12 +136,12 @@ static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
     IO_PIN(6, D), // Row 1
     IO_PIN(5, D), // ...
     IO_PIN(4, D),
-    IO_ANSEL_PIN(3, D),
-    IO_ANSEL_PIN(2, D),
-    IO_ANSEL_PIN(1, D),
+    IO_ANLG_PIN(3, D),
+    IO_ANLG_PIN(2, D),
+    IO_ANLG_PIN(1, D),
     IO_PIN(0, D),
     IO_PIN(3, E),
-    IO_ANSEL_PIN(2, E),
+    IO_ANLG_PIN(2, E),
     IO_PIN(1, E),
     IO_PIN(0, E),
     IO_PIN(11, D),
@@ -159,7 +159,7 @@ static const struct spi_config layer_spi_config =
 
 static const struct io_pin layer_sdi_pin = IO_PIN(2, F);
 static const struct io_pin layer_sck_pin = IO_PIN(6, F);
-static const struct io_pin layer_ss_pin = IO_ANSEL_PIN(15, B);
+static const struct io_pin layer_ss_pin = IO_ANLG_PIN(15, B);
 
 static unsigned char layer_front_buffer[LAYER_FRAME_BUFFER_SIZE];
 static unsigned char layer_back_buffer[LAYER_FRAME_BUFFER_SIZE];

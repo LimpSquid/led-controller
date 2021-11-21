@@ -12,10 +12,10 @@ STATIC_ASSERT(BIT_SHIFT(BUS_ADDRESS_BITS) < BUS_ADDRESS_INVALID)
 
 static const struct io_pin bus_address_pins[BUS_ADDRESS_BITS] =
 {
-    IO_ANSEL_PIN(2, B), // Bit 0
+    IO_ANLG_PIN(2, B), // Bit 0
     IO_PIN(5, F), // Bit 1
-    IO_ANSEL_PIN(12, B), // ...
-    IO_ANSEL_PIN(13, B),
+    IO_ANLG_PIN(12, B), // ...
+    IO_ANLG_PIN(13, B),
     IO_PIN(4, F)
 };
 

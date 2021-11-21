@@ -5,13 +5,13 @@
 #include <pwm.h>
 #include <bus_address.h>
 
-int main()
+int main(void)
 {
     // Bonzo is sleeping for the early init
-    sys_goodnight_bonzo();
+    SYS_GOODNIGHT_BONZO();
     sys_disable_global_interrupt();
     sys_cpu_early_init();
-    sys_wakeup_bonzo();
+    SYS_WAKEUP_BONZO();
 
     // Initialize hardware
     dma_init();
@@ -26,9 +26,12 @@ int main()
     // And finally enable interrupts again
     sys_enable_global_interrupt();
     
-    // Bonzo is always hungry...
-    while(SYS_BONZO_IS_HUNGRY) {
-        sys_feed_bonzo();
+    // Run our kernel and keep bonzo happy
+    for(;;) {
+        SYS_FEED_BONZO();
         kernel_execute();
     }
+
+    // Avoid warnings
+    return 0;
 }

@@ -64,7 +64,7 @@ typedef struct
         .port = ATOMIC_REG_PTR_CAST(&PORT##bank), \
         .mask = BIT(pin) \
     }
-#define IO_ANSEL_PIN(pin, bank) \
+#define IO_ANLG_PIN(pin, bank) \
     { \
         .ansel = ATOMIC_REG_PTR_CAST(&ANSEL##bank), \
         .tris = ATOMIC_REG_PTR_CAST(&TRIS##bank), \
