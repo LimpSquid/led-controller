@@ -36,15 +36,7 @@ static void timer_ttask_execute(void);
 static void timer_ttask_configure(struct kernel_ttask_param* const param);
 KERN_TTASK(timer, NULL, timer_ttask_execute, timer_ttask_configure, KERN_INIT_EARLY);
 
-#ifdef TIMER_POOL_SIZE
-    #if (TIMER_POOL_SIZE < 1)
-        #error "Timer pool size must be a non negative integer with a minimum of 1"
-    #else
-        static struct timer_module timer_pool[TIMER_POOL_SIZE];
-    #endif
-#else
-    #error "Define timer pool size 'TIMER_POOL_SIZE' with a number >= 1"
-#endif
+static struct timer_module timer_pool[TIMER_POOL_SIZE];
 
 static unsigned long timer_compute_ticks(int time, int unit)
 {
