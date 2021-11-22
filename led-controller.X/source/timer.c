@@ -80,7 +80,7 @@ static void timer_ttask_execute(void)
 
             if(timed_out) {
                 switch(timer->opt.type) {
-                    case TIMER_TYPE_SOFT:
+                    case TIMER_TYPE_RECURRENT:
                         if(execute == NULL) { // Yay, we can execute this timer's handle
                             timer->ticks = timer->interval; // Reset tick count
                             execute = timer->execute;
