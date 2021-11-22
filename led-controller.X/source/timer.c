@@ -25,10 +25,10 @@ struct timer_module
 
     struct
     {
-        unsigned char type        :3;
-        unsigned char assigned    :1;
-        unsigned char suspended   :1;
-        unsigned char reserved    :2;
+        unsigned char type      :3;
+        unsigned char assigned  :1;
+        unsigned char suspended :1;
+        unsigned char _         :2;
     } opt;
 };
 
