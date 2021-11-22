@@ -22,10 +22,9 @@ struct timer_module
     } opt;
 };
 
-static int timer_ttask_init(void);
 static void timer_ttask_execute(void);
 static void timer_ttask_configure(struct kernel_ttask_param* const param);
-KERN_TTASK(timer, timer_ttask_init, timer_ttask_execute, timer_ttask_configure, KERN_INIT_EARLY);
+KERN_TTASK(timer, NULL, timer_ttask_execute, timer_ttask_configure, KERN_INIT_EARLY);
 
 #ifdef TIMER_POOL_SIZE
     #if (TIMER_POOL_SIZE < 1)
@@ -56,14 +55,6 @@ static unsigned long timer_compute_ticks(int time, int unit)
             break;
     }
     return ticks;
-}
-
-static int timer_ttask_init(void)
-{
-    for(unsigned int i = 0; i < TIMER_POOL_SIZE; ++i)
-        timer_pool[i].opt.assigned = false;
-
-    return KERN_INIT_SUCCESS;
 }
 
 static void timer_ttask_execute(void)
