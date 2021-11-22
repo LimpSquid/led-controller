@@ -1,9 +1,19 @@
 #include <timer.h>
+#include <timer_config.h>
 #include <kernel_task.h>
 #include <assert_util.h>
 #include <util.h>
 #include <stddef.h>
 #include <limits.h>
+
+#if !defined(TIMER_TICK_INTERVAL)
+    #error "Timer tick interval is not specified, please define 'TIMER_TICK_INTERVAL'"
+#elif !defined(TIMER_POOL_SIZE)
+    #error "Timer pool size is not specified, please define 'TIMER_POOL_SIZE'"
+#endif
+
+STATIC_ASSERT(TIMER_TICK_INTERVAL > 0)
+STATIC_ASSERT(TIMER_POOL_SIZE > 0)
 
 #define TIMER_SEC_MAX   (BIT_SHIFT(12) - 1) // Time unit seconds is limited to 12 bits
 

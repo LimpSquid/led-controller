@@ -23,6 +23,7 @@
       <itemPath>include/bus.h</itemPath>
       <itemPath>include/bus_address.h</itemPath>
       <itemPath>include/util.h</itemPath>
+      <itemPath>include/timer_config.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
