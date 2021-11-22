@@ -2,6 +2,8 @@
 #define UTIL_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <xc.h>
 
 // Atomic register utils
 #define ATOMIC_REG(name)                atomic_reg_group_t name
