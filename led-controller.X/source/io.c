@@ -22,8 +22,8 @@ void io_configure(enum io_direction direction, const struct io_pin* pins, unsign
                     ATOMIC_REG_PTR_CLR(pin->lat, pin->mask);
                 else
                     ATOMIC_REG_PTR_SET(pin->lat, pin->mask);
-                break;
                 ATOMIC_REG_PTR_CLR(pin->tris, pin->mask);
+                break;
         }
         ++pin;
     }
