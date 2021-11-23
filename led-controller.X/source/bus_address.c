@@ -5,7 +5,6 @@
 
 #define BUS_ADDRESS_BITS            5
 #define BUS_ADDRESS_SAMPLE_TIME     250 // In milliseconds
-#define BUS_ADDRESS_SAMPLE_COUNT    2 // How many reads must yield the same result after an address change is detected before the new address is latched into actual address
 #define BUS_ADDRESS_INVALID         255
 
 STATIC_ASSERT(BIT_SHIFT(BUS_ADDRESS_BITS) < BUS_ADDRESS_INVALID)
@@ -20,8 +19,7 @@ static const struct io_pin bus_address_pins[BUS_ADDRESS_BITS] =
 };
 
 static struct timer_module* bus_address_sample_timer = NULL;
-static unsigned char bus_address_sample_count = 0;
-static unsigned char bus_address_sampling = BUS_ADDRESS_INVALID;
+static unsigned char bus_address_sample = BUS_ADDRESS_INVALID;
 static unsigned char bus_address_actual = BUS_ADDRESS_INVALID;
 
 static unsigned char bus_address_read(void)
@@ -32,19 +30,14 @@ static unsigned char bus_address_read(void)
     return address;
 }
 
-static void bus_address_sample(struct timer_module* module)
+static void bus_address_sample_handler(struct timer_module* module)
 {
     (void)module;
     
     unsigned char address = bus_address_read();
-    if(address != bus_address_sampling) {
-        bus_address_sample_count = 0;
-        bus_address_sampling = address;
-    } 
-    
-    if(bus_address_sample_count < BUS_ADDRESS_SAMPLE_COUNT)
-        bus_address_sample_count++;
-    else
+    if(address != bus_address_sample)
+        bus_address_sample = address;
+    else if (address != bus_address_actual)
         bus_address_actual = address; 
 }
 
@@ -54,7 +47,7 @@ void bus_address_init(void)
     io_configure(IO_DIRECTION_DIN, bus_address_pins, BUS_ADDRESS_BITS);
     
     // Initialize timer
-    bus_address_sample_timer = timer_construct(TIMER_TYPE_RECURRENT, bus_address_sample);
+    bus_address_sample_timer = timer_construct(TIMER_TYPE_RECURRENT, bus_address_sample_handler);
     ASSERT_NOT_NULL(bus_address_sample_timer);
     if(bus_address_sample_timer == NULL)
         return;
