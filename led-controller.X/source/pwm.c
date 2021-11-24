@@ -5,16 +5,12 @@
 #include <xc.h>
 #include <sys/attribs.h>
 
-
 // Below are the output compare related defines
 #define PWM_OC_PR(frequency)                (SYS_PB_CLOCK / (frequency * PWM_OC_PRESCALER) - 1)
 #define PWM_OC_DUTY(frequency, percentage)  ((PWM_OC_PR(frequency) + 1) * percentage)
 #define PWM_OC_PRESCALER                    1
 
-#define PWM_OC_GSCLK_PPS                    RPE5R
-#define PWM_OC_GSCLK_TRIS                   TRISE
-#define PWM_OC_GSCLK_ANSEL                  ANSELE
-
+#define PWM_OC_GSCLK_PPS_REG                RPE5R
 #define PWM_OC_TCON_REG                     T2CON
 #define PWM_OC_PR_REG                       PR2
 #define PWM_OC_TMR_REG                      TMR2
@@ -25,7 +21,6 @@
 #define PWM_OC_TCON_WORD                    BIT(15)
 #define PWM_OC_OCCON_WORD                   MASK(0x6, 0)
 
-#define PWM_OC_GSCLK_PIN_MASK               BIT(5)
 #define PWM_OC_OCCON_ON_MASK                BIT(15)
 
 // Below are the timer related defines
@@ -47,16 +42,17 @@
 #define PWM_TMR_INT_MASK                    BIT(14)
 #define PWM_TMR_INT_PRIORITY_MASK           MASK(0x7, 2)
 
+static const struct io_pin pwm_gsclk_pin = IO_ANLG_PIN(5, E);
+
 void pwm_init(void)
 {
     // Configure PPS
     sys_unlock();
-    PWM_OC_GSCLK_PPS = PWM_OC_GSCLK_PPS_WORD;
+    PWM_OC_GSCLK_PPS_REG = PWM_OC_GSCLK_PPS_WORD;
     sys_lock();
 
     // Configure IO
-    REG_CLR(PWM_OC_GSCLK_ANSEL, PWM_OC_GSCLK_PIN_MASK);
-    REG_SET(PWM_OC_GSCLK_TRIS, PWM_OC_GSCLK_PIN_MASK);
+    io_configure(IO_DIRECTION_DOUT_LOW, &pwm_gsclk_pin, 1);
 
     // Configure interrupt
     REG_SET(PWM_TMR_IEC_REG, PWM_TMR_INT_MASK);

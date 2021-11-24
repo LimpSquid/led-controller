@@ -38,7 +38,7 @@ static void bus_address_sample_handler(struct timer_module* module)
     if(address != bus_address_sample)
         bus_address_sample = address;
     else if (address != bus_address_actual)
-        bus_address_actual = address; 
+        bus_address_actual = address;
 }
 
 void bus_address_init(void)

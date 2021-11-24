@@ -41,7 +41,8 @@ STATIC_ASSERT(TLC5940_DOT_CORRECTION <= 28)
 #define TLC5940_QUARTET_FILL(val)       TLC5940_QUARTET(val, val, val, val)
 
 #define TLC5940_SPI_CHANNEL             SPI_CHANNEL2
-#define TLC5940_SDO_PPS                 RPG7R
+
+#define TLC5940_SDO_PPS_REG             RPG7R
 
 #define TLC5940_SDO_PPS_WORD            0x6
 
@@ -157,7 +158,7 @@ static int tlc5940_rtask_init(void)
 
     // Configure PPS
     sys_unlock();
-    TLC5940_SDO_PPS = TLC5940_SDO_PPS_WORD;
+    TLC5940_SDO_PPS_REG = TLC5940_SDO_PPS_WORD;
     sys_lock();
 
     // Configure IO
@@ -166,9 +167,11 @@ static int tlc5940_rtask_init(void)
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_blank_pin, 1);
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_xlat_pin, 1);
     io_configure(IO_DIRECTION_DOUT_HIGH, &tlc5940_dcprg_pin, 1); // Use dot correction register
-    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_gsclk_pin, 1);
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_vprg_pin, 1);
     io_configure(IO_DIRECTION_DIN, &tlc5940_xerr_pin, 1);
+
+    // Already configured in PWM module
+    // io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_gsclk_pin, 1);
 
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);

@@ -7,10 +7,8 @@
 #include <xc.h>
 
 #define RS485_BAUDRATE          115200LU
-#define RS485_TX_FIFO_SIZE      100
-#define RS485_RX_FIFO_SIZE      100
-#define RS485_TX_OVERRUN_ERR    (RS485_TX_FIFO_SIZE - (RS485_TX_FIFO_SIZE >> 3) - 1) // Used to detect possible TX overrun errors in debug mode only
-#define RS485_RX_OVERRUN_ERR    (RS485_RX_FIFO_SIZE - (RS485_RX_FIFO_SIZE >> 3) - 1) // Used to detect possible RX overrun errors in debug mode only
+#define RS485_TX_FIFO_SIZE      100 // Between 0 - 255
+#define RS485_RX_FIFO_SIZE      100 // Between 0 - 255
 
 // In us, note that this time may not be accurate because of the software timer's resolution.
 // Ideally we use a hardware timer to avoid the software timer's resolution altogether.
@@ -32,6 +30,12 @@
 #define RS485_URXDA_MASK        BIT(0)
 #define RS485_UTXBF_MASK        BIT(9)
 #define RS485_TRMT_MASK         BIT(8)
+
+#define RS485_RX_PPS_REG        U1RXR
+#define RS485_TX_PPS_REG        RPB3R
+
+#define RS485_RX_PPS_WORD       0x1
+#define RS485_TX_PPS_WORD       0x3
 
 enum rs485_state
 {
@@ -67,6 +71,8 @@ static struct rs485_error_notifier rs485_notifier =
 };
 static const struct rs485_error_notifier** rs485_notifier_next = &rs485_notifier.next;
 static const struct io_pin rs485_dir_pin = IO_ANLG_PIN(7, B);
+static const struct io_pin rs485_rx_pin = IO_ANLG_PIN(8, G);
+static const struct io_pin rs485_tx_pin = IO_ANLG_PIN(3, B);
 
 // When we stop receiving data we want to make sure the other end
 // has put its transceiver in receive mode before we're doing a transfer.
@@ -75,16 +81,12 @@ static enum rs485_status rs485_status = RS485_STATUS_IDLE;
 static enum rs485_state rs485_state = RS485_IDLE;
 
 static unsigned char rs485_tx_fifo[RS485_TX_FIFO_SIZE];
-static unsigned char* const rs485_tx_begin = &rs485_tx_fifo[0];
-static unsigned char* const rs485_tx_end = &rs485_tx_fifo[RS485_TX_FIFO_SIZE - 1];
-static unsigned char* rs485_tx_consumer = &rs485_tx_fifo[0];
-static unsigned char* rs485_tx_producer = &rs485_tx_fifo[0];
+static unsigned char rs485_tx_consumer = 0;
+static unsigned char rs485_tx_producer = 0;
 
 static unsigned char rs485_rx_fifo[RS485_RX_FIFO_SIZE];
-static unsigned char* const rs485_rx_begin = &rs485_rx_fifo[0];
-static unsigned char* const rs485_rx_end = &rs485_rx_fifo[RS485_RX_FIFO_SIZE - 1];
-static unsigned char* rs485_rx_consumer = &rs485_rx_fifo[0];
-static unsigned char* rs485_rx_producer = &rs485_rx_fifo[0];
+static unsigned char rs485_rx_consumer = 0;
+static unsigned char rs485_rx_producer = 0;
 
 inline static bool __attribute__((always_inline)) rs485_rx_available()
 {
@@ -102,29 +104,26 @@ inline static bool __attribute__((always_inline)) rs485_tx_complete()
     return RS485_USTA_REG & RS485_TRMT_MASK;
 }
 
-static void rs485_receive(unsigned char data)
+inline static void __attribute__((always_inline)) rs485_receive(unsigned char data)
 {
-    // Detect possible overrun
-    ASSERT((unsigned int)(rs485_rx_producer - rs485_rx_consumer) % RS485_RX_FIFO_SIZE < RS485_RX_OVERRUN_ERR);
-
-    *rs485_rx_producer = data;
-    if(++rs485_rx_producer > rs485_rx_end)
-        rs485_rx_producer = rs485_rx_begin;
+    rs485_rx_fifo[rs485_rx_producer++] = data;
+    if(rs485_rx_producer >= RS485_RX_FIFO_SIZE)
+        rs485_rx_producer = 0;
 }
 
-static void rs485_write(unsigned char data)
+inline static void __attribute__((always_inline)) rs485_write(unsigned char data)
 {
     ASSERT(!(RS485_USTA_REG & RS485_UTXBF_MASK));
     RS485_TX_REG = data;
 }
 
-static unsigned char rs485_tx_take(void)
+inline static unsigned char __attribute__((always_inline)) rs485_tx_take(void)
 {
-    ASSERT(rs485_tx_consumer != rs485_tx_consumer);
+    ASSERT(rs485_tx_consumer != rs485_tx_producer);
 
-    unsigned char data = *rs485_tx_consumer;
-    if(++rs485_tx_consumer > rs485_tx_consumer)
-        rs485_tx_consumer = rs485_tx_begin;
+    unsigned char data = rs485_tx_fifo[rs485_tx_consumer++];
+    if(rs485_tx_consumer >= RS485_TX_FIFO_SIZE)
+        rs485_tx_consumer = 0;
     return data;
 }
 
@@ -145,8 +144,16 @@ static void rs485_error_notify()
 
 static int rs485_rtask_init(void)
 {
+    // Configure PPS
+    sys_unlock();
+    RS485_RX_PPS_REG = RS485_RX_PPS_WORD;
+    RS485_TX_PPS_REG = RS485_TX_PPS_WORD;
+    sys_lock();
+
     // Configure IO
     io_configure(IO_DIRECTION_DOUT_LOW, &rs485_dir_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_LOW, &rs485_tx_pin, 1);
+    io_configure(IO_DIRECTION_DIN, &rs485_rx_pin, 1);
     
     // Set the baudrate generator
     RS485_BRG_REG = RS485_BRG_WORD;
@@ -264,10 +271,10 @@ void rs485_reset(void)
 {
     rs485_state = RS485_IDLE;
     rs485_status = RS485_STATUS_IDLE;
-    rs485_tx_producer = rs485_tx_begin;
-    rs485_tx_consumer = rs485_tx_begin;
-    rs485_rx_producer = rs485_rx_begin;
-    rs485_rx_consumer = rs485_rx_begin;
+    rs485_tx_producer = 0;
+    rs485_tx_consumer = 0;
+    rs485_rx_producer = 0;
+    rs485_rx_consumer = 0;
 
     // Clear errors and enable module
     rs485_error_reg.by_byte = 0;
@@ -277,12 +284,9 @@ void rs485_reset(void)
 
 void rs485_transmit(unsigned char data)
 {
-    // Detect possible overrun
-    ASSERT((unsigned int)(rs485_tx_producer - rs485_tx_consumer) % RS485_TX_FIFO_SIZE < RS485_TX_OVERRUN_ERR);
-
-    *rs485_tx_producer = data;
-    if(++rs485_tx_producer > rs485_tx_end)
-        rs485_tx_producer = rs485_tx_begin;
+    rs485_tx_fifo[rs485_tx_producer++] = data;
+    if(rs485_tx_producer >= RS485_TX_FIFO_SIZE)
+        rs485_tx_producer = 0;
 }
 
 void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
@@ -301,18 +305,18 @@ bool rs485_bytes_available(void)
 
 unsigned char rs485_read(void)
 {
-    ASSERT(rs485_bytes_available());
+    ASSERT(rs485_rx_consumer != rs485_rx_producer);
 
-    unsigned char data = *rs485_rx_consumer;
-    if(++rs485_rx_consumer > rs485_rx_end)
-        rs485_rx_consumer = rs485_rx_begin;
+    unsigned char data = rs485_rx_fifo[rs485_rx_consumer++];
+    if(rs485_rx_consumer >= RS485_RX_FIFO_SIZE)
+        rs485_rx_consumer = 0;
     return data;
 }
 
 unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
 {
     ASSERT_NOT_NULL(buffer);
-    ASSERT(rs485_rx_consumer != rs485_rx_consumer);
+    ASSERT(rs485_rx_consumer != rs485_rx_producer);
 
     const unsigned char* buffer_begin = buffer;
     while(rs485_bytes_available() && max_size-- > 0)

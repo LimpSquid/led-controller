@@ -24,8 +24,8 @@
 #define LAYER_OFFSET(index)         (index * LAYER_NUM_OF_COLS)
 
 #define LAYER_SPI_CHANNEL           SPI_CHANNEL1
-#define LAYER_SDI_PPS               SDI1R
-#define LAYER_SS_PPS                SS1R
+#define LAYER_SDI_PPS_REG           SDI1R
+#define LAYER_SS_PPS_REG            SS1R
 
 #define LAYER_SDI_PPS_WORD          0xe
 #define LAYER_SS_PPS_WORD           0x3
@@ -249,8 +249,8 @@ static int layer_rtask_init(void)
 {
     // Configure PPS
     sys_unlock();
-    LAYER_SDI_PPS = LAYER_SDI_PPS_WORD;
-    LAYER_SS_PPS = LAYER_SS_PPS_WORD;
+    LAYER_SDI_PPS_REG = LAYER_SDI_PPS_WORD;
+    LAYER_SS_PPS_REG = LAYER_SS_PPS_WORD;
     sys_lock();
     
     // Configure IO

@@ -5,6 +5,8 @@
 #include <timer.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <bus_address.h>
+#include <util.h>
 
 #define TEST_SUITE_X_PIXELS             16
 #define TEST_SUITE_Y_PIXELS             16
@@ -102,12 +104,17 @@ static void test_suite_execute(void)
             break;
            
         case TEST_SUITE_FINISHED: {
-            struct layer_color color = 
-            { 
-                .r = rand() % 256,
-                .g = rand() % 256,
-                .b = rand() % 256
-            };
+            struct layer_color color;
+            unsigned char bus_address = bus_address_valid() ? bus_address_get() : 0;
+            if(bus_address > 0) {
+                color.r = (bus_address & BIT_SHIFT(0)) ? 255 : 0;
+                color.g = (bus_address & BIT_SHIFT(1)) ? 255 : 0;
+                color.b = (bus_address & BIT_SHIFT(2)) ? 255 : 0;
+            } else {
+                color.r = rand() % 256;
+                color.g = rand() % 256;
+                color.b = rand() % 256;
+            }
             layer_draw_all_pixels(color);
             layer_swap_buffers();
             timer_start(test_suite_countdown_timer, TEST_SUITE_FINISHED_DELAY, TIMER_TIME_UNIT_MS);
