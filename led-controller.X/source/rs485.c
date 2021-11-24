@@ -7,8 +7,8 @@
 #include <xc.h>
 
 #define RS485_BAUDRATE          115200LU
-#define RS485_TX_FIFO_SIZE      100 // Between 0 - 255
-#define RS485_RX_FIFO_SIZE      100 // Between 0 - 255
+#define RS485_TX_FIFO_SIZE      100 // Between 1 - 256
+#define RS485_RX_FIFO_SIZE      100 // Between 1 - 256
 
 // In us, note that this time may not be accurate because of the software timer's resolution.
 // Ideally we use a hardware timer to avoid the software timer's resolution altogether.
