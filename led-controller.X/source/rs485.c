@@ -76,6 +76,8 @@ static const struct io_pin rs485_tx_pin = IO_ANLG_PIN(3, B);
 
 // When we stop receiving data we want to make sure the other end
 // has put its transceiver in receive mode before we're doing a transfer.
+// We do this by introducing a backoff period after the last time we've read
+// data in which no transfer may occur.
 static struct timer_module* rs485_backoff_tx_timer = NULL;
 static enum rs485_status rs485_status = RS485_STATUS_IDLE;
 static enum rs485_state rs485_state = RS485_IDLE;
@@ -226,7 +228,9 @@ static void rs485_rtask_execute(void)
                     : RS485_TRANSFER_WAIT_COMPLETION;
             break;
         case RS485_TRANSFER_WAIT_COMPLETION:
-            if(rs485_tx_complete()) {
+            if(rs485_tx_available()) // Either more data became available or hardware buffer got room for more data
+                rs485_state = RS485_TRANSFER_WRITE;
+            else if(rs485_tx_complete()) { // Done transferring data
                 IO_CLR(rs485_dir_pin); // Put transceiver back into receive mode
                 rs485_state = RS485_IDLE;
             }
@@ -294,6 +298,11 @@ void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
     ASSERT_NOT_NULL(buffer);
     ASSERT(size != 0);
 
+    // Todo:
+    // We can improve this a bit by checking how much continuous room
+    // there is available in the buffer. If that is >= size, we can just
+    // do a memcpy instead. Should be a little bit faster.
+
     while(size-- > 0)
         rs485_transmit(*buffer++);
 }
@@ -317,6 +326,10 @@ unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
 {
     ASSERT_NOT_NULL(buffer);
     ASSERT(rs485_rx_consumer != rs485_rx_producer);
+
+    // Todo:
+    // Just like transmit buffer we can probably just memcpy continuous chunks
+    // of data from the rs485 buffer to the buffer passed to this function.
 
     const unsigned char* buffer_begin = buffer;
     while(rs485_bytes_available() && max_size-- > 0)
