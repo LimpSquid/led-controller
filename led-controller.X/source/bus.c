@@ -117,7 +117,7 @@ static void bus_rtask_execute(void)
                 bus_frame_offset += size;
                 
                 // Did we read a whole frame's worth of data?
-                if(bus_frame_offset >= BUS_FRAME_SIZE)
+                if(bus_frame_offset == BUS_FRAME_SIZE)
                     bus_state = BUS_FRAME_VERIFY;
             }
             break;
