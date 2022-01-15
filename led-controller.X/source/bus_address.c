@@ -47,7 +47,7 @@ void bus_address_init(void)
     io_configure(IO_DIRECTION_DIN, bus_address_pins, BUS_ADDRESS_BITS);
     
     // Initialize timer
-    bus_address_sample_timer = timer_construct(TIMER_TYPE_RECURRENT, bus_address_sample_handler);
+    bus_address_sample_timer = timer_construct(TIMER_TYPE_RECURRING, bus_address_sample_handler);
     ASSERT_NOT_NULL(bus_address_sample_timer);
     if(bus_address_sample_timer == NULL)
         return;

@@ -7,7 +7,7 @@ struct timer_module;
 
 enum
 {
-    TIMER_TYPE_RECURRENT = 0,   // A timer that keeps firing at a specific interval, handle is executed on each timeout
+    TIMER_TYPE_RECURRING = 0,   // A timer that keeps firing at a specific interval, handle is executed on each timeout
     TIMER_TYPE_SINGLE_SHOT,     // A timer that fires only once after it expired, handle is executed on timeout
     TIMER_TYPE_COUNTDOWN,       // A timer that simply counts down and sets the timeout flag once it has expired
     
