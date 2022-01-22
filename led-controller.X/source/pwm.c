@@ -42,7 +42,7 @@
 #define PWM_TMR_INT_MASK                    BIT(14)
 #define PWM_TMR_INT_PRIORITY_MASK           MASK(0x7, 2)
 
-static const struct io_pin pwm_gsclk_pin = IO_ANLG_PIN(5, E);
+static struct io_pin const pwm_gsclk_pin = IO_ANLG_PIN(5, E);
 
 void pwm_init(void)
 {

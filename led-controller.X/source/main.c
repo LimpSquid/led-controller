@@ -27,7 +27,7 @@ int main(void)
     sys_enable_global_interrupt();
     
     // Run our kernel and keep bonzo happy
-    for(;;) {
+    for (;;) {
         SYS_FEED_BONZO();
         kernel_execute();
     }

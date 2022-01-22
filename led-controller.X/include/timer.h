@@ -21,14 +21,14 @@ enum
     TIMER_TIME_UNIT_US
 };
 
-struct timer_module* timer_construct(int type, void (*execute)(struct timer_module*));
-void timer_destruct(struct timer_module* timer);
+struct timer_module * timer_construct(int type, void (*execute)(struct timer_module *));
+void timer_destruct(struct timer_module * timer);
 
-void timer_set_time(struct timer_module* timer, int time, int unit);
-void timer_start(struct timer_module* timer, int time, int unit);
-void timer_stop(struct timer_module* timer);
-void timer_restart(struct timer_module* timer);
-bool timer_is_running(const struct timer_module* timer);
-bool timer_is_valid(const struct timer_module* timer);
+void timer_set_time(struct timer_module * timer, int time, int unit);
+void timer_start(struct timer_module * timer, int time, int unit);
+void timer_stop(struct timer_module * timer);
+void timer_restart(struct timer_module * timer);
+bool timer_is_running(const struct timer_module * timer);
+bool timer_is_valid(const struct timer_module * timer);
 
 #endif /* TIMER_H */

@@ -3,7 +3,7 @@
 
 #include <stdarg.h>
 
-int print_fs(char* str, const char* format, ...);
-int print_vfs(char* str, const char* format, va_list arg);
+int print_fs(char * str, char const * format, ...);
+int print_vfs(char * str, char const * format, va_list arg);
 
 #endif /* PRINT_H */

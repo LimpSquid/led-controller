@@ -19,7 +19,7 @@ struct print_options
 
 struct print_string
 {
-    char* buffer;
+    char * buffer;
     int offset;
 };
 
@@ -30,26 +30,26 @@ enum
     ALIGN_CENTER
 };
 
-static void print_full_str(const char* str, int size, void* data, int(*puts)(void* data, const char* str, unsigned int size))
+static void print_full_str(char const * str, int size, void * data, int(*puts)(void * data, char const * str, unsigned int size))
 {
-    const char* start = str;
-    const char* end = str + size;
-    while(start != end)
+    char const * start = str;
+    char const * end = str + size;
+    while (start != end)
         start += (*puts)(data, start, (end - start));
 }
 
-static int print_strlen32(const char* str)
+static int print_strlen32(char const * str)
 {
     int length = 0;
-    while(1) {
+    for (;;) {
         unsigned int x = *(unsigned int*)str;
-        if((x & 0xff) == 0)
+        if ((x & 0xff) == 0)
             return length;
-        if((x & 0xff00) == 0)
+        if ((x & 0xff00) == 0)
             return length + 1;
-        if((x & 0xff0000) == 0)
+        if ((x & 0xff0000) == 0)
             return length + 2;
-        if((x & 0xff000000) == 0)
+        if ((x & 0xff000000) == 0)
             return length + 3;
 
         str += 4;
@@ -57,7 +57,7 @@ static int print_strlen32(const char* str)
     }
 }
 
-static int print_itoa(int value, char* str, int number_base, const struct print_options* opt)
+static int print_itoa(int value, char * str, int number_base, struct print_options const * opt)
 {
     // Check boundaries of base, default to 10
     if(number_base < 2 || number_base > 16)
@@ -70,11 +70,11 @@ static int print_itoa(int value, char* str, int number_base, const struct print_
     unsigned int n_digits;
 
     // Determine how many digits the number has
-    for(n_digits = 1; number /= number_base; n_digits++);
+    for (n_digits = 1; number /= number_base; n_digits++);
 
     unsigned char zero_padding = (opt->pad_zero >= (n_digits + negative)) ? opt->pad_zero - (n_digits + negative) : 0;
     int length = (zero_padding + n_digits + negative);
-    char* string_builder = str + length;
+    char * string_builder = str + length;
 
     // Insert NULL terminator
     *(string_builder--) = '\0';
@@ -87,34 +87,34 @@ static int print_itoa(int value, char* str, int number_base, const struct print_
     } while(pos_value > 0);
 
     // Zero padding
-    while(zero_padding-- > 0)
+    while (zero_padding-- > 0)
         *(string_builder--) = '0';
 
     // Insert negative sign
-    if(negative)
+    if (negative)
         *(string_builder--) = '-';
 
     return length;
 }
 
-static int print_str_puts(void* data, const char* str, unsigned int size)
+static int print_str_puts(void * data, char const * str, unsigned int size)
 {
-    struct print_string* str_data = data;
+    struct print_string * str_data = data;
     memcpy(&str_data->buffer[str_data->offset], str, size);
     str_data->offset += size;
     return size;
 }
 
-static int print_format(const char* format,  va_list arg, void* data, int(*puts)(void* data, const char* str, unsigned int size))
+static int print_format(char const * format,  va_list arg, void * data, int(*puts)(void * data, char const * str, unsigned int size))
 {
-    struct print_options options = { 0 };
+    struct print_options options = {};
     int chars_written = 0;
-    const char* marker = format;
+    char const * marker = format;
     char str[PRINT_CONVERT_STR_SIZE];
     char current = *format;
 
-    while(current != '\0') {
-        if(current == '%') {
+    while (current != '\0') {
+        if (current == '%') {
             // Write a part of the string
             print_full_str(marker, (format - marker), data, puts);
             chars_written += (format - marker);
@@ -123,12 +123,12 @@ static int print_format(const char* format,  va_list arg, void* data, int(*puts)
             current = print_next_char(format);
 
             // Zero padding
-            if(current == '0') {
+            if (current == '0') {
                 unsigned int factor = 1;
                 unsigned int padding = 0;
                 current = print_next_char(format);
-                while(current != '\0') {
-                    if(print_char_is_num(current)) {
+                while (current != '\0') {
+                    if (print_char_is_num(current)) {
                         padding *= factor;
                         padding += print_char_to_val(current);
                         factor *= 10;
@@ -139,7 +139,7 @@ static int print_format(const char* format,  va_list arg, void* data, int(*puts)
                 options.pad_zero = (padding < PRINT_MAX_ZERO_PAD) ? padding : PRINT_MAX_ZERO_PAD;
             }
 
-            switch(current) {
+            switch (current) {
                 // Unsupported fall through NULL case
                 default:
                 case '\0':
@@ -170,7 +170,7 @@ static int print_format(const char* format,  va_list arg, void* data, int(*puts)
 
                 // String
                 case 's': {
-                    char* str = va_arg(arg, char*);
+                    char * str = va_arg(arg, char *);
                     int size = print_strlen32(str);
                     print_full_str(str, size, data, puts);
                     chars_written += size;
@@ -190,10 +190,10 @@ static int print_format(const char* format,  va_list arg, void* data, int(*puts)
     return chars_written;
 }
 
-int print_fs(char* str, const char* format, ...)
+int print_fs(char * str, char const * format, ...)
 {
     int result = 0;
-    if(str != NULL) {
+    if (str != NULL) {
         va_list arg;
         va_start(arg, format);
         struct print_string str_data = { .buffer = str, .offset = 0 };
@@ -203,10 +203,10 @@ int print_fs(char* str, const char* format, ...)
     return result;
 }
 
-int print_vfs(char* str, const char* format, va_list arg)
+int print_vfs(char * str, char const * format, va_list arg)
 {
     int result = 0;
-    if(str != NULL) {
+    if (str != NULL) {
         struct print_string str_data = { .buffer = str, .offset = 0 };
         result = print_format(format, arg, &str_data, print_str_puts);
     }

@@ -66,7 +66,7 @@ static struct rs485_error_notifier bus_error_notifier =
     .callback = bus_error_callback
 };
 
-static struct timer_module* bus_backoff_timer = NULL;
+static struct timer_module * bus_backoff_timer = NULL;
 static crc16_t bus_crc16;
 static union bus_raw_frame bus_request;
 static union bus_raw_frame bus_response;
@@ -85,7 +85,7 @@ static int bus_rtask_init(void)
     
     // Initialize timer
     bus_backoff_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
-    if(bus_backoff_timer == NULL)
+    if (bus_backoff_timer == NULL)
         goto fail_timer;
 
     return KERN_INIT_SUCCESS;
@@ -97,10 +97,10 @@ fail_timer:
 
 static void bus_rtask_execute(void)
 {
-    if(!bus_address_valid())
+    if (!bus_address_valid())
         return;
 
-    switch(bus_state) {
+    switch (bus_state) {
         default:
         case BUS_READ_CLEAR:
             bus_frame_offset = 0;
@@ -109,7 +109,7 @@ static void bus_rtask_execute(void)
             bus_state = BUS_READ_PART;
             break;
         case BUS_READ_PART:
-            if(rs485_bytes_available()) { // Shouldn't strictly be necessary
+            if (rs485_bytes_available()) { // Shouldn't strictly be necessary
                 unsigned int size = rs485_read_buffer(
                     bus_request.data + bus_frame_offset, 
                     BUS_FRAME_SIZE - bus_frame_offset);
@@ -124,16 +124,16 @@ static void bus_rtask_execute(void)
         case BUS_FRAME_VERIFY:
 #ifdef BUS_IGNORE_CRC
 #warning "BUS_IGNORE_CRC defined"
-            if(false)
+            if (false)
 #else
             // If CRC16 yields non-zero, then the frame is garbled, back off and reset
-            if(bus_crc16)
+            if (bus_crc16)
 #endif
                 bus_state = BUS_ERROR;
             // Is frame a request and meant for us?
-            else if(bus_request.frame.header.request && (
-                    bus_request.frame.header.address == BUS_BROADCAST_ADDRESS ||
-                    bus_request.frame.header.address == bus_address_get()))
+            else if (bus_request.frame.header.request && (
+                     bus_request.frame.header.address == BUS_BROADCAST_ADDRESS ||
+                     bus_request.frame.header.address == bus_address_get()))
                 bus_state = BUS_FRAME_HANDLE;
             // Nope...
             else
@@ -142,7 +142,7 @@ static void bus_rtask_execute(void)
         case BUS_FRAME_HANDLE: {
             bool broadcast = bus_request.frame.header.address == BUS_BROADCAST_ADDRESS;
             
-            if(bus_request.frame.command >= bus_funcs_size)
+            if (bus_request.frame.command >= bus_funcs_size)
                 bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
             else {
                 bus_func_t handler = bus_funcs[bus_request.frame.command];
@@ -171,7 +171,7 @@ static void bus_rtask_execute(void)
             bus_state = BUS_ERROR_BACKOFF_WAIT;
             break;
         case BUS_ERROR_BACKOFF_WAIT:
-            if(!timer_is_running(bus_backoff_timer))
+            if (!timer_is_running(bus_backoff_timer))
                 bus_state = BUS_ERROR_RESET;
             break;
         case BUS_ERROR_RESET:

@@ -66,8 +66,8 @@ static const struct spi_interrupt_map spi_module_interrupts[] =
 
 struct spi_module
 {
-    const struct spi_register_map* const spi_reg;
-    const struct spi_interrupt_map* const spi_int;
+    struct spi_register_map const * const spi_reg;
+    struct spi_interrupt_map const * const spi_int;
 
     unsigned char fifo_depth;
     unsigned char fifo_size;
@@ -77,14 +77,14 @@ struct spi_module
 struct spi_module spi_modules[] =
 {
     [SPI_CHANNEL1] = {
-        .spi_reg = (const struct spi_register_map* const)(&SPI1CON),
+        .spi_reg = (struct spi_register_map const * const)(&SPI1CON),
         .spi_int = &spi_module_interrupts[SPI_CHANNEL1],
         .fifo_depth = SPI_FIFO_DEPTH_MODE8,
         .fifo_size = SPI_FIFO_SIZE_MODE8,
         .assigned = false,
     },
     [SPI_CHANNEL2] = {
-        .spi_reg = (const struct spi_register_map* const)(&SPI2CON),
+        .spi_reg = (struct spi_register_map const * const)(&SPI2CON),
         .spi_int = &spi_module_interrupts[SPI_CHANNEL2],
         .fifo_depth = SPI_FIFO_DEPTH_MODE8,
         .fifo_size = SPI_FIFO_SIZE_MODE8,
@@ -92,12 +92,12 @@ struct spi_module spi_modules[] =
     }
 };
 
-struct spi_module* spi_construct(enum spi_channel channel, struct spi_config config)
+struct spi_module * spi_construct(enum spi_channel channel, struct spi_config config)
 {
-    struct spi_module* module = &spi_modules[channel];
+    struct spi_module * module = &spi_modules[channel];
 
     // Already assigned
-    if(module->assigned)
+    if (module->assigned)
         return NULL;
 
     // Assign and configure module
@@ -106,7 +106,7 @@ struct spi_module* spi_construct(enum spi_channel channel, struct spi_config con
     return module;
 }
 
-void spi_destruct(struct spi_module* module)
+void spi_destruct(struct spi_module * module)
 {
     ASSERT_NOT_NULL(module);
 
@@ -114,11 +114,11 @@ void spi_destruct(struct spi_module* module)
     module->assigned = false;
 }
 
-void spi_configure(struct spi_module* module, struct spi_config config)
+void spi_configure(struct spi_module * module, struct spi_config config)
 {
     ASSERT_NOT_NULL(module);
-    const struct spi_register_map* const spi_reg = module->spi_reg;
-    const struct spi_interrupt_map* const spi_int = module->spi_int;
+    struct spi_register_map const * const spi_reg = module->spi_reg;
+    struct spi_interrupt_map const * const spi_int = module->spi_int;
 
     // Disable module first
     ATOMIC_REG_CLR(spi_reg->spicon, SPI_ON);
@@ -137,16 +137,16 @@ void spi_configure(struct spi_module* module, struct spi_config config)
     module->fifo_depth = SPI_FIFO_DEPTH_MODE8;
     module->fifo_size = SPI_FIFO_SIZE_MODE8;
 
-    if(config.spi_con_flags & SPI_MODE32) {
+    if (config.spi_con_flags & SPI_MODE32) {
         module->fifo_depth = SPI_FIFO_DEPTH_MODE32;
         module->fifo_size = SPI_FIFO_SIZE_MODE32;
-    } else if(config.spi_con_flags & SPI_MODE16) {
+    } else if (config.spi_con_flags & SPI_MODE16) {
         module->fifo_depth = SPI_FIFO_DEPTH_MODE16;
         module->fifo_size = SPI_FIFO_SIZE_MODE16;
     }
 }
 
-void spi_configure_dma_src(struct spi_module* module, struct dma_channel* channel)
+void spi_configure_dma_src(struct spi_module * module, struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(module);
     ASSERT_NOT_NULL(channel);
@@ -168,7 +168,7 @@ void spi_configure_dma_src(struct spi_module* module, struct dma_channel* channe
     dma_configure_abort_event(channel, abort_event);
 }
 
-void spi_configure_dma_dst(struct spi_module* module, struct dma_channel* channel)
+void spi_configure_dma_dst(struct spi_module * module, struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(module);
     ASSERT_NOT_NULL(channel);
@@ -190,29 +190,29 @@ void spi_configure_dma_dst(struct spi_module* module, struct dma_channel* channe
     dma_configure_abort_event(channel, abort_event);
 }
 
-void spi_enable(struct spi_module* module)
+void spi_enable(struct spi_module * module)
 {
     ASSERT_NOT_NULL(module);
 
     ATOMIC_REG_SET(module->spi_reg->spicon, SPI_ON);
 }
 
-void spi_disable(struct spi_module* module)
+void spi_disable(struct spi_module * module)
 {
     ASSERT_NOT_NULL(module);
 
     ATOMIC_REG_CLR(module->spi_reg->spicon, SPI_ON);
 }
 
-bool spi_transmit_mode32(struct spi_module* module, unsigned int* buffer, unsigned int size)
+bool spi_transmit_mode32(struct spi_module * module, unsigned int * buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(module);
     ASSERT(ATOMIC_REG_VALUE(module->spi_reg->spicon) & SPI_ON);
-    const struct spi_register_map* const spi_reg = module->spi_reg;
+    struct spi_register_map const * const spi_reg = module->spi_reg;
     bool result = false;
 
-    if(size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
-        while(size--) {
+    if (size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
+        while (size--) {
             while(ATOMIC_REG_VALUE(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
             ATOMIC_REG_VALUE(spi_reg->spibuf) = *buffer++;
         }
@@ -221,15 +221,15 @@ bool spi_transmit_mode32(struct spi_module* module, unsigned int* buffer, unsign
     return result;
 }
 
-bool spi_transmit_mode8(struct spi_module* module, unsigned char* buffer, unsigned int size)
+bool spi_transmit_mode8(struct spi_module * module, unsigned char * buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(module);
     ASSERT(ATOMIC_REG_VALUE(module->spi_reg->spicon) & SPI_ON);
-    const struct spi_register_map* const spi_reg = module->spi_reg;
+    struct spi_register_map const * const spi_reg = module->spi_reg;
     bool result = false;
 
-    if(size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
-        while(size--) {
+    if (size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
+        while (size--) {
             while(ATOMIC_REG_VALUE(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
             ATOMIC_REG_VALUE(spi_reg->spibuf) = *buffer++;
         }

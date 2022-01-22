@@ -84,10 +84,10 @@ struct kernel_rtask
 {
     int (*init)(void);
     void (*exec)(void);
-    void (*configure)(struct kernel_rtask_param* const);
+    void (*configure)(struct kernel_rtask_param * const);
 
-    struct kernel_rtask_param* const param;
-    const int init_level;
+    struct kernel_rtask_param * const param;
+    int const init_level;
 };
 
 struct kernel_ttask_param
@@ -97,20 +97,20 @@ struct kernel_ttask_param
     int interval;
     long long exec_time_point;
     
-    const struct kernel_ttask* next;
+    struct kernel_ttask const * next;
 };
 
 struct kernel_ttask
 {
     int (*init)(void);
     void (*exec)(void); 
-    void (*configure)(struct kernel_ttask_param* const);
+    void (*configure)(struct kernel_ttask_param * const);
     
     struct kernel_ttask_param* const param;
     const int init_level;
 };
 
-void kernel_ttask_set_priority(struct kernel_ttask_param* const ttask_param, int priority);
-void kernel_ttask_set_interval(struct kernel_ttask_param* const ttask_param, int time, int unit);
+void kernel_ttask_set_priority(struct kernel_ttask_param * const ttask_param, int priority);
+void kernel_ttask_set_interval(struct kernel_ttask_param * const ttask_param, int time, int unit);
 
 #endif /* KERNEL_TASK_H */

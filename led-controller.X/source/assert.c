@@ -8,14 +8,14 @@ static char assert_print_buffer[ASSERT_BUFFER_SIZE];
 
 static unsigned char assert_halt()
 {
-    for(;;) {
+    for (;;) {
         Nop();
         Nop();
         Nop();
     }
 }
 
-void __attribute__((weak)) assert_printer(const char* format, va_list arg)
+void __attribute__((weak)) assert_printer(char const * format, va_list arg)
 {
     // can be overridden if desired, by default dumps assertion in buffer
     memset(assert_print_buffer, 0, ASSERT_BUFFER_SIZE);

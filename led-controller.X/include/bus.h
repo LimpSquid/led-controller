@@ -35,8 +35,8 @@ union __attribute__((packed)) bus_data
 
 typedef enum bus_response_code (*bus_func_t)(
     bool broadcast, 
-    const union bus_data* request_data, 
-    union bus_data* response_data);
+    union bus_data const * request_data,
+    union bus_data * response_data);
 
 #endif /* BUS_H */
 

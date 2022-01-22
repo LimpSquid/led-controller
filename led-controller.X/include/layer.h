@@ -20,7 +20,7 @@ struct layer_color
 
 void layer_draw_pixel(unsigned char x, unsigned char y, struct layer_color color);
 void layer_draw_all_pixels(struct layer_color color);
-void layer_clear_all_pixels();
+void layer_clear_all_pixels(void);
 void layer_swap_buffers(void);
 
 #endif /* LAYER_H */

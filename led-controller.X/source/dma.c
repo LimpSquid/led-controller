@@ -54,10 +54,10 @@ struct dma_interrupt_map
 
 struct dma_channel
 {
-    const struct dma_register_map* const dma_reg;
-    const struct dma_interrupt_map* const dma_int;
+    struct dma_register_map const * const dma_reg;
+    struct dma_interrupt_map const * const dma_int;
 
-    void (*block_transfer_complete)(struct dma_channel*);
+    void (*block_transfer_complete)(struct dma_channel *);
     bool assigned;
 };
 
@@ -124,34 +124,34 @@ static struct dma_channel dma_channels[] =
 void dma_init(void)
 {
     // Disable interrupt on each channel
-    for(unsigned int i = 0; i < DMA_NUMBER_OF_CHANNELS; ++i)
+    for (unsigned int i = 0; i < DMA_NUMBER_OF_CHANNELS; ++i)
         ATOMIC_REG_PTR_CLR(dma_channels[i].dma_int->iec, dma_channels[i].dma_int->mask);
 
     // Configure DMA
     DMA_DMACON_REG = DMA_DMACON_WORD;
 }
 
-struct dma_channel* dma_construct(struct dma_config config)
+struct dma_channel * dma_construct(struct dma_config config)
 {
-    struct dma_channel* channel = NULL;
+    struct dma_channel * channel = NULL;
 
     // Search for an unused channel
-    for(unsigned int i = 0; i < DMA_NUMBER_OF_CHANNELS; ++i) {
-        if(!dma_channels[i].assigned) {
+    for (unsigned int i = 0; i < DMA_NUMBER_OF_CHANNELS; ++i) {
+        if (!dma_channels[i].assigned) {
             channel = &dma_channels[i];
             break;
         }
     }
 
     // Assign and configure channel, if found
-    if(channel != NULL) {
+    if (channel != NULL) {
         channel->assigned = true;
         dma_configure(channel, config);
     }
     return channel;
 }
 
-void dma_destruct(struct dma_channel* channel)
+void dma_destruct(struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(channel);
 
@@ -159,11 +159,11 @@ void dma_destruct(struct dma_channel* channel)
     channel->assigned = false;
 }
 
-void dma_configure(struct dma_channel* channel, struct dma_config config)
+void dma_configure(struct dma_channel * channel, struct dma_config config)
 {
     ASSERT_NOT_NULL(channel);
-    const struct dma_register_map* const dma_reg = channel->dma_reg;
-    const struct dma_interrupt_map* const dma_int = channel->dma_int;
+    struct dma_register_map const * const dma_reg = channel->dma_reg;
+    struct dma_interrupt_map const * const dma_int = channel->dma_int;
 
     // Disable channel first
     ATOMIC_REG_CLR(dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
@@ -185,98 +185,98 @@ void dma_configure(struct dma_channel* channel, struct dma_config config)
     ATOMIC_REG_PTR_CLR(dma_int->ipc, dma_int->priority_mask);
     ATOMIC_REG_CLR(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
 
-    if(config.block_transfer_complete != NULL) {
+    if (config.block_transfer_complete != NULL) {
         channel->block_transfer_complete = config.block_transfer_complete;
         ATOMIC_REG_PTR_SET(dma_int->ipc, MASK(DMA_INTERRUPT_PRIORITY, dma_int->priority_shift) & dma_int->priority_mask);
         ATOMIC_REG_SET(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
     }
 
     // Has interrupts enabled?
-    if(ATOMIC_REG_VALUE(dma_reg->dchint) & DMA_DCHINT_ENABLE_BITS_MASK)
+    if (ATOMIC_REG_VALUE(dma_reg->dchint) & DMA_DCHINT_ENABLE_BITS_MASK)
         ATOMIC_REG_PTR_SET(dma_int->iec, dma_int->mask);
 }
-void dma_configure_src(struct dma_channel* channel, const void* mem, unsigned short size)
+void dma_configure_src(struct dma_channel * channel, void const * mem, unsigned short size)
 {
     ASSERT_NOT_NULL(channel);
-    const struct dma_register_map* const dma_reg = channel->dma_reg;
+    struct dma_register_map const * const dma_reg = channel->dma_reg;
 
     ATOMIC_REG_VALUE(dma_reg->dchssa) = DMA_PHY_ADDR(mem);
     ATOMIC_REG_VALUE(dma_reg->dchssiz) = size;
 }
 
-void dma_configure_dst(struct dma_channel* channel, const void* mem, unsigned short size)
+void dma_configure_dst(struct dma_channel * channel, void const * mem, unsigned short size)
 {
     ASSERT_NOT_NULL(channel);
-    const struct dma_register_map* const dma_reg = channel->dma_reg;
+    struct dma_register_map const * const dma_reg = channel->dma_reg;
 
     ATOMIC_REG_VALUE(dma_reg->dchdsa) = DMA_PHY_ADDR(mem);
     ATOMIC_REG_VALUE(dma_reg->dchdsiz) = size;
 }
 
-void dma_configure_cell(struct dma_channel* channel, unsigned short size)
+void dma_configure_cell(struct dma_channel * channel, unsigned short size)
 {
     ASSERT_NOT_NULL(channel);
 
     ATOMIC_REG_VALUE(channel->dma_reg->dchcsiz) = size;
 }
 
-void dma_configure_start_event(struct dma_channel* channel, struct dma_event event)
+void dma_configure_start_event(struct dma_channel * channel, struct dma_event event)
 {
     ASSERT_NOT_NULL(channel);
-    const struct dma_register_map* const dma_reg = channel->dma_reg;
+    struct dma_register_map const * const dma_reg = channel->dma_reg;
 
     ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_CHSIRQ_MASK);
     ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_SIRQEN_MASK);
-    if(event.enable) {
+    if (event.enable) {
         ATOMIC_REG_SET(dma_reg->dchecon, MASK_SHIFT(event.irq_vector, DMA_DCHECON_CHSIRQ_SHIFT) & DMA_DCHECON_CHSIRQ_MASK);
         ATOMIC_REG_SET(dma_reg->dchecon, DMA_DCHECON_SIRQEN_MASK);
     }
 }
 
-void dma_configure_abort_event(struct dma_channel* channel, struct dma_event event)
+void dma_configure_abort_event(struct dma_channel * channel, struct dma_event event)
 {
     ASSERT_NOT_NULL(channel);
-    const struct dma_register_map* const dma_reg = channel->dma_reg;
+    struct dma_register_map const * const dma_reg = channel->dma_reg;
 
     ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_CHAIRQ_MASK);
     ATOMIC_REG_CLR(dma_reg->dchecon, DMA_DCHECON_AIRQEN_MASK);
-    if(event.enable) {
+    if (event.enable) {
         ATOMIC_REG_SET(dma_reg->dchecon, MASK_SHIFT(event.irq_vector, DMA_DCHECON_CHAIRQ_SHIFT) & DMA_DCHECON_CHAIRQ_MASK);
         ATOMIC_REG_SET(dma_reg->dchecon, DMA_DCHECON_AIRQEN_MASK);
     }
 }
 
-void dma_enable_transfer(struct dma_channel* channel)
+void dma_enable_transfer(struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(channel);
 
     ATOMIC_REG_SET(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 }
 
-void dma_disable_transfer(struct dma_channel* channel)
+void dma_disable_transfer(struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(channel);
 
     ATOMIC_REG_CLR(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 }
 
-bool dma_busy(struct dma_channel* channel)
+bool dma_busy(struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(channel);
 
     return ATOMIC_REG_VALUE(channel->dma_reg->dchcon) & DMA_DCHCON_CHBUSY_MASK;
 }
 
-bool dma_ready(struct dma_channel* channel)
+bool dma_ready(struct dma_channel * channel)
 {
     return !dma_busy(channel);
 }
 
-static void dma_handle_interrupt(struct dma_channel* channel)
+static void dma_handle_interrupt(struct dma_channel * channel)
 {
     unsigned int int_flags = ATOMIC_REG_VALUE(channel->dma_reg->dchint);
 
-    if(int_flags & DMA_DCHINT_CHBCIF_MASK) {
+    if (int_flags & DMA_DCHINT_CHBCIF_MASK) {
         channel->block_transfer_complete(channel);
         ATOMIC_REG_CLR(channel->dma_reg->dchint, DMA_DCHINT_CHBCIF_MASK);
     }
@@ -284,24 +284,24 @@ static void dma_handle_interrupt(struct dma_channel* channel)
 
 void __ISR(_DMA_0_VECTOR, IPL7AUTO) dma_interrupt0(void)
 {
-    static struct dma_channel *channel = &dma_channels[0];
+    static struct dma_channel * channel = &dma_channels[0];
     dma_handle_interrupt(channel);
 }
 
 void __ISR(_DMA_1_VECTOR, IPL7AUTO) dma_interrupt1(void)
 {
-    static struct dma_channel *channel = &dma_channels[1];
+    static struct dma_channel * channel = &dma_channels[1];
     dma_handle_interrupt(channel);
 }
 
 void __ISR(_DMA_2_VECTOR, IPL7AUTO) dma_interrupt2(void)
 {
-    static struct dma_channel *channel = &dma_channels[2];
+    static struct dma_channel * channel = &dma_channels[2];
     dma_handle_interrupt(channel);
 }
 
 void __ISR(_DMA_3_VECTOR, IPL7AUTO) dma_interrupt3(void)
 {
-    static struct dma_channel *channel = &dma_channels[3];
+    static struct dma_channel * channel = &dma_channels[3];
     dma_handle_interrupt(channel);
 }

@@ -69,16 +69,16 @@ static struct rs485_error_notifier rs485_notifier =
     .callback = rs485_error_callback,
     .next = NULL
 };
-static const struct rs485_error_notifier** rs485_notifier_next = &rs485_notifier.next;
-static const struct io_pin rs485_dir_pin = IO_ANLG_PIN(7, B);
-static const struct io_pin rs485_rx_pin = IO_ANLG_PIN(8, G);
-static const struct io_pin rs485_tx_pin = IO_ANLG_PIN(3, B);
+static struct rs485_error_notifier const ** rs485_notifier_next = &rs485_notifier.next;
+static struct io_pin const rs485_dir_pin = IO_ANLG_PIN(7, B);
+static struct io_pin const rs485_rx_pin = IO_ANLG_PIN(8, G);
+static struct io_pin const rs485_tx_pin = IO_ANLG_PIN(3, B);
 
 // When we stop receiving data we want to make sure the other end
 // has put its transceiver in receive mode before we're doing a transfer.
 // We do this by introducing a backoff period after the last time we've read
 // data in which no transfer may occur.
-static struct timer_module* rs485_backoff_tx_timer = NULL;
+static struct timer_module * rs485_backoff_tx_timer = NULL;
 static enum rs485_status rs485_status = RS485_STATUS_IDLE;
 static enum rs485_state rs485_state = RS485_IDLE;
 
@@ -109,7 +109,7 @@ inline static bool __attribute__((always_inline)) rs485_tx_complete()
 inline static void __attribute__((always_inline)) rs485_receive(unsigned char data)
 {
     rs485_rx_fifo[rs485_rx_producer++] = data;
-    if(rs485_rx_producer >= RS485_RX_FIFO_SIZE)
+    if (rs485_rx_producer >= RS485_RX_FIFO_SIZE)
         rs485_rx_producer = 0;
 }
 
@@ -124,7 +124,7 @@ inline static unsigned char __attribute__((always_inline)) rs485_tx_take(void)
     ASSERT(rs485_tx_consumer != rs485_tx_producer);
 
     unsigned char data = rs485_tx_fifo[rs485_tx_consumer++];
-    if(rs485_tx_consumer >= RS485_TX_FIFO_SIZE)
+    if (rs485_tx_consumer >= RS485_TX_FIFO_SIZE)
         rs485_tx_consumer = 0;
     return data;
 }
@@ -137,8 +137,8 @@ static void rs485_error_callback(struct rs485_error error)
 
 static void rs485_error_notify()
 {
-    const struct rs485_error_notifier* notifier = &rs485_notifier;
-    while(notifier != NULL) {
+    struct rs485_error_notifier const * notifier = &rs485_notifier;
+    while (notifier != NULL) {
         notifier->callback(rs485_error_reg.error);
         notifier = notifier->next;
     }
@@ -167,7 +167,7 @@ static int rs485_rtask_init(void)
     
     // Initialize timer
     rs485_backoff_tx_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
-    if(rs485_backoff_tx_timer == NULL)
+    if (rs485_backoff_tx_timer == NULL)
         goto fail_timer;
     timer_start(rs485_backoff_tx_timer, RS485_BACKOFF_TX_TIME, TIMER_TIME_UNIT_US);
 
@@ -180,7 +180,7 @@ fail_timer:
 
 static void rs485_rtask_execute(void)
 {
-    switch(rs485_state) {
+    switch (rs485_state) {
         default:
         case RS485_IDLE:
             ASSERT(!IO_READ(rs485_dir_pin));
@@ -190,10 +190,10 @@ static void rs485_rtask_execute(void)
             rs485_state = RS485_IDLE_WAIT_EVENT;
             break;
         case RS485_IDLE_WAIT_EVENT:
-            if(rs485_rx_available()) {
+            if (rs485_rx_available()) {
                 rs485_status = RS485_STATUS_RECEIVING;
                 rs485_state = RS485_RECEIVE;
-            } else if(rs485_tx_available() && !timer_is_running(rs485_backoff_tx_timer)) {
+            } else if (rs485_tx_available() && !timer_is_running(rs485_backoff_tx_timer)) {
                 rs485_status = RS485_STATUS_TRANSFERRING;
                 rs485_state = RS485_TRANSFER;
             } else {
@@ -207,7 +207,7 @@ static void rs485_rtask_execute(void)
         // Receive routine
         case RS485_RECEIVE:
         case RS485_RECEIVE_READ:
-            while(rs485_rx_available())
+            while (rs485_rx_available())
                 rs485_receive(RS485_RX_REG);
 
             timer_restart(rs485_backoff_tx_timer);
@@ -220,7 +220,7 @@ static void rs485_rtask_execute(void)
             // no break
         case RS485_TRANSFER_WRITE: {
             bool avail;
-            while(avail = rs485_tx_available())
+            while (avail = rs485_tx_available())
                 rs485_write(rs485_tx_take());
 
             rs485_state = avail
@@ -228,9 +228,9 @@ static void rs485_rtask_execute(void)
                     : RS485_TRANSFER_WAIT_COMPLETION;
             break;
         case RS485_TRANSFER_WAIT_COMPLETION:
-            if(rs485_tx_available()) // Either more data became available or hardware buffer got room for more data
+            if (rs485_tx_available()) // Either more data became available or hardware buffer got room for more data
                 rs485_state = RS485_TRANSFER_WRITE;
-            else if(rs485_tx_complete()) { // Done transferring data
+            else if (rs485_tx_complete()) { // Done transferring data
                 IO_CLR(rs485_dir_pin); // Put transceiver back into receive mode
                 rs485_state = RS485_IDLE;
             }
@@ -262,9 +262,9 @@ struct rs485_error rs485_get_error(void)
     return rs485_error_reg.error;
 }
 
-void rs485_register_error_notifier(struct rs485_error_notifier* const notifier)
+void rs485_register_error_notifier(struct rs485_error_notifier * const notifier)
 {
-    if(notifier != NULL && notifier->callback != NULL) {
+    if (notifier != NULL && notifier->callback != NULL) {
         // Update linked list
         *rs485_notifier_next = notifier;
         rs485_notifier_next = &notifier->next;
@@ -289,7 +289,7 @@ void rs485_reset(void)
 void rs485_transmit(unsigned char data)
 {
     rs485_tx_fifo[rs485_tx_producer++] = data;
-    if(rs485_tx_producer >= RS485_TX_FIFO_SIZE)
+    if (rs485_tx_producer >= RS485_TX_FIFO_SIZE)
         rs485_tx_producer = 0;
 }
 
@@ -303,7 +303,7 @@ void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
     // there is available in the buffer. If that is >= size, we can just
     // do a memcpy instead. Should be a little bit faster.
 
-    while(size-- > 0)
+    while (size-- > 0)
         rs485_transmit(*buffer++);
 }
 
@@ -317,12 +317,12 @@ unsigned char rs485_read(void)
     ASSERT(rs485_rx_consumer != rs485_rx_producer);
 
     unsigned char data = rs485_rx_fifo[rs485_rx_consumer++];
-    if(rs485_rx_consumer >= RS485_RX_FIFO_SIZE)
+    if (rs485_rx_consumer >= RS485_RX_FIFO_SIZE)
         rs485_rx_consumer = 0;
     return data;
 }
 
-unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
+unsigned int rs485_read_buffer(unsigned char * buffer, unsigned int max_size)
 {
     ASSERT_NOT_NULL(buffer);
     ASSERT(rs485_rx_consumer != rs485_rx_producer);
@@ -331,8 +331,8 @@ unsigned int rs485_read_buffer(unsigned char* buffer, unsigned int max_size)
     // Just like transmit buffer we can probably just memcpy continuous chunks
     // of data from the rs485 buffer to the buffer passed to this function.
 
-    const unsigned char* buffer_begin = buffer;
-    while(rs485_bytes_available() && max_size-- > 0)
+    unsigned char const * buffer_begin = buffer;
+    while (rs485_bytes_available() && max_size-- > 0)
         *buffer++ = rs485_read();
     return (buffer - buffer_begin);
 }

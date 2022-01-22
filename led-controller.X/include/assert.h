@@ -7,8 +7,8 @@
 #include <stdarg.h>
 
 #ifdef __DEBUG
-#define ASSERT(expression)          do { if(!(expression)) { __assert_failed(expression);          }} while(0)
-#define ASSERT_NO_BLOCK(expression) do { if(!(expression)) { __assert_no_block_failed(expression); }} while(0)
+#define ASSERT(expression)          do { if (!(expression)) { __assert_failed(expression);          }} while (0)
+#define ASSERT_NO_BLOCK(expression) do { if (!(expression)) { __assert_no_block_failed(expression); }} while (0)
 
 // Assertion formats
 #define __assert_failed(expression)             __assert_print("Assertion failed: %s at line %d in %s of %s", #expression, __LINE__, __FUNCTION__, __FILE__)

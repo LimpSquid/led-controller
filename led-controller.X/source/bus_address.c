@@ -18,24 +18,24 @@ static const struct io_pin bus_address_pins[BUS_ADDRESS_BITS] =
     IO_PIN(4, F)
 };
 
-static struct timer_module* bus_address_sample_timer = NULL;
+static struct timer_module * bus_address_sample_timer = NULL;
 static unsigned char bus_address_sample = BUS_ADDRESS_INVALID;
 static unsigned char bus_address_actual = BUS_ADDRESS_INVALID;
 
 static unsigned char bus_address_read(void)
 {
     unsigned char address = 0;
-    for(unsigned int i = 0; i < BUS_ADDRESS_BITS; ++i)
+    for (unsigned int i = 0; i < BUS_ADDRESS_BITS; ++i)
         address |= MASK_SHIFT(IO_READ(bus_address_pins[i]), i);
     return address;
 }
 
-static void bus_address_sample_handler(struct timer_module* module)
+static void bus_address_sample_handler(struct timer_module * module)
 {
     (void)module;
     
     unsigned char address = bus_address_read();
-    if(address != bus_address_sample)
+    if (address != bus_address_sample)
         bus_address_sample = address;
     else if (address != bus_address_actual)
         bus_address_actual = address;
@@ -49,7 +49,7 @@ void bus_address_init(void)
     // Initialize timer
     bus_address_sample_timer = timer_construct(TIMER_TYPE_RECURRING, bus_address_sample_handler);
     ASSERT_NOT_NULL(bus_address_sample_timer);
-    if(bus_address_sample_timer == NULL)
+    if (bus_address_sample_timer == NULL)
         return;
     
     timer_start(bus_address_sample_timer, BUS_ADDRESS_SAMPLE_TIME, TIMER_TIME_UNIT_MS);

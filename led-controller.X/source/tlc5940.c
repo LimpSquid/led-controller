@@ -77,28 +77,28 @@ static int tlc5940_rtask_init(void);
 static void tlc5940_rtask_execute(void);
 KERN_SIMPLE_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute);
 
-static const struct dma_config tlc5940_dma_config; // No special config needed
-static const struct spi_config tlc5940_spi_config =
+static struct dma_config const tlc5940_dma_config; // No special config needed
+static struct spi_config const tlc5940_spi_config =
 {
     .spi_con_flags = SPI_MSTEN | SPI_STXISEL_COMPLETE | SPI_DISSDI | SPI_MODE8 | SPI_CKP,
     .baudrate = 40000000,
 };
 
-static const struct pwm_config tlc5940_pwm_config =
+static struct pwm_config const tlc5940_pwm_config =
 {
     .duty = 0.5,
     .frequency = TLC5940_PWM_FREQ,
     .period_callback_div = TLC5940_MAX_PWM_VALUE // Number of PWM pulses for one GSCLK period to complete
 };
 
-static const struct io_pin tlc5940_sdo_pin = IO_ANLG_PIN(7, G);
-static const struct io_pin tlc5940_sck_pin = IO_ANLG_PIN(6, G);
-static const struct io_pin tlc5940_blank_pin = IO_ANLG_PIN(7, E);
-static const struct io_pin tlc5940_xlat_pin = IO_ANLG_PIN(6, E);
-static const struct io_pin tlc5940_dcprg_pin = IO_ANLG_PIN(5, B);
-static const struct io_pin tlc5940_gsclk_pin = IO_ANLG_PIN(5, E); // This pin can only be controlled when PWM module is disabled, they are mutually exclusive
-static const struct io_pin tlc5940_vprg_pin = IO_ANLG_PIN(9, G);
-static const struct io_pin tlc5940_xerr_pin = IO_ANLG_PIN(4, E);
+static struct io_pin const tlc5940_sdo_pin = IO_ANLG_PIN(7, G);
+static struct io_pin const tlc5940_sck_pin = IO_ANLG_PIN(6, G);
+static struct io_pin const tlc5940_blank_pin = IO_ANLG_PIN(7, E);
+static struct io_pin const tlc5940_xlat_pin = IO_ANLG_PIN(6, E);
+static struct io_pin const tlc5940_dcprg_pin = IO_ANLG_PIN(5, B);
+static struct io_pin const tlc5940_gsclk_pin = IO_ANLG_PIN(5, E); // This pin can only be controlled when PWM module is disabled, they are mutually exclusive
+static struct io_pin const tlc5940_vprg_pin = IO_ANLG_PIN(9, G);
+static struct io_pin const tlc5940_xerr_pin = IO_ANLG_PIN(4, E);
 
 // Volatile because flags are accessed from ISR and we want to avoid weird optimizations
 static volatile struct tlc5940_flags tlc5940_flags =
@@ -112,8 +112,8 @@ static volatile struct tlc5940_flags tlc5940_flags =
 static unsigned char tlc5940_buffer[TLC5940_BUFFER_SIZE];
 static unsigned char tlc5940_dot_corr_buffer[TLC5940_BUFFER_SIZE_DOT_CORR];
 
-static struct dma_channel* tlc5940_dma_channel = NULL;
-static struct spi_module* tlc5940_spi_module = NULL;
+static struct dma_channel * tlc5940_dma_channel = NULL;
+static struct spi_module * tlc5940_spi_module = NULL;
 static enum tlc5940_state tlc5940_state = TLC5940_INIT;
 static enum tlc5940_mode tlc5940_mode = TLC5940_MODE_DISABLED;
 
@@ -153,7 +153,7 @@ static int tlc5940_rtask_init(void)
 {
     // Init dot correction buffer
     tlc5940_quartet_t quartet = TLC5940_QUARTET_FILL(TLC5940_DOT_CORRECTION);
-    for(unsigned int i = 0; i < TLC5940_NUM_OF_DC_QUARTETS; ++i) 
+    for (unsigned int i = 0; i < TLC5940_NUM_OF_DC_QUARTETS; ++i) 
         memcpy(tlc5940_dot_corr_buffer + i * sizeof(quartet), quartet, sizeof(quartet));
 
     // Configure PPS
@@ -175,12 +175,12 @@ static int tlc5940_rtask_init(void)
 
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);
-    if(tlc5940_dma_channel == NULL)
+    if (tlc5940_dma_channel == NULL)
         goto fail_dma;
 
     // Initialize SPI
     tlc5940_spi_module = spi_construct(TLC5940_SPI_CHANNEL, tlc5940_spi_config);
-    if(tlc5940_spi_module == NULL)
+    if (tlc5940_spi_module == NULL)
         goto fail_spi;
     spi_configure_dma_dst(tlc5940_spi_module, tlc5940_dma_channel); // SPI module is the destination of the dma module
     spi_enable(tlc5940_spi_module);
@@ -199,7 +199,7 @@ fail_dma:
 
 static void tlc5940_rtask_execute(void)
 {
-    switch(tlc5940_state) {
+    switch (tlc5940_state) {
         default:
         case TLC5940_INIT:
         case TLC5940_INIT_WRITE_DOT_CORRECTION:
@@ -211,13 +211,13 @@ static void tlc5940_rtask_execute(void)
             break;
         
         case TLC5940_IDLE:
-            if(tlc5940_flags.need_update)
+            if (tlc5940_flags.need_update)
                 tlc5940_state = TLC5940_UPDATE;
-            else if(tlc5940_flags.switch_mode_enable)
+            else if (tlc5940_flags.switch_mode_enable)
                 tlc5940_state = TLC5940_SWITCH_MODE_ENABLE;
-            else if(tlc5940_flags.switch_mode_disable)
+            else if (tlc5940_flags.switch_mode_disable)
                 tlc5940_state = TLC5940_SWITCH_MODE_DISABLE;
-            else if(tlc5940_flags.switch_mode_lod)
+            else if (tlc5940_flags.switch_mode_lod)
                 tlc5940_state = TLC5940_SWITCH_MODE_LOD;
             break;
         case TLC5940_UPDATE:
@@ -225,14 +225,14 @@ static void tlc5940_rtask_execute(void)
             tlc5940_state = TLC5940_UPDATE_DMA_TRANSFER;
             // no break
         case TLC5940_UPDATE_DMA_TRANSFER:
-            if(dma_ready(tlc5940_dma_channel)) {
+            if (dma_ready(tlc5940_dma_channel)) {
                 dma_configure_src(tlc5940_dma_channel, tlc5940_buffer, TLC5940_BUFFER_SIZE);
                 dma_enable_transfer(tlc5940_dma_channel);
                 tlc5940_state = TLC5940_UPDATE_DMA_TRANSFER_WAIT;
             }
             break;
         case TLC5940_UPDATE_DMA_TRANSFER_WAIT:
-            if(dma_ready(tlc5940_dma_channel)) {
+            if (dma_ready(tlc5940_dma_channel)) {
                 tlc5940_flags.need_update = false;
                 memset(tlc5940_buffer, 0x00, TLC5940_BUFFER_SIZE); // Because we are OR'ing in tlc5940_write
                 tlc5940_state = TLC5940_IDLE;
@@ -286,7 +286,7 @@ enum tlc5940_mode tlc5940_get_mode(void)
 
 void tlc5940_switch_mode(enum tlc5940_mode mode)
 {
-    switch(mode) {
+    switch (mode) {
         case TLC5940_MODE_ENABLED:  tlc5940_flags.switch_mode_enable = true;    break;
         case TLC5940_MODE_DISABLED: tlc5940_flags.switch_mode_disable = true;   break;
         case TLC5940_MODE_LOD:      tlc5940_flags.switch_mode_lod = true;       break;
@@ -301,11 +301,11 @@ bool tlc5940_get_lod_error(void)
 
 void tlc5940_write(unsigned int device, unsigned int channel, unsigned short pwm_value)
 {
-    if(device >= TLC5940_NUM_OF_DEVICES)
+    if (device >= TLC5940_NUM_OF_DEVICES)
         return;
-    if(channel >= TLC5940_CHANNELS_PER_DEVICE)
+    if (channel >= TLC5940_CHANNELS_PER_DEVICE)
         return;
-    if(pwm_value > TLC5940_MAX_PWM_VALUE)
+    if (pwm_value > TLC5940_MAX_PWM_VALUE)
         pwm_value = TLC5940_MAX_PWM_VALUE;
 
     unsigned char byte1;
@@ -313,7 +313,7 @@ void tlc5940_write(unsigned int device, unsigned int channel, unsigned short pwm
     unsigned int index = channel + device * TLC5940_CHANNELS_PER_DEVICE;
 
     index += index >> 1;
-    if(channel & 1) {
+    if (channel & 1) {
         byte1 = (pwm_value >> 8) & 0x0f;
         byte2 = (pwm_value & 0xff);
     } else {
@@ -327,9 +327,9 @@ void tlc5940_write(unsigned int device, unsigned int channel, unsigned short pwm
 
 void tlc5940_write_all_channels(unsigned int device, unsigned short pwm_value)
 {
-    if(device >= TLC5940_NUM_OF_DEVICES)
+    if (device >= TLC5940_NUM_OF_DEVICES)
         return;
     
-    for(unsigned int i = 0; i < TLC5940_CHANNELS_PER_DEVICE; i++)
+    for (unsigned int i = 0; i < TLC5940_CHANNELS_PER_DEVICE; i++)
         tlc5940_write(device, i, pwm_value);
 }
