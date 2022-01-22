@@ -34,7 +34,7 @@ STATIC_ASSERT(TLC5940_DOT_CORRECTION <= 28)
 #define TLC5940_BUFFER_SIZE             (24 * TLC5940_NUM_OF_DEVICES)
 #define TLC5940_BUFFER_SIZE_DOT_CORR    (12 * TLC5940_NUM_OF_DEVICES)
 #define TLC5940_NUM_OF_CHANNELS         (TLC5940_CHANNELS_PER_DEVICE * TLC5940_NUM_OF_DEVICES)
-#define TLC5940_NUM_OF_DC_QUARTETS      (TLC5940_NUM_OF_CHANNELS / 4)
+#define TLC5940_NUM_OF_DC_QUARTETS      (TLC5940_BUFFER_SIZE_DOT_CORR / sizeof(tlc5940_quartet_t))
 #define TLC5940_MAX_PWM_VALUE           (BIT_SHIFT(12) - 1) // 12 bit
 #define TLC5940_PWM_FREQ                ((1000000LU * TLC5940_MAX_PWM_VALUE) / TLC5940_GSCLK_PERIOD)
 #define TLC5940_QUARTET(a, b, c, d)     {(unsigned char)(a << 2 | b >> 4), (unsigned char)(b << 4 | c >> 2), (unsigned char)(c << 6 | d)}
@@ -152,7 +152,7 @@ void pwm_period_callback(void)
 static int tlc5940_rtask_init(void)
 {
     // Init dot correction buffer
-    tlc5940_quartet_t quartet = TLC5940_QUARTET_FILL(TLC5940_DOT_CORRECTION);
+    tlc5940_quartet_t const quartet = TLC5940_QUARTET_FILL(TLC5940_DOT_CORRECTION);
     for (unsigned int i = 0; i < TLC5940_NUM_OF_DC_QUARTETS; ++i) 
         memcpy(tlc5940_dot_corr_buffer + i * sizeof(quartet), quartet, sizeof(quartet));
 
