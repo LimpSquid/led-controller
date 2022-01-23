@@ -10,9 +10,11 @@
 
 #define TEST_SUITE_X_PIXELS             16
 #define TEST_SUITE_Y_PIXELS             16
+#define TEST_SUITE_NUM_PIXELS           (TEST_SUITE_X_PIXELS * TEST_SUITE_Y_PIXELS)
 #define TEST_SUITE_NUM_OF_CYCLE_COLORS  (sizeof(test_suite_cycle_colors) / sizeof(test_suite_cycle_colors[0]))
 
 #define TEST_SUITE_CYCLE_COLORS_DELAY   2000 // In milliseconds
+#define TEST_SUITE_CYCLE_POS_DELAY      200 // In milliseconds
 #define TEST_SUITE_FINISHED_DELAY       250 // In milliseconds
 
 enum test_suite_state
@@ -20,13 +22,17 @@ enum test_suite_state
     TEST_SUITE_INIT = 0,
     
     // Test for open LEDs
-    TEST_SUITE_EXEC_LOD,
+    TEST_SUITE_EXEC_LOD_INIT,
     TEST_SUITE_EXEC_LOD_WAIT,
     
     // Cycle through different colors
     TEST_SUITE_CYCLE_COLORS_INIT,
     TEST_SUITE_CYCLE_COLORS_DRAW,
     
+    // Cycle through positions,
+    TEST_SUITE_CYCLE_POS_INIT,
+    TEST_SUITE_CYCLE_POS_DRAW,
+
     // Generic stuff down below
     TEST_SUITE_FINISHED
 };
@@ -77,10 +83,10 @@ static void test_suite_execute(void)
         default:
         case TEST_SUITE_INIT:
             if (layer_ready())
-                test_suite_state = TEST_SUITE_EXEC_LOD;
+                test_suite_state = TEST_SUITE_EXEC_LOD_INIT;
             break;
             
-        case TEST_SUITE_EXEC_LOD:
+        case TEST_SUITE_EXEC_LOD_INIT:
             if (layer_exec_lod())
                 test_suite_state = TEST_SUITE_EXEC_LOD_WAIT;
             break;
@@ -100,9 +106,28 @@ static void test_suite_execute(void)
                 layer_swap_buffers();
                 timer_start(test_suite_countdown_timer, TEST_SUITE_CYCLE_COLORS_DELAY, TIMER_TIME_UNIT_MS);
             } else
+                test_suite_state = TEST_SUITE_CYCLE_POS_INIT;
+            break;
+
+        case TEST_SUITE_CYCLE_POS_INIT:
+            test_suite_generic_uint = 0;
+            test_suite_state = TEST_SUITE_CYCLE_POS_DRAW;
+            break;
+        case TEST_SUITE_CYCLE_POS_DRAW: {
+            unsigned char x = test_suite_generic_uint % TEST_SUITE_X_PIXELS;
+            unsigned char y = test_suite_generic_uint / TEST_SUITE_Y_PIXELS;
+
+            if (++test_suite_generic_uint < TEST_SUITE_NUM_PIXELS) {
+                struct layer_color color = { .r = 255, .g = 255, .b = 255 };
+                layer_clear_all_pixels();
+                layer_draw_pixel(x, y, color);
+                layer_swap_buffers();
+                timer_start(test_suite_countdown_timer, TEST_SUITE_CYCLE_POS_DELAY, TIMER_TIME_UNIT_MS);
+            } else
                 test_suite_state = TEST_SUITE_FINISHED;
             break;
-           
+        }
+
         case TEST_SUITE_FINISHED: {
             struct layer_color color;
             unsigned char bus_address = bus_address_valid() ? bus_address_get() : 0;
