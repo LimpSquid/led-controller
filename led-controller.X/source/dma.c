@@ -4,7 +4,13 @@
 #include <xc.h>
 #include <sys/attribs.h>
 
-#define DMA_PHY_ADDR(virt)              ((int)virt < 0 ? ((int)virt & 0x1FFFFFFFL) : (unsigned int)((unsigned char*)virt + 0x40000000L))
+// Memory layout:
+// - KSEG  (2GiB) = 0x00000000 - 0x7fffffff
+// - KUSEG (2GiB) = 0x80000000 - 0xffffffff
+// 
+// Converting KSEG  virt to phy address: `virt & 0x1fffffff`
+// Converting KUSEG virt to phy address: `virt + 0x40000000`
+#define DMA_PHY_ADDR(virt)              ((int)virt < 0 ? ((int)virt & 0x1fffffffl) : (unsigned int)((unsigned char*)virt + 0x40000000L))
 #define DMA_NUMBER_OF_CHANNELS          (sizeof(dma_channels) / sizeof(dma_channels[0]))
 #define DMA_INTERRUPT_PRIORITY          0x3
 

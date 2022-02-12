@@ -23,7 +23,7 @@
 // Data type must be unsigned
 STATIC_ASSERT((KERN_TMR_REG_DATA_TYPE)(-1) > 0)
 
-#define KERNEL_SYSTEM_TICK              ((1000000.0 / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER) // Microseconds per tick, is a floating-point number
+#define KERNEL_SYSTEM_TICK              ((1000000.0 / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER) // Microseconds per tick
 #define KERNEL_JITTER_AVOIDANCE_COEFF   (33 / KERNEL_SYSTEM_TICK) // 33us
 
 typedef KERN_TMR_REG_DATA_TYPE timer_size_t;
