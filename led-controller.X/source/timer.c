@@ -28,7 +28,7 @@ struct timer_module
         unsigned char type      :3;
         unsigned char assigned  :1;
         unsigned char suspended :1;
-        unsigned char _         :2;
+        unsigned char           :2;
     } opt;
 };
 

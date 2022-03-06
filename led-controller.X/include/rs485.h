@@ -13,10 +13,10 @@ enum rs485_status
 
 struct rs485_error
 {
-    unsigned char perr :1;
-    unsigned char ferr :1;
-    unsigned char oerr :1;
-    unsigned char _reserved :5;
+    unsigned char perr  :1;
+    unsigned char ferr  :1;
+    unsigned char oerr  :1;
+    unsigned char       :5;
 };
 
 struct rs485_error_notifier

@@ -11,13 +11,13 @@
 #define BUS_FRAME_SIZE              sizeof(struct bus_frame)
 #define BUS_CRC_SIZE                sizeof(crc16_t)
 #define BUS_ERROR_BACKOFF_TIME      5 // In milliseconds
-#define BUS_BROADCAST_ADDRESS       63
+#define BUS_BROADCAST_ADDRESS       32
 
 struct bus_header
 {
     unsigned char request   :1; // Response if false
     unsigned char address   :6; // Must be specified if request is true
-    unsigned char _         :1;
+    unsigned char           :1;
 };
 STATIC_ASSERT(sizeof(struct bus_header) == 1)
 
