@@ -56,9 +56,9 @@ static struct layer_color const test_suite_cycle_colors[] =
     { .r = 255, .g = 255, .b = 255 },
 };
 
-static struct timer_module * test_suite_countdown_timer = NULL;
+static struct timer_module * test_suite_countdown_timer;
 static enum test_suite_state test_suite_state = TEST_SUITE_INIT;
-static unsigned int test_suite_generic_uint = 0;
+static unsigned int test_suite_generic_uint;
 
 static int test_suite_init(void)
 {
@@ -103,7 +103,6 @@ static void test_suite_execute(void)
             if (test_suite_generic_uint < TEST_SUITE_NUM_OF_CYCLE_COLORS) {
                 struct layer_color color = test_suite_cycle_colors[test_suite_generic_uint++];
                 layer_draw_all_pixels(color);
-                layer_swap_buffers();
                 timer_start(test_suite_countdown_timer, TEST_SUITE_CYCLE_COLORS_DELAY, TIMER_TIME_UNIT_MS);
             } else
                 test_suite_state = TEST_SUITE_CYCLE_POS_INIT;
@@ -121,7 +120,6 @@ static void test_suite_execute(void)
                 struct layer_color color = { .r = 255, .g = 255, .b = 255 };
                 layer_clear_all_pixels();
                 layer_draw_pixel(x, y, color);
-                layer_swap_buffers();
                 timer_start(test_suite_countdown_timer, TEST_SUITE_CYCLE_POS_DELAY, TIMER_TIME_UNIT_MS);
             } else
                 test_suite_state = TEST_SUITE_FINISHED;
@@ -141,7 +139,6 @@ static void test_suite_execute(void)
                 color.b = rand() % 256;
             }
             layer_draw_all_pixels(color);
-            layer_swap_buffers();
             timer_start(test_suite_countdown_timer, TEST_SUITE_FINISHED_DELAY, TIMER_TIME_UNIT_MS);
             break;
         }

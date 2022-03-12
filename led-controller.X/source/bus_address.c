@@ -18,7 +18,7 @@ static const struct io_pin bus_address_pins[BUS_ADDRESS_BITS] =
     IO_PIN(4, F)
 };
 
-static struct timer_module * bus_address_sample_timer = NULL;
+static struct timer_module * bus_address_sample_timer;
 static unsigned char bus_address_sample = BUS_ADDRESS_INVALID;
 static unsigned char bus_address_actual = BUS_ADDRESS_INVALID;
 

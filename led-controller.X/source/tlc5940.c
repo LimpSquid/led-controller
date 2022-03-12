@@ -50,8 +50,12 @@ typedef unsigned char tlc5940_quartet_t[3];
 
 struct tlc5940_flags
 {
-    bool need_update            :1;
-    
+    // Don't use a bit-field here as the flag is used from an ISR,
+    // thus we require atomic access. A bit-field will use a LBU (load
+    // byte) instruction which is not read-modify-write safe.
+
+    volatile bool need_update;
+
     // Changing the operating mode needs happen in the state machine
     // so we will not interfere with a pending update
     bool switch_mode_enable     :1;
@@ -100,20 +104,13 @@ static struct io_pin const tlc5940_gsclk_pin = IO_ANLG_PIN(5, E); // This pin ca
 static struct io_pin const tlc5940_vprg_pin = IO_ANLG_PIN(9, G);
 static struct io_pin const tlc5940_xerr_pin = IO_ANLG_PIN(4, E);
 
-// Volatile because flags are accessed from ISR and we want to avoid weird optimizations
-static volatile struct tlc5940_flags tlc5940_flags =
-{
-    .need_update = false,
-    .switch_mode_enable = false,
-    .switch_mode_disable = false,
-    .switch_mode_lod = false
-};
+static struct tlc5940_flags tlc5940_flags;
 
 static unsigned char tlc5940_buffer[TLC5940_BUFFER_SIZE];
 static unsigned char tlc5940_dot_corr_buffer[TLC5940_BUFFER_SIZE_DOT_CORR];
 
-static struct dma_channel * tlc5940_dma_channel = NULL;
-static struct spi_module * tlc5940_spi_module = NULL;
+static struct dma_channel * tlc5940_dma_channel;
+static struct spi_module * tlc5940_spi_module;
 static enum tlc5940_state tlc5940_state = TLC5940_INIT;
 static enum tlc5940_mode tlc5940_mode = TLC5940_MODE_DISABLED;
 

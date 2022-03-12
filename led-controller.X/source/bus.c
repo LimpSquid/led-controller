@@ -66,7 +66,7 @@ static struct rs485_error_notifier bus_error_notifier =
     .callback = bus_error_callback
 };
 
-static struct timer_module * bus_backoff_timer = NULL;
+static struct timer_module * bus_backoff_timer;
 static crc16_t bus_crc16;
 static union bus_raw_frame bus_request;
 static union bus_raw_frame bus_response;

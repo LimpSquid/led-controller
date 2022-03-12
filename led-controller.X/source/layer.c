@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <xc.h>
+#include <assert.h>
 
 #define LAYER_NUM_OF_ROWS           16
 #define LAYER_NUM_OF_COLS           16
@@ -32,7 +33,12 @@
 
 struct layer_flags
 {
-    bool need_buffer_swap   :1;
+    // Don't use a bit-field here as the flags are used from an ISR,
+    // thus we require atomic access. A bit-field will use a LBU (load
+    // byte) instruction which is not read-modify-write safe.
+
+    volatile bool do_buffer_swap; // Set flag to schedule a buffer swap on the next vertical sync
+    volatile bool requires_buffer_swap; // Flag is set if a buffer swap is needed
 };
 
 enum layer_state
@@ -51,16 +57,8 @@ enum layer_state
 
 enum layer_dma_state
 {
-    LAYER_DMA_RECV_FRAME = 0,
-    LAYER_DMA_RECV_FRAME_WAIT,
-    LAYER_DMA_SWAP_BUFFERS,
-    LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC,
-};
-
-// Volatile because flags are accessed from ISR and we want to avoid weird optimizations
-static volatile struct layer_flags layer_flags = 
-{
-    .need_buffer_swap = false
+    LAYER_DMA_RECV_FRAME_INIT = 0,
+    LAYER_DMA_RECV_FRAME
 };
 
 static int layer_rtask_init(void);
@@ -151,34 +149,36 @@ static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 };
 #endif
 
-static const struct dma_config layer_dma_config; // No special config needed
-static const struct spi_config layer_spi_config =
+static struct dma_config const layer_dma_config; // No special config needed
+static struct spi_config const layer_spi_config =
 {
     .spi_con_flags = SPI_SRXISEL_NOT_EMPTY | SPI_DISSDO | SPI_MODE8 | SPI_SSEN,
 };
 
-static const struct io_pin layer_sdi_pin = IO_PIN(2, F);
-static const struct io_pin layer_sck_pin = IO_PIN(6, F);
-static const struct io_pin layer_ss_pin = IO_ANLG_PIN(15, B);
+static struct io_pin const layer_sdi_pin = IO_PIN(2, F);
+static struct io_pin const layer_sck_pin = IO_PIN(6, F);
+static struct io_pin const layer_ss_pin = IO_ANLG_PIN(15, B);
 
-static unsigned char layer_front_buffer[LAYER_FRAME_BUFFER_SIZE];
-static unsigned char layer_back_buffer[LAYER_FRAME_BUFFER_SIZE];
-static unsigned char * layer_draw_ptr = layer_back_buffer; // Points to buffer used for drawing new pixels
-static unsigned char * layer_update_ptr = layer_front_buffer; // Points to buffer used for updating TLC5940's
+static struct layer_flags layer_flags;
+
+static unsigned char layer_buffer_pool[3][LAYER_FRAME_BUFFER_SIZE]; // Tripple buffering to already receive new pixel data while waiting on the vertical sync swap
+static unsigned char * layer_draw_buffer = layer_buffer_pool[0]; // Buffer to is used to write data to the TLC5940s
+static unsigned char * layer_sync_buffer = layer_buffer_pool[1]; // Buffer that contains a new frame but is still waiting to be swapped with draw_buffer
+static unsigned char * layer_recv_buffer = layer_buffer_pool[2]; // Buffer for receiving pixel data to form a new frame
 static struct io_pin const * layer_row_pin = layer_pins;
 static struct io_pin const * layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_ROWS - 1];
-static struct dma_channel * layer_dma_channel = NULL;
-static struct spi_module * layer_spi_module = NULL;
-static struct timer_module * layer_countdown_timer = NULL;
+static struct dma_channel * layer_dma_channel;
+static struct spi_module * layer_spi_module;
+static struct timer_module * layer_countdown_timer;
 static enum layer_state layer_state = LAYER_SWITCH_ENABLED_MODE;
 static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME;
-static unsigned int layer_row_index = 0; // Active row, corresponding row IO is layer_pins[layer_row_index]
+static unsigned int layer_row_index; // Active row, corresponding row IO is layer_pins[layer_row_index]
 
 static void layer_row_reset(void)
 {
     IO_PTR_CLR(layer_row_previous_pin);
     IO_PTR_CLR(layer_row_pin);
-    
+
     layer_row_pin = layer_pins;
     layer_row_previous_pin = &layer_pins[LAYER_NUM_OF_ROWS - 1];
     layer_row_index = 0;
@@ -201,11 +201,13 @@ inline static unsigned int __attribute__((always_inline)) layer_next_row_index(v
 
 inline static void  __attribute__((always_inline)) layer_possibly_swap_buffers(void)
 {
-    if (layer_flags.need_buffer_swap) {
-        unsigned char * tmp = layer_draw_ptr;
-        layer_draw_ptr = layer_update_ptr;
-        layer_update_ptr = tmp;
-        layer_flags.need_buffer_swap = false;
+    if (layer_flags.do_buffer_swap) {
+        ASSERT(layer_flags.requires_buffer_swap);
+        unsigned char * tmp = layer_draw_buffer;
+        layer_draw_buffer = layer_sync_buffer;
+        layer_sync_buffer = tmp;
+        layer_flags.do_buffer_swap = false;
+        layer_flags.requires_buffer_swap = false;
     }
 }
 
@@ -234,9 +236,9 @@ void tlc5940_update_handler(void)
         b = i + offset + LAYER_BLUE_OFFSET;
 
         // Convert 8 bit to 12 bit equivalent
-        tlc5940_write(0, i, layer_update_ptr[b] << 4 | layer_update_ptr[b] >> 4);
-        tlc5940_write(1, i, layer_update_ptr[g] << 4 | layer_update_ptr[g] >> 4);
-        tlc5940_write(2, i, layer_update_ptr[r] << 4 | layer_update_ptr[r] >> 4);
+        tlc5940_write(0, i, layer_draw_buffer[b] << 4 | layer_draw_buffer[b] >> 4);
+        tlc5940_write(1, i, layer_draw_buffer[g] << 4 | layer_draw_buffer[g] >> 4);
+        tlc5940_write(2, i, layer_draw_buffer[r] << 4 | layer_draw_buffer[r] >> 4);
     }
 }
 
@@ -345,30 +347,32 @@ static void layer_rtask_execute(void)
 
 static void layer_dma_rtask_execute(void)
 {
+    if (dma_busy(layer_dma_channel))
+        return;
+
     switch (layer_dma_state) {
         default:
-        case LAYER_DMA_RECV_FRAME:
-            if (dma_ready(layer_dma_channel)) {
-                dma_configure_dst(layer_dma_channel, layer_draw_ptr, LAYER_FRAME_BUFFER_SIZE);
-                dma_enable_transfer(layer_dma_channel);
-                layer_dma_state = LAYER_DMA_RECV_FRAME_WAIT;
-            }
-            break;
-        case LAYER_DMA_RECV_FRAME_WAIT:
-            if (dma_ready(layer_dma_channel))
-                layer_dma_state = LAYER_DMA_SWAP_BUFFERS;
+        case LAYER_DMA_RECV_FRAME_INIT:
+            dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
+            dma_enable_transfer(layer_dma_channel);
+            layer_dma_state = LAYER_DMA_RECV_FRAME;
             break;
 
-        case LAYER_DMA_SWAP_BUFFERS:
+        case LAYER_DMA_RECV_FRAME:
+            if (!layer_flags.requires_buffer_swap) {
+                // Swap buffers and start next transfer
+                unsigned char * tmp = layer_sync_buffer;
+                layer_sync_buffer = layer_recv_buffer;
+                layer_recv_buffer = tmp;
+                dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
+                dma_enable_transfer(layer_dma_channel);
+
+                layer_flags.requires_buffer_swap = true;
 #ifdef LAYER_AUTO_BUFFER_SWAP
 #warning "AUTO_BUFFER_SWAP defined"
-            layer_flags.need_buffer_swap = true;
-            layer_dma_state = LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC;
+                layer_flags.do_buffer_swap = true; // Keep last
 #endif
-            break;
-        case LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC:
-            if (!layer_flags.need_buffer_swap)
-                layer_dma_state = LAYER_DMA_RECV_FRAME;
+            }
             break;
     }
 }
@@ -396,22 +400,17 @@ void layer_dma_reset(void)
 {
     dma_disable_transfer(layer_dma_channel);
     
-    layer_flags.need_buffer_swap = false;
-    layer_dma_state = LAYER_DMA_RECV_FRAME;
-}
-
-bool layer_dma_ready_to_recv(void)
-{
-    return layer_dma_state == LAYER_DMA_RECV_FRAME_WAIT;
+    layer_flags.do_buffer_swap = false;
+    layer_flags.requires_buffer_swap = false;
+    layer_dma_state = LAYER_DMA_RECV_FRAME_INIT;
 }
 
 bool layer_dma_swap_buffers(void)
 {
-    if (layer_dma_state != LAYER_DMA_SWAP_BUFFERS)
+    if (!layer_flags.requires_buffer_swap)
         return false;
     
-    layer_flags.need_buffer_swap = true;
-    layer_dma_state = LAYER_DMA_SWAP_BUFFERS_WAIT_SYNC;
+    layer_flags.do_buffer_swap = true;
     return true;
 }
 
@@ -423,9 +422,9 @@ void layer_draw_pixel(unsigned char x, unsigned char y, struct layer_color color
         y = LAYER_NUM_OF_ROWS - 1;
 
     unsigned int pos = x + y * LAYER_NUM_OF_ROWS;
-    layer_draw_ptr[pos + LAYER_RED_OFFSET] = color.r;
-    layer_draw_ptr[pos + LAYER_GREEN_OFFSET] = color.g;
-    layer_draw_ptr[pos + LAYER_BLUE_OFFSET] = color.b;
+    layer_draw_buffer[pos + LAYER_RED_OFFSET] = color.r;
+    layer_draw_buffer[pos + LAYER_GREEN_OFFSET] = color.g;
+    layer_draw_buffer[pos + LAYER_BLUE_OFFSET] = color.b;
 }
 void layer_draw_all_pixels(struct layer_color color)
 {
@@ -439,10 +438,4 @@ void layer_clear_all_pixels()
 {
    struct layer_color color = {};
    layer_draw_all_pixels(color);
-}
-
-void layer_swap_buffers(void)
-{
-    // Semantics of this function are quite cheap: it does not check if we are already scheduled a buffer swap
-    layer_flags.need_buffer_swap = true;
 }

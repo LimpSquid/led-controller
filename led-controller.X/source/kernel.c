@@ -39,13 +39,13 @@ static struct kernel_rtask const * const kernel_rtask_end = &__kernel_rstack_end
 static struct kernel_ttask const * kernel_ttask_iterator = &__kernel_tstack_begin;
 static struct kernel_ttask const * const kernel_ttask_end = &__kernel_tstack_end;
 
-static struct kernel_ttask const * kernel_ttask_sorted_begin = NULL;
-static struct kernel_ttask const * kernel_ttask_sorted_end = NULL;
+static struct kernel_ttask const * kernel_ttask_sorted_begin;
+static struct kernel_ttask const * kernel_ttask_sorted_end;
 
-static void (*kernel_exec_func)(void) = NULL;
-static long long kernel_ticks = 0;
-static timer_size_t kernel_elapsed_ticks = 0;
-static timer_size_t kernel_previous_ticks = 0;
+static void (*kernel_exec_func)(void);
+static long long kernel_ticks;
+static timer_size_t kernel_elapsed_ticks;
+static timer_size_t kernel_previous_ticks;
 
 inline static void __attribute__((always_inline)) kernel_restore_rtask_iterator()
 {

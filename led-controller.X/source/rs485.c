@@ -78,17 +78,17 @@ static struct io_pin const rs485_tx_pin = IO_ANLG_PIN(3, B);
 // has put its transceiver in receive mode before we're doing a transfer.
 // We do this by introducing a backoff period after the last time we've read
 // data in which no transfer may occur.
-static struct timer_module * rs485_backoff_tx_timer = NULL;
+static struct timer_module * rs485_backoff_tx_timer;
 static enum rs485_status rs485_status = RS485_STATUS_IDLE;
 static enum rs485_state rs485_state = RS485_IDLE;
 
 static unsigned char rs485_tx_fifo[RS485_TX_FIFO_SIZE];
-static unsigned char rs485_tx_consumer = 0;
-static unsigned char rs485_tx_producer = 0;
+static unsigned char rs485_tx_consumer;
+static unsigned char rs485_tx_producer;
 
 static unsigned char rs485_rx_fifo[RS485_RX_FIFO_SIZE];
-static unsigned char rs485_rx_consumer = 0;
-static unsigned char rs485_rx_producer = 0;
+static unsigned char rs485_rx_consumer;
+static unsigned char rs485_rx_producer;
 
 inline static bool __attribute__((always_inline)) rs485_rx_available()
 {
