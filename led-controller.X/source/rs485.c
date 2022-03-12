@@ -23,7 +23,7 @@
 
 #define RS485_UMODE_WORD        0x0
 #define RS485_USTA_WORD         (BIT(10) | BIT(12) | MASK(0x1, 14))
-#define RS485_BRG_WORD          ((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4 - 1)
+#define RS485_BRG_WORD          (((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4) - 1)
 
 #define RS485_ON_MASK           BIT(15)
 #define RS485_ERROR_BITS_MASK   MASK(0x7, 1)

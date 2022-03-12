@@ -24,6 +24,7 @@
 #define DMA_DCHECON_CHSIRQ_MASK         MASK(0xff, 8)
 #define DMA_DCHECON_AIRQEN_MASK         BIT(3)
 #define DMA_DCHECON_SIRQEN_MASK         BIT(4)
+#define DMA_DCHECON_CFORCE_MASK         BIT(7)
 #define DMA_DCHINT_CHBCIE_MASK          BIT(19)
 #define DMA_DCHINT_CHBCIF_MASK          BIT(3)
 #define DMA_DCHINT_ENABLE_BITS_MASK     MASK(0xffff, 8)
@@ -256,7 +257,16 @@ void dma_enable_transfer(struct dma_channel * channel)
 {
     ASSERT_NOT_NULL(channel);
 
+    ATOMIC_REG_CLR(channel->dma_reg->dchecon, DMA_DCHECON_CFORCE_MASK);
     ATOMIC_REG_SET(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+}
+
+void dma_enable_force_transfer(struct dma_channel * channel)
+{
+    ASSERT_NOT_NULL(channel);
+
+    ATOMIC_REG_SET(channel->dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
+    ATOMIC_REG_SET(channel->dma_reg->dchecon, DMA_DCHECON_CFORCE_MASK);
 }
 
 void dma_disable_transfer(struct dma_channel * channel)

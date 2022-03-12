@@ -34,7 +34,7 @@ struct timer_module
 
 static void timer_ttask_execute(void);
 static void timer_ttask_configure(struct kernel_ttask_param * const param);
-KERN_TTASK(timer, NULL, timer_ttask_execute, timer_ttask_configure, KERN_INIT_EARLY);
+KERN_TTASK(timer, NULL, timer_ttask_execute, timer_ttask_configure, KERN_INIT_EARLY)
 
 static struct timer_module timer_pool[TIMER_POOL_SIZE];
 

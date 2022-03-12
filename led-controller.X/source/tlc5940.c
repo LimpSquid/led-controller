@@ -79,7 +79,7 @@ enum tlc5940_state
 
 static int tlc5940_rtask_init(void);
 static void tlc5940_rtask_execute(void);
-KERN_SIMPLE_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute);
+KERN_SIMPLE_RTASK(tlc5940, tlc5940_rtask_init, tlc5940_rtask_execute)
 
 static struct dma_config const tlc5940_dma_config; // No special config needed
 static struct spi_config const tlc5940_spi_config =
@@ -279,7 +279,7 @@ static void tlc5940_rtask_execute(void)
 enum tlc5940_mode tlc5940_get_mode(void)
 {
     return tlc5940_mode;
-};
+}
 
 void tlc5940_switch_mode(enum tlc5940_mode mode)
 {
@@ -305,10 +305,11 @@ void tlc5940_write(unsigned int device, unsigned int channel, unsigned short pwm
     if (pwm_value > TLC5940_MAX_PWM_VALUE)
         pwm_value = TLC5940_MAX_PWM_VALUE;
 
-    unsigned char byte1;
-    unsigned char byte2;
-    unsigned int index = channel + device * TLC5940_CHANNELS_PER_DEVICE;
+    static unsigned char byte1;
+    static unsigned char byte2;
+    static unsigned int index;
 
+    index = (channel + device * TLC5940_CHANNELS_PER_DEVICE);
     index += index >> 1;
     if (channel & 1) {
         byte1 = (pwm_value >> 8) & 0x0f;

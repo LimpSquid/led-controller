@@ -19,6 +19,8 @@ enum
     BUS_COMMAND_LAYER_DMA_SWAP_BUFFERS  = 4,
     BUS_COMMAND_SYS_VERSION             = 5,
     BUS_COMMAND_SYS_CPU_RESET           = 6,
+
+    BUS_NUM_OF_COMMANDS // Must be last
 };
 
 static enum bus_response_code bus_func_layer_ready(
@@ -108,8 +110,11 @@ const bus_func_t bus_funcs[] =
     bus_func_layer_ready,
     bus_func_layer_exec_lod,
     bus_func_layer_dma_reset,
+    NULL, // unused
     bus_func_layer_dma_swap_buffers,
     bus_func_sys_version,
     bus_func_sys_cpu_reset,
 };
 size_t const bus_funcs_size = BUS_FUNCS_SIZE;
+
+STATIC_ASSERT(BUS_FUNCS_SIZE == BUS_NUM_OF_COMMANDS);

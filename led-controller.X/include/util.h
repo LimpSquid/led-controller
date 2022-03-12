@@ -5,6 +5,12 @@
 #include <stddef.h>
 #include <xc.h>
 
+// Other utils
+#define OFFSET_OF(type, member) ((size_t) &((type *)0)->member)
+#define CONTAINER_OF(ptr, type, member) ({                      \
+    __typeof__(((type *)0)->member ) const *__mptr = (ptr);     \
+    (type *)((char *)__mptr - OFFSET_OF(type, member)); })
+
 // Atomic register utils
 #define ATOMIC_REG(name)                atomic_reg_group_t name
 #define ATOMIC_REG_VALUE(reg)           ATOMIC_REG_PTR_VALUE(&reg)

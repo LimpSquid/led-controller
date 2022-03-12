@@ -146,12 +146,9 @@ static void bus_rtask_execute(void)
                 bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
             else {
                 bus_func_t handler = bus_funcs[bus_request.frame.command];
-                ASSERT_NOT_NULL(handler);
-                
-                bus_response.frame.response_code = handler(
-                    broadcast,
-                    &bus_request.frame.payload,
-                    &bus_response.frame.payload);
+                bus_response.frame.response_code = (handler == NULL)
+                    ? BUS_ERR_INVALID_COMMAND
+                    : handler(broadcast, &bus_request.frame.payload, &bus_response.frame.payload);
             }
 
             bus_state = broadcast ? BUS_READ_CLEAR : BUS_SEND_RESPONSE;
@@ -159,7 +156,7 @@ static void bus_rtask_execute(void)
         }
         case BUS_SEND_RESPONSE:
             ASSERT(!bus_response.frame.header.request);
-            ASSERT(bus_response.frame.header.address == 0); // It reality it doesn't really matter what value it is
+            bus_response.frame.header.address = bus_address_get(); // Value doesn't matter, but convenient when probing with the oscilloscope
             crc16_reset(&bus_response.frame.crc);
             crc16_update(&bus_response.frame.crc, bus_response.data, BUS_FRAME_SIZE - BUS_CRC_SIZE);
             rs485_transmit_buffer(bus_response.data, BUS_FRAME_SIZE); 

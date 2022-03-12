@@ -107,7 +107,7 @@ static int print_str_puts(void * data, char const * str, unsigned int size)
 
 static int print_format(char const * format,  va_list arg, void * data, int(*puts)(void * data, char const * str, unsigned int size))
 {
-    struct print_options options = {};
+    struct print_options options = {0};
     int chars_written = 0;
     char const * marker = format;
     char str[PRINT_CONVERT_STR_SIZE];

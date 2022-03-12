@@ -64,8 +64,8 @@ enum layer_dma_state
 static int layer_rtask_init(void);
 static void layer_rtask_execute(void);
 static void layer_dma_rtask_execute(void);
-KERN_SIMPLE_RTASK(layer, layer_rtask_init, layer_rtask_execute);
-KERN_SIMPLE_RTASK(layer_dma, NULL, layer_dma_rtask_execute); // Init is done in layer_rtask_init, no need to make a separate init
+KERN_SIMPLE_RTASK(layer, layer_rtask_init, layer_rtask_execute)
+KERN_SIMPLE_RTASK(layer_dma, NULL, layer_dma_rtask_execute) // Init is done in layer_rtask_init, no need to make a separate init
 
 #ifdef LAYER_INTERLACED
 static const unsigned int layer_offset[LAYER_NUM_OF_ROWS] =
@@ -436,6 +436,6 @@ void layer_draw_all_pixels(struct layer_color color)
 
 void layer_clear_all_pixels()
 {
-   struct layer_color color = {};
+   struct layer_color color = {0};
    layer_draw_all_pixels(color);
 }
