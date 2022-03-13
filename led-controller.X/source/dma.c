@@ -298,25 +298,25 @@ static void dma_handle_interrupt(struct dma_channel * channel)
     }
 }
 
-void __ISR(_DMA_0_VECTOR, IPL7AUTO) dma_interrupt0(void)
+void __ISR(_DMA_0_VECTOR, IPL7SRS) dma_interrupt0(void)
 {
     static struct dma_channel * channel = &dma_channels[0];
     dma_handle_interrupt(channel);
 }
 
-void __ISR(_DMA_1_VECTOR, IPL7AUTO) dma_interrupt1(void)
+void __ISR(_DMA_1_VECTOR, IPL7SRS) dma_interrupt1(void)
 {
     static struct dma_channel * channel = &dma_channels[1];
     dma_handle_interrupt(channel);
 }
 
-void __ISR(_DMA_2_VECTOR, IPL7AUTO) dma_interrupt2(void)
+void __ISR(_DMA_2_VECTOR, IPL7SRS) dma_interrupt2(void)
 {
     static struct dma_channel * channel = &dma_channels[2];
     dma_handle_interrupt(channel);
 }
 
-void __ISR(_DMA_3_VECTOR, IPL7AUTO) dma_interrupt3(void)
+void __ISR(_DMA_3_VECTOR, IPL7SRS) dma_interrupt3(void)
 {
     static struct dma_channel * channel = &dma_channels[3];
     dma_handle_interrupt(channel);

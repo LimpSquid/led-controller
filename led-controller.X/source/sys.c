@@ -1,15 +1,20 @@
 #include <sys.h>
 #include <util.h>
+#include <assert.h>
 #include <xc.h>
 
 #define SYS_OSCCON_REG                  OSCCON
 #define SYS_INTCON_REG                  INTCON
 #define SYS_CFGCON_REG                  CFGCON
+#define SYS_DEVCFG3_REG                 DEVCFG3
 
 #define SYS_OSCCON_CLK_LCK_MASK         BIT(7)
 #define SYS_OSCCON_CF_MASK              BIT(3)
 #define SYS_INTCON_MVEC_MASK            BIT(12)
 #define SYS_CFGCON_IOLOCK_MASK          BIT(12)
+#define SYS_DEVCFG3_FSRSSEL_MASK        MASK(0x7, 0)
+
+#define ASSERT_EQ(lhs, rhs)             do { ASSERT(lhs == rhs); SYS_FAIL_IF_NOT(lhs == rhs); } while(0)
 
 void sys_lock(void)
 {
@@ -52,4 +57,9 @@ void sys_cpu_early_init(void)
 void sys_cpu_reset(void)
 {
     exit(EXIT_SUCCESS);
+}
+
+void sys_cpu_config_check(void)
+{
+    ASSERT_EQ((SYS_DEVCFG3_REG & SYS_DEVCFG3_FSRSSEL_MASK), 7); // Priority must be 7
 }

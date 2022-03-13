@@ -29,5 +29,6 @@ void sys_enable_global_interrupt(void);
 void sys_disable_global_interrupt(void);
 void sys_cpu_early_init(void);
 void sys_cpu_reset(void);
+void sys_cpu_config_check(void);
 
 #endif /* SYS_H */

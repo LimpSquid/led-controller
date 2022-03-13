@@ -5,37 +5,45 @@
 #include <util.h>
 #include <timer.h>
 #include <xc.h>
+#include <sys/attribs.h>
 
-#define RS485_BAUDRATE          115200LU
-#define RS485_TX_FIFO_SIZE      100 // [1, 256)
-#define RS485_RX_FIFO_SIZE      100 // [1, 256)
+#define RS485_BAUDRATE              115200LU
+#define RS485_TX_FIFO_SIZE          100 // [1, 256)
+#define RS485_RX_FIFO_SIZE          100 // [1, 256)
 
 // In us, note that this time may not be accurate because of the software timer's resolution.
 // Ideally we use a hardware timer to avoid the software timer's resolution altogether.
 // However as we don't care too much about throughput and latency, we'd keep it nice and simple.
-#define RS485_BACKOFF_TX_TIME   100
+#define RS485_BACKOFF_TX_TIME       100
 
-#define RS485_UMODE_REG         U1MODE
-#define RS485_USTA_REG          U1STA
-#define RS485_BRG_REG           U1BRG
-#define RS485_TX_REG            U1TXREG
-#define RS485_RX_REG            U1RXREG
+#define RS485_UMODE_REG             U1MODE
+#define RS485_USTA_REG              U1STA
+#define RS485_BRG_REG               U1BRG
+#define RS485_TX_REG                U1TXREG
+#define RS485_RX_REG                U1RXREG
+#define RS485_TX_IEC_REG            IEC1
+#define RS485_TX_IFS_REG            IFS1
+#define RS485_TX_IPC_REG            IPC7
 
-#define RS485_UMODE_WORD        0x0
-#define RS485_USTA_WORD         (BIT(10) | BIT(12) | MASK(0x1, 14))
-#define RS485_BRG_WORD          (((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4) - 1)
+#define RS485_UMODE_WORD            0x0
+#define RS485_USTA_WORD             (BIT(10) | BIT(12) | MASK(0x1, 14))
+#define RS485_BRG_WORD              (((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4) - 1)
 
-#define RS485_ON_MASK           BIT(15)
-#define RS485_ERROR_BITS_MASK   MASK(0x7, 1)
-#define RS485_URXDA_MASK        BIT(0)
-#define RS485_UTXBF_MASK        BIT(9)
-#define RS485_TRMT_MASK         BIT(8)
+#define RS485_ON_MASK               BIT(15)
+#define RS485_ERROR_BITS_MASK       MASK(0x7, 1)
+#define RS485_URXDA_MASK            BIT(0)
+#define RS485_UTXBF_MASK            BIT(9)
+#define RS485_TRMT_MASK             BIT(8)
+#define RS485_TX_INT_MASK           BIT(8)
+#define RS485_TX_INT_PRIORITY_MASK  MASK(0x7, 26)
 
-#define RS485_RX_PPS_REG        U1RXR
-#define RS485_TX_PPS_REG        RPB3R
+#define RS485_RX_PPS_REG            U1RXR
+#define RS485_TX_PPS_REG            RPB3R
 
-#define RS485_RX_PPS_WORD       0x1
-#define RS485_TX_PPS_WORD       0x3
+#define RS485_RX_PPS_WORD           0x1
+#define RS485_TX_PPS_WORD           0x3
+
+#define RS485_ISR_VECTOR            _UART_1_VECTOR
 
 enum rs485_state
 {
@@ -156,15 +164,18 @@ static int rs485_rtask_init(void)
     io_configure(IO_DIRECTION_DOUT_LOW, &rs485_dir_pin, 1);
     io_configure(IO_DIRECTION_DOUT_LOW, &rs485_tx_pin, 1);
     io_configure(IO_DIRECTION_DIN, &rs485_rx_pin, 1);
-    
+
     // Set the baudrate generator
     RS485_BRG_REG = RS485_BRG_WORD;
+
+    // Configure interrupt
+    REG_SET(RS485_TX_IPC_REG, RS485_TX_INT_PRIORITY_MASK);
 
     // Configure and enable RS485
     RS485_USTA_REG = RS485_USTA_WORD;
     RS485_UMODE_REG = RS485_UMODE_WORD;
     REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
-    
+
     // Initialize timer
     rs485_backoff_tx_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if (rs485_backoff_tx_timer == NULL)
@@ -183,7 +194,6 @@ static void rs485_rtask_execute(void)
     switch (rs485_state) {
         default:
         case RS485_IDLE:
-            ASSERT(!IO_READ(rs485_dir_pin));
             IO_CLR(rs485_dir_pin); // Shouldn't be necessary, but can't hurt
             
             rs485_status = RS485_STATUS_IDLE;
@@ -216,12 +226,18 @@ static void rs485_rtask_execute(void)
            
         // Transfer routine
         case RS485_TRANSFER:
-            IO_SET(rs485_dir_pin); // Put transceiver into transfer mode
-            // no break
         case RS485_TRANSFER_WRITE: {
             bool avail;
+
+            // Put transceiver into transfer mode from main thread, just
+            // before writing to TXREG, and let the interrupt put it back
+            // into receive mode when all characters are transferred.
+            ATOMIC_REG_CLR(RS485_TX_IEC_REG, RS485_TX_INT_MASK);
+            IO_SET(rs485_dir_pin); // Put transceiver into transfer mode
             while (avail = rs485_tx_available())
                 rs485_write(rs485_tx_take());
+            ATOMIC_REG_CLR(RS485_TX_IFS_REG, RS485_TX_INT_MASK);
+            ATOMIC_REG_SET(RS485_TX_IEC_REG, RS485_TX_INT_MASK);
 
             rs485_state = avail
                     ? RS485_TRANSFER_WRITE 
@@ -230,10 +246,8 @@ static void rs485_rtask_execute(void)
         case RS485_TRANSFER_WAIT_COMPLETION:
             if (rs485_tx_available()) // Either more data became available or hardware buffer got room for more data
                 rs485_state = RS485_TRANSFER_WRITE;
-            else if (rs485_tx_complete()) { // Done transferring data
-                IO_CLR(rs485_dir_pin); // Put transceiver back into receive mode
+            else if (rs485_tx_complete()) // Done transferring data
                 rs485_state = RS485_IDLE;
-            }
             break;
         }
 
@@ -335,4 +349,10 @@ unsigned int rs485_read_buffer(unsigned char * buffer, unsigned int max_size)
     while (rs485_bytes_available() && max_size-- > 0)
         *buffer++ = rs485_read();
     return (buffer - buffer_begin);
+}
+
+void __ISR(RS485_ISR_VECTOR, IPL7SRS) uart_interrupt(void)
+{
+    IO_CLR(rs485_dir_pin); // Put transceiver into receive mode
+    REG_CLR(RS485_TX_IEC_REG, RS485_TX_INT_MASK);
 }

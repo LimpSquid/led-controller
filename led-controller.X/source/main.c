@@ -4,6 +4,7 @@
 #include <dma.h>
 #include <pwm.h>
 #include <bus_address.h>
+#include <xc.h>
 
 int main(void)
 {
@@ -12,6 +13,8 @@ int main(void)
     sys_disable_global_interrupt();
     sys_cpu_early_init();
     SYS_WAKEUP_BONZO();
+
+    sys_cpu_config_check();
 
     // Initialize hardware
     dma_init();
