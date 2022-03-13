@@ -61,5 +61,8 @@ void sys_cpu_reset(void)
 
 void sys_cpu_config_check(void)
 {
-    ASSERT_EQ((SYS_DEVCFG3_REG & SYS_DEVCFG3_FSRSSEL_MASK), 7); // Priority must be 7
+    // Interrupts with priory 7 can make use of a shadow register set and are allowed
+    // to use IPL7SRS instead of IPL7SOFT. All interrupts with a different priority
+    // must use IPLnSOFT.
+    ASSERT_EQ((SYS_DEVCFG3_REG & SYS_DEVCFG3_FSRSSEL_MASK), 7);
 }

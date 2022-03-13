@@ -48,7 +48,7 @@ enum bus_state
     BUS_FRAME_VERIFY,
     BUS_FRAME_HANDLE,
     BUS_SEND_RESPONSE,
-    
+
     BUS_ERROR,
     BUS_ERROR_BACKOFF_WAIT,
     BUS_ERROR_RESET,
@@ -82,16 +82,16 @@ static void bus_error_callback(struct rs485_error error)
 static int bus_rtask_init(void)
 {
     rs485_register_error_notifier(&bus_error_notifier);
-    
+
     // Initialize timer
     bus_backoff_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if (bus_backoff_timer == NULL)
         goto fail_timer;
 
     return KERN_INIT_SUCCESS;
-    
+
 fail_timer:
-    
+
     return KERN_INIT_FAILED;
 }
 
@@ -111,11 +111,11 @@ static void bus_rtask_execute(void)
         case BUS_READ_PART:
             if (rs485_bytes_available()) { // Shouldn't strictly be necessary
                 unsigned int size = rs485_read_buffer(
-                    bus_request.data + bus_frame_offset, 
+                    bus_request.data + bus_frame_offset,
                     BUS_FRAME_SIZE - bus_frame_offset);
                 crc16_update(&bus_crc16, bus_request.data + bus_frame_offset, size);
                 bus_frame_offset += size;
-                
+
                 // Did we read a whole frame's worth of data?
                 if(bus_frame_offset == BUS_FRAME_SIZE)
                     bus_state = BUS_FRAME_VERIFY;
@@ -141,7 +141,7 @@ static void bus_rtask_execute(void)
             break;
         case BUS_FRAME_HANDLE: {
             bool broadcast = bus_request.frame.header.address == BUS_BROADCAST_ADDRESS;
-            
+
             if (bus_request.frame.command >= bus_funcs_size)
                 bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
             else {
@@ -159,10 +159,10 @@ static void bus_rtask_execute(void)
             bus_response.frame.header.address = bus_address_get(); // Value doesn't matter, but convenient when probing with the oscilloscope
             crc16_reset(&bus_response.frame.crc);
             crc16_update(&bus_response.frame.crc, bus_response.data, BUS_FRAME_SIZE - BUS_CRC_SIZE);
-            rs485_transmit_buffer(bus_response.data, BUS_FRAME_SIZE); 
+            rs485_transmit_buffer(bus_response.data, BUS_FRAME_SIZE);
             bus_state = BUS_READ_CLEAR;
             break;
-            
+
         case BUS_ERROR:
             timer_start(bus_backoff_timer, BUS_ERROR_BACKOFF_TIME, TIMER_TIME_UNIT_MS);
             bus_state = BUS_ERROR_BACKOFF_WAIT;

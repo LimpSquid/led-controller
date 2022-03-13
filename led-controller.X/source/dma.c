@@ -7,12 +7,12 @@
 // Memory layout:
 // - KSEG  (2GiB) = 0x00000000 - 0x7fffffff
 // - KUSEG (2GiB) = 0x80000000 - 0xffffffff
-// 
+//
 // Converting KSEG  virt to phy address: `virt & 0x1fffffff`
 // Converting KUSEG virt to phy address: `virt + 0x40000000`
 #define DMA_PHY_ADDR(virt)              ((int)virt < 0 ? ((int)virt & 0x1fffffffl) : (unsigned int)((unsigned char*)virt + 0x40000000L))
 #define DMA_NUMBER_OF_CHANNELS          (sizeof(dma_channels) / sizeof(dma_channels[0]))
-#define DMA_INTERRUPT_PRIORITY          0x3
+#define DMA_INTERRUPT_PRIORITY          0x3 // Interrupt handlers must use IPL3SOFT
 
 #define DMA_DMACON_REG                  DMACON
 
@@ -298,25 +298,25 @@ static void dma_handle_interrupt(struct dma_channel * channel)
     }
 }
 
-void __ISR(_DMA_0_VECTOR, IPL7SRS) dma_interrupt0(void)
+void __ISR(_DMA_0_VECTOR, IPL3SOFT) dma_interrupt0(void)
 {
     static struct dma_channel * channel = &dma_channels[0];
     dma_handle_interrupt(channel);
 }
 
-void __ISR(_DMA_1_VECTOR, IPL7SRS) dma_interrupt1(void)
+void __ISR(_DMA_1_VECTOR, IPL3SOFT) dma_interrupt1(void)
 {
     static struct dma_channel * channel = &dma_channels[1];
     dma_handle_interrupt(channel);
 }
 
-void __ISR(_DMA_2_VECTOR, IPL7SRS) dma_interrupt2(void)
+void __ISR(_DMA_2_VECTOR, IPL3SOFT) dma_interrupt2(void)
 {
     static struct dma_channel * channel = &dma_channels[2];
     dma_handle_interrupt(channel);
 }
 
-void __ISR(_DMA_3_VECTOR, IPL7SRS) dma_interrupt3(void)
+void __ISR(_DMA_3_VECTOR, IPL3SOFT) dma_interrupt3(void)
 {
     static struct dma_channel * channel = &dma_channels[3];
     dma_handle_interrupt(channel);

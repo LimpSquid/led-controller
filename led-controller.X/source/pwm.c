@@ -40,7 +40,7 @@
 
 #define PWM_TMR_OCCON_ON_MASK               BIT(15)
 #define PWM_TMR_INT_MASK                    BIT(14)
-#define PWM_TMR_INT_PRIORITY_MASK           MASK(0x7, 2)
+#define PWM_TMR_INT_PRIORITY_MASK           MASK(0x7, 2) // Interrupt handler must use IPL7SRS
 
 static struct io_pin const pwm_gsclk_pin = IO_ANLG_PIN(5, E);
 
@@ -88,7 +88,7 @@ void pwm_enable(void)
     // Reset timer
     REG_CLR(PWM_TMR_IFS_REG, PWM_TMR_INT_MASK);
     PWM_TMR_TMR_REG = 0;
-    
+
     // Reset PWM
     PWM_OC_TMR_REG = 0;
 
