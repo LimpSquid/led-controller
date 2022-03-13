@@ -183,9 +183,9 @@ static int rs485_rtask_init(void)
     timer_start(rs485_backoff_tx_timer, RS485_BACKOFF_TX_TIME, TIMER_TIME_UNIT_US);
 
     return KERN_INIT_SUCCESS;
-    
+
 fail_timer:
-    
+
     return KERN_INIT_FAILED;
 }
 
@@ -195,7 +195,7 @@ static void rs485_rtask_execute(void)
         default:
         case RS485_IDLE:
             IO_CLR(rs485_dir_pin); // Shouldn't be necessary, but can't hurt
-            
+
             rs485_status = RS485_STATUS_IDLE;
             rs485_state = RS485_IDLE_WAIT_EVENT;
             break;
@@ -208,8 +208,8 @@ static void rs485_rtask_execute(void)
                 rs485_state = RS485_TRANSFER;
             } else {
                 rs485_error_reg.by_byte |= (RS485_USTA_REG & RS485_ERROR_BITS_MASK) >> 1; // Latch errors
-                rs485_state = rs485_error_reg.by_byte 
-                    ? RS485_ERROR 
+                rs485_state = rs485_error_reg.by_byte
+                    ? RS485_ERROR
                     : RS485_IDLE_WAIT_EVENT;
             }
             break;
@@ -223,7 +223,7 @@ static void rs485_rtask_execute(void)
             timer_restart(rs485_backoff_tx_timer);
             rs485_state = RS485_IDLE;
             break;
-           
+
         // Transfer routine
         case RS485_TRANSFER:
         case RS485_TRANSFER_WRITE: {
@@ -240,7 +240,7 @@ static void rs485_rtask_execute(void)
             ATOMIC_REG_SET(RS485_TX_IEC_REG, RS485_TX_INT_MASK);
 
             rs485_state = avail
-                    ? RS485_TRANSFER_WRITE 
+                    ? RS485_TRANSFER_WRITE
                     : RS485_TRANSFER_WAIT_COMPLETION;
             break;
         case RS485_TRANSFER_WAIT_COMPLETION:
@@ -259,7 +259,7 @@ static void rs485_rtask_execute(void)
 
             // Call after changing the state, in case rs485_reset is
             // executed in one of the error notifier's callback.
-            rs485_error_notify();  
+            rs485_error_notify();
             break;
         case RS485_ERROR_IDLE:
             break;
@@ -351,7 +351,7 @@ unsigned int rs485_read_buffer(unsigned char * buffer, unsigned int max_size)
     return (buffer - buffer_begin);
 }
 
-void __ISR(RS485_ISR_VECTOR, IPL7SRS) uart_interrupt(void)
+void __ISR(RS485_ISR_VECTOR, IPL7SRS) rs485_interrupt(void)
 {
     IO_CLR(rs485_dir_pin); // Put transceiver into receive mode
     REG_CLR(RS485_TX_IEC_REG, RS485_TX_INT_MASK);

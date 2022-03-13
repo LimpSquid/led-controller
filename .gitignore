@@ -14,3 +14,6 @@
 */nbproject/Makefile-test.mk
 */nbproject/Package-release.bash
 */nbproject/Package-test.bash
+*/nbproject/Makefile-release_pedantic.mk
+*/nbproject/Makefile-local-release_pedantic.mk
+*/nbproject/Package-release_pedantic.bash
