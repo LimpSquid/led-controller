@@ -9,7 +9,7 @@
 int main(void)
 {
     // Bonzo is sleeping for the early init
-    SYS_GOODNIGHT_BONZO();
+    SYS_TUCK_IN_BONZO();
     sys_disable_global_interrupt();
     sys_cpu_early_init();
     SYS_WAKEUP_BONZO();
@@ -19,16 +19,16 @@ int main(void)
     // Initialize hardware
     dma_init();
     pwm_init();
-    
+
     // Then do the kernel init
     kernel_init();
-    
+
     // Misc init
     bus_address_init();
-    
+
     // And finally enable interrupts again
     sys_enable_global_interrupt();
-    
+
     // Run our kernel and keep bonzo happy
     for (;;) {
         SYS_FEED_BONZO();

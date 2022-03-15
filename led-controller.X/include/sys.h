@@ -19,7 +19,7 @@
 #define SYS_VERSION_PATCH           0
 
 // Macros for performance reasons
-#define SYS_GOODNIGHT_BONZO()       WDTCONbits.ON = 0
+#define SYS_TUCK_IN_BONZO()         WDTCONbits.ON = 0
 #define SYS_WAKEUP_BONZO()          WDTCONbits.ON = 1
 #define SYS_FEED_BONZO()            WDTCONbits.WDTCLR = 1
 
