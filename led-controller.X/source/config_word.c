@@ -21,7 +21,11 @@
 #pragma config FCKSM = CSDCMD           // Clock Switching and Monitor Selection (Clock Switch Disable, FSCM Disabled)
 #pragma config WDTPS = PS1024           // Watchdog Timer Postscaler (1:1024)
 #pragma config WINDIS = OFF             // Watchdog Timer Window Enable (Watchdog Timer is in Non-Window Mode)
+#ifdef __DEBUG
+#pragma config FWDTEN = OFF             // Watchdog Timer Enable (WDT Disabled)
+#else
 #pragma config FWDTEN = ON              // Watchdog Timer Enable (WDT Enabled)
+#endif
 #pragma config FWDTWINSZ = WINSZ_25     // Watchdog Timer Window Size (Window Size is 25%)
 
 // DEVCFG0

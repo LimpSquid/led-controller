@@ -35,7 +35,7 @@
 #define RS485_UTXBF_MASK            BIT(9)
 #define RS485_TRMT_MASK             BIT(8)
 #define RS485_TX_INT_MASK           BIT(8)
-#define RS485_INT_PRIORITY_MASK     MASK(0x7, 26)  // Interrupt handler must use IPL7SRS
+#define RS485_INT_PRIORITY_MASK     MASK(0x5, 26)  // Interrupt handler must use IPL5SOFT
 
 #define RS485_RX_PPS_REG            U1RXR
 #define RS485_TX_PPS_REG            RPB3R
@@ -195,6 +195,7 @@ static void rs485_rtask_execute(void)
         default:
         case RS485_IDLE:
             ASSERT(!IO_READ(rs485_dir_pin));
+            IO_CLR(rs485_dir_pin); // Can't hurt
 
             rs485_status = RS485_STATUS_IDLE;
             rs485_state = RS485_IDLE_WAIT_EVENT;
@@ -234,12 +235,6 @@ static void rs485_rtask_execute(void)
             IO_SET(rs485_dir_pin); // Put transceiver into transfer mode
             while (rs485_tx_available())
                 rs485_write(rs485_tx_take());
-
-            // We've made an assumption here that the two register writes below will always
-            // have been completed before the UART module transferred out all the data.
-            // If in some situation this assumption doesn't hold up (e.g. another interrupt
-            // blocked the CPU for a very long time after the last rs485_write), then the
-            // transceiver will be set into receive mode in the RS485_TRANSFER_WAIT_COMPLETION state.
             ATOMIC_REG_CLR(RS485_IFS_REG, RS485_TX_INT_MASK);
             ATOMIC_REG_SET(RS485_IEC_REG, RS485_TX_INT_MASK);
 
@@ -248,10 +243,8 @@ static void rs485_rtask_execute(void)
         case RS485_TRANSFER_WAIT_COMPLETION:
             if (rs485_tx_available()) // Either more data became available or hardware buffer got room for more data
                 rs485_state = RS485_TRANSFER_WRITE;
-            else if (rs485_tx_complete()) { // Done transferring data
-                IO_CLR(rs485_dir_pin);
+            else if (rs485_tx_complete()) // Done transferring data
                 rs485_state = RS485_IDLE;
-            }
             break;
 
         // Error routine
@@ -355,8 +348,9 @@ unsigned int rs485_read_buffer(unsigned char * buffer, unsigned int max_size)
     return (buffer - buffer_begin);
 }
 
-void __ISR(RS485_ISR_VECTOR, IPL7SRS) rs485_interrupt(void)
+void __ISR(RS485_ISR_VECTOR, IPL5SOFT) rs485_interrupt(void)
 {
+    ASSERT(rs485_tx_complete());
     IO_CLR(rs485_dir_pin); // Put transceiver into receive mode
-    REG_CLR(RS485_IEC_REG, RS485_TX_INT_MASK);
+    ATOMIC_REG_CLR(RS485_IEC_REG, RS485_TX_INT_MASK);
 }

@@ -23,8 +23,8 @@ STATIC_ASSERT(TLC5940_GSCLK_PERIOD >= 450 && TLC5940_GSCLK_PERIOD <= 50000) // L
 
 // The hardware allows for a current of Imax = (Iref / Riref) * 31.5 = (1.24 / 2700) * 31.5 = 15mA per channel.
 // Turning all channels on for a single LED (r, g, b) we have a sum of 45mA. I don't have the specs for our LEDs, but I think
-// this might be a bit too much for the poor anodes. What the hell was I thinking, you can't just assume a typical of 20mA and 
-// multiply it by 3 for a RGB LED. Hopefully I didn't damage LEDs too much by now... Anyway, instead of revisiting the 
+// this might be a bit too much for the poor anodes. What the hell was I thinking, you can't just assume a typical of 20mA and
+// multiply it by 3 for a RGB LED. Hopefully I didn't damage LEDs too much by now... Anyway, instead of revisiting the
 // hardware, we can use the dot correction to limit the current. The formula goes: Iout = (DCn / 63) * Imax.
 // So assuming 20mA for a single RGB LED we roughly need a output current of 6.6mA per channel, giving us a maximum
 // dot correction value of 28. Lets stop compiling when we exceed that.
@@ -132,14 +132,14 @@ void pwm_period_callback(void)
     IO_SETCLR(tlc5940_xlat_pin);
 
     tlc5940_latch_handler();
-    
+
     IO_CLR(tlc5940_blank_pin);
-    
+
     // Means that the update routine in the robin task did not
     // complete before the GSCLK period finished, consider lowering
     // the value of TLC5940_GSCLK_PERIOD
     ASSERT(!tlc5940_flags.need_update);
-    
+
     // Also abort in release mode, that way we atleast notice that something's wrong
     SYS_FAIL_IF(tlc5940_flags.need_update);
 
@@ -150,7 +150,7 @@ static int tlc5940_rtask_init(void)
 {
     // Init dot correction buffer
     tlc5940_quartet_t const quartet = TLC5940_QUARTET_FILL(TLC5940_DOT_CORRECTION);
-    for (unsigned int i = 0; i < TLC5940_NUM_OF_DC_QUARTETS; ++i) 
+    for (unsigned int i = 0; i < TLC5940_NUM_OF_DC_QUARTETS; ++i)
         memcpy(tlc5940_dot_corr_buffer + i * sizeof(quartet), quartet, sizeof(quartet));
 
     // Configure PPS
@@ -206,7 +206,7 @@ static void tlc5940_rtask_execute(void)
             IO_CLR(tlc5940_vprg_pin);
             tlc5940_state = TLC5940_IDLE;
             break;
-        
+
         case TLC5940_IDLE:
             if (tlc5940_flags.need_update)
                 tlc5940_state = TLC5940_UPDATE;
@@ -235,11 +235,11 @@ static void tlc5940_rtask_execute(void)
                 tlc5940_state = TLC5940_IDLE;
             }
             break;
-            
+
         case TLC5940_SWITCH_MODE_ENABLE:
             IO_SETCLR(tlc5940_blank_pin);
             pwm_enable();
-            
+
             tlc5940_flags.switch_mode_enable = false;
             tlc5940_mode = TLC5940_MODE_ENABLED;
             tlc5940_state = TLC5940_IDLE;
@@ -247,7 +247,7 @@ static void tlc5940_rtask_execute(void)
         case TLC5940_SWITCH_MODE_DISABLE:
             pwm_disable();
             IO_SETCLR(tlc5940_blank_pin);
-            
+
             tlc5940_flags.switch_mode_disable = false;
             tlc5940_mode = TLC5940_MODE_DISABLED;
             tlc5940_state = TLC5940_IDLE;
@@ -255,20 +255,20 @@ static void tlc5940_rtask_execute(void)
         case TLC5940_SWITCH_MODE_LOD:
             // Disable PWM so normal operation is halted and we can control the GSCLK pin
             pwm_disable();
-            
+
             // Set every channel to max PWM value
             memset(tlc5940_buffer, 0xff, TLC5940_BUFFER_SIZE);
             spi_transmit_mode8(tlc5940_spi_module, tlc5940_buffer, TLC5940_BUFFER_SIZE);
             memset(tlc5940_buffer, 0x00, TLC5940_BUFFER_SIZE);
-            
+
             // Blank and latch in data
             IO_SET(tlc5940_blank_pin);
             IO_SETCLR(tlc5940_xlat_pin);
-            
+
             // Enable output so we can read LOD errors
             IO_CLR(tlc5940_blank_pin);
             IO_SETCLR(tlc5940_gsclk_pin);
-            
+
             tlc5940_flags.switch_mode_lod = false;
             tlc5940_mode = TLC5940_MODE_LOD;
             tlc5940_state = TLC5940_IDLE;
@@ -327,7 +327,7 @@ void tlc5940_write_all_channels(unsigned int device, unsigned short pwm_value)
 {
     if (device >= TLC5940_NUM_OF_DEVICES)
         return;
-    
+
     for (unsigned int i = 0; i < TLC5940_CHANNELS_PER_DEVICE; i++)
         tlc5940_write(device, i, pwm_value);
 }
