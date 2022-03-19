@@ -15,7 +15,7 @@ enum
     BUS_COMMAND_LAYER_READY             = 0,
     BUS_COMMAND_LAYER_EXEC_LOD          = 1,
     BUS_COMMAND_LAYER_DMA_RESET         = 2,
-    // Unused
+    BUS_COMMAND_PING                    = 3,
     BUS_COMMAND_LAYER_DMA_SWAP_BUFFERS  = 4,
     BUS_COMMAND_SYS_VERSION             = 5,
     BUS_COMMAND_SYS_CPU_RESET           = 6,
@@ -50,7 +50,7 @@ static enum bus_response_code bus_func_layer_dma_reset(
     union bus_data * response_data)
 {
     UNUSED3(broadcast, request_data, response_data);
-    
+
     layer_dma_reset();
     return BUS_OK;
 }
@@ -74,7 +74,7 @@ static enum bus_response_code bus_func_sys_version(
     STATIC_ASSERT(SYS_VERSION_MINOR >= 0 && SYS_VERSION_MINOR <= 255)
     STATIC_ASSERT(SYS_VERSION_PATCH >= 0 && SYS_VERSION_PATCH <= 255)
     UNUSED2(broadcast, request_data);
-    
+
     response_data->by_bytes.b1 = SYS_VERSION_MAJOR;
     response_data->by_bytes.b2 = SYS_VERSION_MINOR;
     response_data->by_bytes.b3 = SYS_VERSION_PATCH;
@@ -94,7 +94,7 @@ static enum bus_response_code bus_func_sys_cpu_reset(
     union bus_data * response_data)
 {
     UNUSED2(broadcast, response_data);
-    
+
     if (request_data->by_int32 > 0) {
         struct timer_module * timer = timer_construct(TIMER_TYPE_SINGLE_SHOT, bus_delayed_cpu_reset);
         if (timer == NULL)
@@ -105,12 +105,22 @@ static enum bus_response_code bus_func_sys_cpu_reset(
     return BUS_OK;
 }
 
+static enum bus_response_code bus_func_ping(
+    bool broadcast,
+    union bus_data const * request_data,
+    union bus_data * response_data)
+{
+    UNUSED3(broadcast, request_data, response_data);
+
+    return BUS_OK;
+}
+
 const bus_func_t bus_funcs[] =
 {
     bus_func_layer_ready,
     bus_func_layer_exec_lod,
     bus_func_layer_dma_reset,
-    NULL, // unused
+    bus_func_ping,
     bus_func_layer_dma_swap_buffers,
     bus_func_sys_version,
     bus_func_sys_cpu_reset,

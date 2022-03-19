@@ -62,7 +62,7 @@ void spi_configure_dma_src(struct spi_module * module, struct dma_channel * chan
 void spi_configure_dma_dst(struct spi_module * module, struct dma_channel * channel);
 void spi_enable(struct spi_module * module);
 void spi_disable(struct spi_module * module);
-bool spi_transmit_mode32(struct spi_module * module, unsigned int * buffer, unsigned int size);
-bool spi_transmit_mode8(struct spi_module * module, unsigned char * buffer, unsigned int size);
+void spi_transmit_mode32(struct spi_module * module, unsigned int * buffer, unsigned int size);
+void spi_transmit_mode8(struct spi_module * module, unsigned char * buffer, unsigned int size);
 
 #endif /* SPI_H */

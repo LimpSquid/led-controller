@@ -204,38 +204,32 @@ void spi_disable(struct spi_module * module)
     ATOMIC_REG_CLR(module->spi_reg->spicon, SPI_ON);
 }
 
-bool spi_transmit_mode32(struct spi_module * module, unsigned int * buffer, unsigned int size)
+void spi_transmit_mode32(struct spi_module * module, unsigned int * buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(module);
     ASSERT(ATOMIC_REG_VALUE(module->spi_reg->spicon) & SPI_ON);
     struct spi_register_map const * const spi_reg = module->spi_reg;
-    bool result = false;
 
     if (size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
         while (size--) {
             while(ATOMIC_REG_VALUE(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
             ATOMIC_REG_VALUE(spi_reg->spibuf) = *buffer++;
         }
-        result = true;
     }
-    return result;
 }
 
-bool spi_transmit_mode8(struct spi_module * module, unsigned char * buffer, unsigned int size)
+void spi_transmit_mode8(struct spi_module * module, unsigned char * buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(module);
     ASSERT(ATOMIC_REG_VALUE(module->spi_reg->spicon) & SPI_ON);
     struct spi_register_map const * const spi_reg = module->spi_reg;
-    bool result = false;
 
     if (size && ATOMIC_REG_VALUE(spi_reg->spicon) & SPI_MSTEN) {
         while (size--) {
             while(ATOMIC_REG_VALUE(spi_reg->spistat) & SPI_SPISTAT_SPITBF_MASK);
             ATOMIC_REG_VALUE(spi_reg->spibuf) = *buffer++;
         }
-        result = true;
     }
-    return result;
 }
 
 

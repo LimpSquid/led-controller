@@ -304,7 +304,7 @@ void rs485_transmit(unsigned char data)
         rs485_tx_producer = 0;
 }
 
-void rs485_transmit_buffer(unsigned char* buffer, unsigned int size)
+void rs485_transmit_buffer(unsigned char * buffer, unsigned int size)
 {
     ASSERT_NOT_NULL(buffer);
     ASSERT(size != 0);
