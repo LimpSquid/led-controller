@@ -6,7 +6,7 @@
 #include <sys.h>
 #include <util.h>
 #include <kernel_task.h>
-#include <assert.h>
+#include <assert_util.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -323,11 +323,32 @@ void tlc5940_write(unsigned int device, unsigned int channel, unsigned short pwm
     tlc5940_buffer[index + 1] |= byte2;
 }
 
-void tlc5940_write_all_channels(unsigned int device, unsigned short pwm_value)
+void tlc5940_write_channels_mode8(unsigned int device, unsigned char const * pwm_values)
 {
+    ASSERT_NOT_NULL(pwm_values);
+
     if (device >= TLC5940_NUM_OF_DEVICES)
         return;
 
-    for (unsigned int i = 0; i < TLC5940_CHANNELS_PER_DEVICE; i++)
-        tlc5940_write(device, i, pwm_value);
+    static unsigned short pwm_value;
+    static unsigned char byte1;
+    static unsigned char byte2;
+    static unsigned int index;
+
+    for (unsigned int channel = 0; channel < TLC5940_CHANNELS_PER_DEVICE; ++channel, ++pwm_values) {
+        index = (channel + device * TLC5940_CHANNELS_PER_DEVICE);
+        index += index >> 1;
+        pwm_value = *pwm_values << 4 | *pwm_values >> 4; // Scale 8 bit to 12 bit equivalent
+
+        if (channel & 1) {
+            byte1 = (pwm_value >> 8) & 0x0f;
+            byte2 = (pwm_value & 0xff);
+        } else {
+            byte1 = (pwm_value >> 4) & 0xff;
+            byte2 = (pwm_value & 0x0f) << 4;
+        }
+
+        tlc5940_buffer[index    ] |= byte1;
+        tlc5940_buffer[index + 1] |= byte2;
+    }
 }
