@@ -14,7 +14,7 @@
 // In us, note that this time may not be accurate because of the software timer's resolution.
 // Ideally we use a hardware timer to avoid the software timer's resolution altogether.
 // However as we don't care too much about throughput and latency, we'd keep it nice and simple.
-#define RS485_BACKOFF_TX_TIME       100
+#define RS485_BACKOFF_TX_TIME       500
 
 #define RS485_UMODE_REG             U1MODE
 #define RS485_USTA_REG              U1STA
@@ -180,7 +180,7 @@ static int rs485_rtask_init(void)
     rs485_backoff_tx_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if (rs485_backoff_tx_timer == NULL)
         goto fail_timer;
-    timer_start(rs485_backoff_tx_timer, RS485_BACKOFF_TX_TIME, TIMER_TIME_UNIT_US);
+    timer_set_time(rs485_backoff_tx_timer, RS485_BACKOFF_TX_TIME, TIMER_TIME_UNIT_US);
 
     return KERN_INIT_SUCCESS;
 
