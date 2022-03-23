@@ -42,9 +42,9 @@ typedef struct
 #define BIT(shift)              BIT_SHIFT(shift)
 #define BIT_SHIFT(shift)        (1U << shift)
 
-#define REG_SET(reg, mask)      (reg |= mask)
-#define REG_CLR(reg, mask)      (reg &= ~mask)
-#define REG_INV(reg, mask)      (reg ^= mask)
+#define REG_SET(reg, mask)      (reg |= (mask))
+#define REG_CLR(reg, mask)      (reg &= ~(mask))
+#define REG_INV(reg, mask)      (reg ^= (mask))
 
 // IO utils
 #define IO_READ(pin)            !!(ATOMIC_REG_PTR_VALUE((pin).port) & (pin).mask)

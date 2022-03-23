@@ -26,13 +26,15 @@
 #define RS485_IPC_REG               IPC7
 
 #define RS485_UMODE_WORD            0x0
-#define RS485_USTA_WORD             (BIT(10) | BIT(12) | MASK(0x1, 14))
+#define RS485_USTA_WORD             (RS485_USTA_RXEN_MASK | RS485_USTA_TXEN_MASK | MASK(0x1, 14))
 #define RS485_BRG_WORD              (((SYS_PB_CLOCK / RS485_BAUDRATE) >> 4) - 1)
 
 #define RS485_ON_MASK               BIT(15)
 #define RS485_ERROR_BITS_MASK       MASK(0x7, 1)
 #define RS485_URXDA_MASK            BIT(0)
 #define RS485_UTXBF_MASK            BIT(9)
+#define RS485_USTA_RXEN_MASK        BIT(12)
+#define RS485_USTA_TXEN_MASK        BIT(10)
 #define RS485_TRMT_MASK             BIT(8)
 #define RS485_TX_INT_MASK           BIT(8)
 #define RS485_INT_PRIORITY_MASK     MASK(0x5, 26)  // Interrupt handler must use IPL5SOFT
@@ -294,6 +296,7 @@ void rs485_reset(void)
     rs485_error_reg.by_byte = 0;
     IO_CLR(rs485_dir_pin);
     REG_CLR(RS485_USTA_REG, RS485_ERROR_BITS_MASK);
+    REG_SET(RS485_USTA_REG, RS485_USTA_RXEN_MASK | RS485_USTA_TXEN_MASK);
     REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
 }
 

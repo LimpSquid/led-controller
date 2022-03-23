@@ -15,6 +15,7 @@
 STATIC_ASSERT(TIMER_TICK_INTERVAL > 0)
 STATIC_ASSERT(TIMER_POOL_SIZE > 0)
 
+#define US_TO_TICKS(us) (1 + ((us - 1) / TIMER_TICK_INTERVAL)) // Ceiled division, us must be a positive natural number
 #define TIMER_SEC_MAX   (BIT_SHIFT(12) - 1) // Time unit seconds is limited to 12 bits
 
 struct timer_module
@@ -40,6 +41,9 @@ static struct timer_module timer_pool[TIMER_POOL_SIZE];
 
 static unsigned long timer_compute_ticks(int time, int unit)
 {
+    if (time <= 0)
+        return 0;
+
     unsigned long ticks;
     switch (unit) {
         default: // Default to seconds
@@ -47,13 +51,13 @@ static unsigned long timer_compute_ticks(int time, int unit)
             ASSERT(time <= TIMER_SEC_MAX);
             if (time > TIMER_SEC_MAX)
                 time = TIMER_SEC_MAX;
-            ticks = (time * 1000000LU) / TIMER_TICK_INTERVAL;
+            ticks = US_TO_TICKS(time * 1000000LU);
             break;
         case TIMER_TIME_UNIT_MS:
-            ticks = (time * 1000LU) / TIMER_TICK_INTERVAL;
+            ticks = US_TO_TICKS(time * 1000LU);
             break;
         case TIMER_TIME_UNIT_US:
-            ticks = time / TIMER_TICK_INTERVAL;
+            ticks = US_TO_TICKS(time);
             break;
     }
     return ticks;
@@ -106,7 +110,7 @@ static void timer_ttask_configure(struct kernel_ttask_param * const param)
     kernel_ttask_set_interval(param, TIMER_TICK_INTERVAL, KERN_TIME_UNIT_US);
 }
 
-struct timer_module* timer_construct(int type, void (*execute)(struct timer_module *))
+struct timer_module * timer_construct(int type, void (*execute)(struct timer_module *))
 {
     struct timer_module * timer = NULL;
     if (type < 0 || type >= __TIMER_TYPE_COUNT)
@@ -119,10 +123,10 @@ struct timer_module* timer_construct(int type, void (*execute)(struct timer_modu
             break;
         }
     }
-    
+
     // Useful for debugging in case the pool has run out of timers
     ASSERT_NOT_NULL(timer);
-    
+
     // Configure timer, if found
     if (timer != NULL) {
         timer->interval = 0;
@@ -153,7 +157,7 @@ void timer_set_time(struct timer_module * timer, int time, int unit)
 void timer_start(struct timer_module * timer, int time, int unit)
 {
     ASSERT_NOT_NULL(timer);
-    
+
     timer_set_time(timer, time, unit);
     timer->opt.suspended = false;
 }
