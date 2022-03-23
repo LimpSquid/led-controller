@@ -14,7 +14,7 @@
 // In us, note that this time may not be accurate because of the software timer's resolution.
 // Ideally we use a hardware timer to avoid the software timer's resolution altogether.
 // However as we don't care too much about throughput and latency, we'd keep it nice and simple.
-#define RS485_BACKOFF_TX_TIME       500
+#define RS485_BACKOFF_TX_TIME       750
 
 #define RS485_UMODE_REG             U1MODE
 #define RS485_USTA_REG              U1STA
