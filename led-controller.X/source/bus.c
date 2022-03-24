@@ -10,7 +10,7 @@
 
 #define BUS_FRAME_SIZE              sizeof(struct bus_frame)
 #define BUS_CRC_SIZE                sizeof(crc16_t)
-#define BUS_FRAME_PART_DEADLINE     5 // In milliseconds, maximum allowed time between two reads
+#define BUS_FRAME_PART_DEADLINE     2 // In milliseconds, maximum allowed time between two reads
 #define BUS_BROADCAST_ADDRESS       32
 
 struct bus_header
@@ -133,7 +133,7 @@ static void bus_rtask_execute(void)
 #warning "BUS_IGNORE_CRC defined"
             if (false)
 #else
-            // If CRC16 yields non-zero, then the frame is garbled, back off and reset
+            // If CRC16 yields non-zero, then the frame is garbled, reset RS485
             if (bus_crc16)
 #endif
                 bus_state = BUS_ERROR;

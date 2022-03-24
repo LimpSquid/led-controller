@@ -251,7 +251,7 @@ static void rs485_rtask_execute(void)
 
         // Error routine
         case RS485_ERROR:
-            REG_CLR(RS485_UMODE_REG, RS485_ON_MASK); // Disable module
+            REG_CLR(RS485_USTA_REG, RS485_USTA_RXEN_MASK | RS485_USTA_TXEN_MASK); // Disable RX and TX
             rs485_status = RS485_STATUS_ERROR;
             rs485_state = RS485_ERROR_IDLE;
 
@@ -295,7 +295,7 @@ void rs485_reset(void)
     // Clear errors and enable module
     rs485_error_reg.by_byte = 0;
     IO_CLR(rs485_dir_pin);
-    REG_CLR(RS485_USTA_REG, RS485_ERROR_BITS_MASK);
+    REG_CLR(RS485_UMODE_REG, RS485_ON_MASK); // Clears erros from USTA
     REG_SET(RS485_USTA_REG, RS485_USTA_RXEN_MASK | RS485_USTA_TXEN_MASK);
     REG_SET(RS485_UMODE_REG, RS485_ON_MASK);
 }
