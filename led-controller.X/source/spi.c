@@ -14,8 +14,6 @@
 #define SPI_FIFO_SIZE_MODE16        2 // In bytes
 #define SPI_FIFO_SIZE_MODE8         1 // In bytes
 
-#define SPI_SPICON_RESET_WORD       0x0
-
 #define SPI_SPISTAT_SPITBF_MASK     BIT(1)
 
 struct spi_register_map
@@ -69,7 +67,6 @@ struct spi_module
     struct spi_register_map const * const spi_reg;
     struct spi_interrupt_map const * const spi_int;
 
-    unsigned char fifo_depth;
     unsigned char fifo_size;
     bool assigned;
 };
@@ -79,14 +76,12 @@ struct spi_module spi_modules[] =
     [SPI_CHANNEL1] = {
         .spi_reg = (struct spi_register_map const * const)(&SPI1CON),
         .spi_int = &spi_module_interrupts[SPI_CHANNEL1],
-        .fifo_depth = SPI_FIFO_DEPTH_MODE8,
         .fifo_size = SPI_FIFO_SIZE_MODE8,
         .assigned = false,
     },
     [SPI_CHANNEL2] = {
         .spi_reg = (struct spi_register_map const * const)(&SPI2CON),
         .spi_int = &spi_module_interrupts[SPI_CHANNEL2],
-        .fifo_depth = SPI_FIFO_DEPTH_MODE8,
         .fifo_size = SPI_FIFO_SIZE_MODE8,
         .assigned = false,
     }
@@ -134,16 +129,13 @@ void spi_configure(struct spi_module * module, struct spi_config config)
     // Configure SPI
     ATOMIC_REG_VALUE(spi_reg->spibrg) = config.baudrate > 0 ? SPI_BRG(config.baudrate) : 0;
     ATOMIC_REG_VALUE(spi_reg->spicon) = config.spi_con_flags;
-    module->fifo_depth = SPI_FIFO_DEPTH_MODE8;
-    module->fifo_size = SPI_FIFO_SIZE_MODE8;
 
-    if (config.spi_con_flags & SPI_MODE32) {
-        module->fifo_depth = SPI_FIFO_DEPTH_MODE32;
+    if (config.spi_con_flags & SPI_MODE32)
         module->fifo_size = SPI_FIFO_SIZE_MODE32;
-    } else if (config.spi_con_flags & SPI_MODE16) {
-        module->fifo_depth = SPI_FIFO_DEPTH_MODE16;
+    else if (config.spi_con_flags & SPI_MODE16)
         module->fifo_size = SPI_FIFO_SIZE_MODE16;
-    }
+    else
+        module->fifo_size = SPI_FIFO_SIZE_MODE8;
 }
 
 void spi_configure_dma_src(struct spi_module * module, struct dma_channel * channel)
@@ -162,8 +154,8 @@ void spi_configure_dma_src(struct spi_module * module, struct dma_channel * chan
         .irq_vector = module->spi_int->fault_irq,
     };
 
-    dma_configure_src(channel, &module->spi_reg->spibuf, 1); // one fifo_size per transfer
-    dma_configure_cell(channel, module->fifo_size);
+    dma_configure_src(channel, &module->spi_reg->spibuf, module->fifo_size);
+    dma_configure_cell(channel, 1); // one fifo_size per transfer
     dma_configure_start_event(channel, start_event);
     dma_configure_abort_event(channel, abort_event);
 }
@@ -184,8 +176,8 @@ void spi_configure_dma_dst(struct spi_module * module, struct dma_channel * chan
         .irq_vector = module->spi_int->fault_irq,
     };
 
-    dma_configure_dst(channel, &module->spi_reg->spibuf, 1); // one fifo_size per transfer
-    dma_configure_cell(channel, module->fifo_size);
+    dma_configure_dst(channel, &module->spi_reg->spibuf, module->fifo_size);
+    dma_configure_cell(channel, 1); // one fifo_size per transfer
     dma_configure_start_event(channel, start_event);
     dma_configure_abort_event(channel, abort_event);
 }

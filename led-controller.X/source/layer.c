@@ -152,7 +152,7 @@ static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 static struct dma_config const layer_dma_config; // No special config needed
 static struct spi_config const layer_spi_config =
 {
-    .spi_con_flags = SPI_SRXISEL_NOT_EMPTY | SPI_DISSDO | SPI_MODE8 | SPI_SSEN,
+    .spi_con_flags = SPI_SRXISEL_NOT_EMPTY | SPI_DISSDO | SPI_MODE8 | SPI_SSEN | SPI_ENHBUF | SPI_CKP,
 };
 
 static struct io_pin const layer_sdi_pin = IO_PIN(2, F);
@@ -171,7 +171,7 @@ static struct dma_channel * layer_dma_channel;
 static struct spi_module * layer_spi_module;
 static struct timer_module * layer_countdown_timer;
 static enum layer_state layer_state = LAYER_SWITCH_ENABLED_MODE;
-static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME;
+static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME_INIT;
 static unsigned int layer_row_index; // Active row, corresponding row IO is layer_pins[layer_row_index]
 
 static void layer_row_reset(void)
@@ -228,7 +228,6 @@ inline static void  __attribute__((always_inline)) layer_advance_row(void)
 void tlc5940_update_handler(void)
 {
     unsigned int offset = layer_offset[layer_next_row_index()];
-
     tlc5940_write_channels_mode8(0, &layer_draw_buffer[offset + LAYER_BLUE_OFFSET]);
     tlc5940_write_channels_mode8(1, &layer_draw_buffer[offset + LAYER_GREEN_OFFSET]);
     tlc5940_write_channels_mode8(2, &layer_draw_buffer[offset + LAYER_RED_OFFSET]);
@@ -268,7 +267,6 @@ static int layer_rtask_init(void)
     if (layer_spi_module == NULL)
         goto fail_spi;
     spi_configure_dma_src(layer_spi_module, layer_dma_channel); // SPI module is the source of the dma module
-    spi_enable(layer_spi_module);
 
     return KERN_INIT_SUCCESS;
 
@@ -347,6 +345,7 @@ static void layer_dma_rtask_execute(void)
         case LAYER_DMA_RECV_FRAME_INIT:
             dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
             dma_enable_transfer(layer_dma_channel);
+            spi_enable(layer_spi_module);
             layer_dma_state = LAYER_DMA_RECV_FRAME;
             break;
 
@@ -354,17 +353,20 @@ static void layer_dma_rtask_execute(void)
             if (!layer_flags.requires_buffer_swap) {
                 // Swap buffers and start next transfer
                 unsigned char * tmp = layer_sync_buffer;
+
                 layer_sync_buffer = layer_recv_buffer;
                 layer_recv_buffer = tmp;
                 dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
                 dma_enable_transfer(layer_dma_channel);
+                spi_enable(layer_spi_module); // Fixme: this we need to handle SPI overruns properly... And make sure the RPi doesn't send too much data to be continued.
 
                 layer_flags.requires_buffer_swap = true;
 #ifdef LAYER_AUTO_BUFFER_SWAP
 #warning "AUTO_BUFFER_SWAP defined"
                 layer_flags.do_buffer_swap = true; // Keep last
 #endif
-            }
+            } else
+                spi_disable(layer_spi_module); // Fixme: this we need to handle SPI overruns properly... And make sure the RPi doesn't send too much data to be continued.
             break;
     }
 }
@@ -391,6 +393,7 @@ bool layer_exec_lod(void)
 void layer_dma_reset(void)
 {
     dma_disable_transfer(layer_dma_channel);
+    spi_disable(layer_spi_module);
 
     layer_flags.do_buffer_swap = false;
     layer_flags.requires_buffer_swap = false;
