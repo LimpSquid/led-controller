@@ -52,7 +52,7 @@ struct tlc5940_flags
 {
     // Don't use a bit-field here as the flag is used from an ISR,
     // thus we require atomic access. A bit-field will use a LBU (load
-    // byte) instruction which is not read-modify-write safe.
+    // byte) instruction which makes a write non atomic.
 
     volatile bool need_update;
 

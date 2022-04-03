@@ -27,6 +27,7 @@
 #define DMA_DCHECON_CFORCE_MASK         BIT(7)
 #define DMA_DCHINT_CHBCIE_MASK          BIT(19)
 #define DMA_DCHINT_CHBCIF_MASK          BIT(3)
+#define DMA_DCHINT_IFS_MASK             MASK(0xff, 0)
 #define DMA_DCHINT_ENABLE_BITS_MASK     MASK(0xffff, 8)
 
 #define DMA_DCHECON_CHAIRQ_SHIFT        16
@@ -292,10 +293,11 @@ static void dma_handle_interrupt(struct dma_channel * channel)
 {
     unsigned int int_flags = ATOMIC_REG_VALUE(channel->dma_reg->dchint);
 
-    if (int_flags & DMA_DCHINT_CHBCIF_MASK) {
+    if (int_flags & DMA_DCHINT_CHBCIF_MASK)
         channel->block_transfer_complete(channel);
-        ATOMIC_REG_CLR(channel->dma_reg->dchint, DMA_DCHINT_CHBCIF_MASK);
-    }
+
+    ATOMIC_REG_CLR(channel->dma_reg->dchint, DMA_DCHINT_IFS_MASK);
+    ATOMIC_REG_PTR_CLR(channel->dma_int->ifs, channel->dma_int->mask);
 }
 
 void __ISR(_DMA_0_VECTOR, IPL3SOFT) dma_interrupt0(void)

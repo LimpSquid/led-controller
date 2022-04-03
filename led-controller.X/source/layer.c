@@ -35,10 +35,16 @@ struct layer_flags
 {
     // Don't use a bit-field here as the flags are used from an ISR,
     // thus we require atomic access. A bit-field will use a LBU (load
-    // byte) instruction which is not read-modify-write safe.
+    // byte) instruction which makes a write non atomic.
 
     volatile bool do_buffer_swap; // Set flag to schedule a buffer swap on the next vertical sync
-    volatile bool requires_buffer_swap; // Flag is set if a buffer swap is needed
+
+    // Buffers are swapped from two different ISRs, after completion of a DMA block transfer
+    // or the TLC5940 latch handler (which is indirectly called by the PWM interrupt). The
+    // DMA interrupt can be preempted by the PWM interrupt because it has a higher interrupt priority.
+    // To avoid race conditions (as swapping buffers is not an atomic operation), a semaphore is
+    // used to signal the TLC5940 latch handler that it can safely do a buffer swap.
+    volatile bool buffer_swap_semaphore;
 };
 
 enum layer_state
@@ -55,17 +61,11 @@ enum layer_state
     LAYER_EXEC_LOD_ERROR_WAIT,
 };
 
-enum layer_dma_state
-{
-    LAYER_DMA_RECV_FRAME_INIT = 0,
-    LAYER_DMA_RECV_FRAME
-};
+static void layer_dma_block_transfer_complete(struct dma_channel * channel);
 
 static int layer_rtask_init(void);
 static void layer_rtask_execute(void);
-static void layer_dma_rtask_execute(void);
 KERN_SIMPLE_RTASK(layer, layer_rtask_init, layer_rtask_execute)
-KERN_SIMPLE_RTASK(layer_dma, NULL, layer_dma_rtask_execute) // Init is done in layer_rtask_init, no need to make a separate init
 
 #ifdef LAYER_INTERLACED
 static const unsigned int layer_offset[LAYER_NUM_OF_ROWS] =
@@ -149,7 +149,11 @@ static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 };
 #endif
 
-static struct dma_config const layer_dma_config; // No special config needed
+static struct dma_config const layer_dma_config =
+{
+    .block_transfer_complete = layer_dma_block_transfer_complete
+};
+
 static struct spi_config const layer_spi_config =
 {
     .spi_con_flags = SPI_SRXISEL_NOT_EMPTY | SPI_DISSDO | SPI_MODE8 | SPI_SSEN | SPI_ENHBUF | SPI_CKP,
@@ -159,7 +163,10 @@ static struct io_pin const layer_sdi_pin = IO_PIN(2, F);
 static struct io_pin const layer_sck_pin = IO_PIN(6, F);
 static struct io_pin const layer_ss_pin = IO_ANLG_PIN(15, B);
 
-static struct layer_flags layer_flags;
+static struct layer_flags layer_flags =
+{
+    .buffer_swap_semaphore = true,
+};
 
 static unsigned char layer_buffer_pool[3][LAYER_FRAME_BUFFER_SIZE]; // Tripple buffering to already receive new pixel data while waiting on the vertical sync swap
 static unsigned char * layer_draw_buffer = layer_buffer_pool[0]; // Buffer to is used to write data to the TLC5940s
@@ -171,8 +178,25 @@ static struct dma_channel * layer_dma_channel;
 static struct spi_module * layer_spi_module;
 static struct timer_module * layer_countdown_timer;
 static enum layer_state layer_state = LAYER_SWITCH_ENABLED_MODE;
-static enum layer_dma_state layer_dma_state = LAYER_DMA_RECV_FRAME_INIT;
 static unsigned int layer_row_index; // Active row, corresponding row IO is layer_pins[layer_row_index]
+
+static void layer_dma_block_transfer_complete(struct dma_channel * channel)
+{
+    layer_flags.buffer_swap_semaphore = false;
+    unsigned char * tmp = layer_sync_buffer;
+    layer_sync_buffer = layer_recv_buffer;
+    layer_recv_buffer = tmp;
+
+#ifdef LAYER_AUTO_BUFFER_SWAP
+#warning "AUTO_BUFFER_SWAP defined"
+    layer_flags.do_buffer_swap = true; // Keep last
+#endif
+    layer_flags.buffer_swap_semaphore = true;
+
+    // Start next transfer
+    dma_configure_dst(channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
+    dma_enable_transfer(channel);
+}
 
 static void layer_row_reset(void)
 {
@@ -199,18 +223,6 @@ inline static unsigned int __attribute__((always_inline)) layer_next_row_index(v
     return 0;
 }
 
-inline static void  __attribute__((always_inline)) layer_possibly_swap_buffers(void)
-{
-    if (layer_flags.do_buffer_swap) {
-        ASSERT(layer_flags.requires_buffer_swap);
-        unsigned char * tmp = layer_draw_buffer;
-        layer_draw_buffer = layer_sync_buffer;
-        layer_sync_buffer = tmp;
-        layer_flags.do_buffer_swap = false;
-        layer_flags.requires_buffer_swap = false;
-    }
-}
-
 inline static void  __attribute__((always_inline)) layer_advance_row(void)
 {
     IO_PTR_CLR(layer_row_previous_pin);
@@ -218,10 +230,9 @@ inline static void  __attribute__((always_inline)) layer_advance_row(void)
 
     layer_row_index = (unsigned int)(layer_row_pin - layer_pins);
     layer_row_previous_pin = layer_row_pin;
-    if (layer_row_at_end()) {
-        layer_possibly_swap_buffers();
+    if (layer_row_at_end())
         layer_row_pin = layer_pins;
-    } else
+    else
         layer_row_pin++;
 }
 
@@ -235,6 +246,15 @@ void tlc5940_update_handler(void)
 
 void tlc5940_latch_handler(void)
 {
+    // Only swap the buffers when we wrap around from the last row
+    // to the first row so we prevent any mid frame tearing.
+    if (layer_row_at_end() && layer_flags.buffer_swap_semaphore && layer_flags.do_buffer_swap) {
+        unsigned char * tmp = layer_draw_buffer;
+        layer_draw_buffer = layer_sync_buffer;
+        layer_sync_buffer = tmp;
+        layer_flags.do_buffer_swap = false;
+    }
+
     layer_advance_row();
 }
 
@@ -267,6 +287,10 @@ static int layer_rtask_init(void)
     if (layer_spi_module == NULL)
         goto fail_spi;
     spi_configure_dma_src(layer_spi_module, layer_dma_channel); // SPI module is the source of the dma module
+
+    // Enable transfer
+    dma_enable_transfer(layer_dma_channel);
+    spi_enable(layer_spi_module);
 
     return KERN_INIT_SUCCESS;
 
@@ -335,42 +359,6 @@ static void layer_rtask_execute(void)
     }
 }
 
-static void layer_dma_rtask_execute(void)
-{
-    if (dma_busy(layer_dma_channel))
-        return;
-
-    switch (layer_dma_state) {
-        default:
-        case LAYER_DMA_RECV_FRAME_INIT:
-            dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
-            dma_enable_transfer(layer_dma_channel);
-            spi_enable(layer_spi_module);
-            layer_dma_state = LAYER_DMA_RECV_FRAME;
-            break;
-
-        case LAYER_DMA_RECV_FRAME:
-            if (!layer_flags.requires_buffer_swap) {
-                // Swap buffers and start next transfer
-                unsigned char * tmp = layer_sync_buffer;
-
-                layer_sync_buffer = layer_recv_buffer;
-                layer_recv_buffer = tmp;
-                dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
-                dma_enable_transfer(layer_dma_channel);
-                spi_enable(layer_spi_module); // Fixme: this we need to handle SPI overruns properly... And make sure the RPi doesn't send too much data to be continued.
-
-                layer_flags.requires_buffer_swap = true;
-#ifdef LAYER_AUTO_BUFFER_SWAP
-#warning "AUTO_BUFFER_SWAP defined"
-                layer_flags.do_buffer_swap = true; // Keep last
-#endif
-            } else
-                spi_disable(layer_spi_module); // Fixme: this we need to handle SPI overruns properly... And make sure the RPi doesn't send too much data to be continued.
-            break;
-    }
-}
-
 bool layer_busy(void)
 {
     return layer_state != LAYER_IDLE;
@@ -392,17 +380,17 @@ bool layer_exec_lod(void)
 
 void layer_dma_reset(void)
 {
-    dma_disable_transfer(layer_dma_channel);
+    dma_disable_transfer(layer_dma_channel); // Keep this first as it prevents the interrupt from being serviced
     spi_disable(layer_spi_module);
 
-    layer_flags.do_buffer_swap = false;
-    layer_flags.requires_buffer_swap = false;
-    layer_dma_state = LAYER_DMA_RECV_FRAME_INIT;
+    dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
+    dma_enable_transfer(layer_dma_channel);
+    spi_enable(layer_spi_module);
 }
 
 bool layer_dma_swap_buffers(void)
 {
-    if (!layer_flags.requires_buffer_swap)
+    if (layer_flags.do_buffer_swap) // Buffer swap already in progress
         return false;
 
     layer_flags.do_buffer_swap = true;
@@ -421,6 +409,7 @@ void layer_draw_pixel(unsigned char x, unsigned char y, struct layer_color color
     layer_draw_buffer[pos + LAYER_GREEN_OFFSET] = color.g;
     layer_draw_buffer[pos + LAYER_BLUE_OFFSET] = color.b;
 }
+
 void layer_draw_all_pixels(struct layer_color color)
 {
     // Yep we can improve with a memset, but I'm lazy
