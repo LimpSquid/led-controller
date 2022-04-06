@@ -9,6 +9,8 @@
 #include <assert_util.h>
 #include <stddef.h>
 #include <string.h>
+#include <xc.h>
+#include <sys/attribs.h>
 
 #if !defined(TLC5940_NUM_OF_DEVICES)
     #error "Number of TLC5940 devices is not specified, please define 'TLC5940_NUM_OF_DEVICES'"
@@ -41,10 +43,24 @@ STATIC_ASSERT(TLC5940_DOT_CORRECTION <= 28)
 #define TLC5940_QUARTET_FILL(val)       TLC5940_QUARTET(val, val, val, val)
 
 #define TLC5940_SPI_CHANNEL             SPI_CHANNEL2
+#define TLC5940_TMR_PRESCALER           2
+#define TLC5940_TMR_VECTOR              _TIMER_4_VECTOR
 
 #define TLC5940_SDO_PPS_REG             RPG7R
+#define TLC5940_TMR_TCON_REG            T4CON
+#define TLC5940_TMR_PR_REG              PR4
+#define TLC5940_TMR_TMR_REG             TMR4
+#define TLC5940_TMR_IEC_REG             IEC0
+#define TLC5940_TMR_IFS_REG             IFS0
+#define TLC5940_TMR_IPC_REG             IPC4
 
-#define TLC5940_SDO_PPS_WORD            0x6
+#define TLC5940_SDO_PPS_WORD            MASK(0x6, 0)
+#define TLC5940_TMR_TCON_WORD           MASK(0x1, 4)
+#define TLC5940_TMR_PR_WORD             ((TLC5940_DEFFERED_BLANK_DELAY * SYS_PB_CLOCK) / (1000000LU * TLC5940_TMR_PRESCALER) - 1)
+
+#define TLC5940_TMR_OCCON_ON_MASK       BIT(15)
+#define TLC5940_TMR_INT_MASK            BIT(19)
+#define TLC5940_TMR_INT_PRIORITY_MASK   MASK(0x7, 2) // Interrupt handler must use IPL7SRS
 
 typedef unsigned char tlc5940_quartet_t[3];
 
@@ -114,6 +130,19 @@ static struct spi_module * tlc5940_spi_module;
 static enum tlc5940_state tlc5940_state = TLC5940_INIT;
 static enum tlc5940_mode tlc5940_mode = TLC5940_MODE_DISABLED;
 
+inline static void __attribute__((always_inline)) tlc5940_begin_deferred_blank(void)
+{
+    TLC5940_TMR_TMR_REG = 0;
+    REG_CLR(TLC5940_TMR_IFS_REG, TLC5940_TMR_INT_MASK);
+    REG_SET(TLC5940_TMR_TCON_REG, TLC5940_TMR_OCCON_ON_MASK);
+}
+
+inline static void __attribute__((always_inline)) tlc5940_disable_deferred_blank(void)
+{
+    REG_CLR(TLC5940_TMR_IFS_REG, TLC5940_TMR_INT_MASK);
+    REG_CLR(TLC5940_TMR_TCON_REG, TLC5940_TMR_OCCON_ON_MASK);
+}
+
 void __attribute__ ((weak)) tlc5940_update_handler(void)
 {
     // Handler to write new data to the TLC5940's
@@ -125,6 +154,12 @@ void __attribute__ ((weak)) tlc5940_latch_handler(void)
     // and just before the blank pin is cleared
 }
 
+void __ISR(TLC5940_TMR_VECTOR, IPL7SRS) tlc5940_deferred_blank_interrupt(void)
+{
+    IO_CLR(tlc5940_blank_pin);
+    tlc5940_disable_deferred_blank();
+}
+
 void pwm_period_callback(void)
 {
     // Blank and shift in data
@@ -132,8 +167,7 @@ void pwm_period_callback(void)
     IO_SETCLR(tlc5940_xlat_pin);
 
     tlc5940_latch_handler();
-
-    IO_CLR(tlc5940_blank_pin);
+    tlc5940_begin_deferred_blank();
 
     // Means that the update routine in the robin task did not
     // complete before the GSCLK period finished, consider lowering
@@ -144,6 +178,17 @@ void pwm_period_callback(void)
     SYS_FAIL_IF(tlc5940_flags.need_update);
 
     tlc5940_flags.need_update = true;
+}
+
+static void tlc5940_disable_gsclk(void)
+{
+    pwm_disable();
+    tlc5940_disable_deferred_blank();
+}
+
+static void tlc5940_enable_gsclk(void)
+{
+    pwm_enable();
 }
 
 static int tlc5940_rtask_init(void)
@@ -169,6 +214,12 @@ static int tlc5940_rtask_init(void)
 
     // Already configured in PWM module
     // io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_gsclk_pin, 1);
+
+    // Configure timer and interrupt for deferred blanking
+    TLC5940_TMR_TCON_REG = TLC5940_TMR_TCON_WORD;
+    TLC5940_TMR_PR_REG = TLC5940_TMR_PR_WORD;
+    REG_SET(TLC5940_TMR_IEC_REG, TLC5940_TMR_INT_MASK);
+    REG_SET(TLC5940_TMR_IPC_REG, TLC5940_TMR_INT_PRIORITY_MASK);
 
     // Initialize DMA
     tlc5940_dma_channel = dma_construct(tlc5940_dma_config);
@@ -238,14 +289,14 @@ static void tlc5940_rtask_execute(void)
 
         case TLC5940_SWITCH_MODE_ENABLE:
             IO_SETCLR(tlc5940_blank_pin);
-            pwm_enable();
+            tlc5940_enable_gsclk();
 
             tlc5940_flags.switch_mode_enable = false;
             tlc5940_mode = TLC5940_MODE_ENABLED;
             tlc5940_state = TLC5940_IDLE;
             break;
         case TLC5940_SWITCH_MODE_DISABLE:
-            pwm_disable();
+            tlc5940_disable_gsclk();
             IO_SETCLR(tlc5940_blank_pin);
 
             tlc5940_flags.switch_mode_disable = false;
@@ -253,8 +304,8 @@ static void tlc5940_rtask_execute(void)
             tlc5940_state = TLC5940_IDLE;
             break;
         case TLC5940_SWITCH_MODE_LOD:
-            // Disable PWM so normal operation is halted and we can control the GSCLK pin
-            pwm_disable();
+            // Disable GSCLK so normal operation is halted and we can control the pin
+            tlc5940_disable_gsclk();
 
             // Set every channel to max PWM value
             memset(tlc5940_buffer, 0xff, TLC5940_BUFFER_SIZE);

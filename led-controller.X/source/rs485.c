@@ -42,8 +42,8 @@
 #define RS485_RX_PPS_REG            U1RXR
 #define RS485_TX_PPS_REG            RPB3R
 
-#define RS485_RX_PPS_WORD           0x1
-#define RS485_TX_PPS_WORD           0x3
+#define RS485_RX_PPS_WORD           MASK(0x1, 0)
+#define RS485_TX_PPS_WORD           MASK(0x3, 0)
 
 #define RS485_ISR_VECTOR            _UART_1_VECTOR
 

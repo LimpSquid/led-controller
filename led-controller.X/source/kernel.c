@@ -20,7 +20,8 @@
     #error "System tick could not be calculated, please define 'KERN_TMR_CLKIN_FREQ'"
 #endif
 
-// Data type must be unsigned
+// Data type must be unsigned for defined behaviour.
+// See A.1 of https://www.gnu.org/software/gnu-c-manual/gnu-c-manual.html#Integer-Overflow-Basics
 STATIC_ASSERT((KERN_TMR_REG_DATA_TYPE)(-1) > 0)
 
 #define KERNEL_SYSTEM_TICK              ((1000000.0 / KERN_TMR_CLKIN_FREQ) * KERN_TMR_PRESCALER) // Microseconds per tick
@@ -75,14 +76,14 @@ static void kernel_init_configure_ttask(void)
         if (kernel_ttask_iterator->configure != NULL)
             kernel_ttask_iterator->configure(kernel_ttask_iterator->param);
 
-        // Suppose that two tasks had the same execution interval, meaning that the kernel has 
+        // Suppose that two tasks had the same execution interval, meaning that the kernel has
         // to service two tasks at exactly the same time. This isn't something we can actually
-        // do with only one CPU and would've resulted in one task being delayed by the execution 
+        // do with only one CPU and would've resulted in one task being delayed by the execution
         // time of the other. A task's execution time is of jittery nature, e.g. sometimes a
-        // task has to do nothing (zero CPU time), sometimes it needs to do a lot (a significant 
+        // task has to do nothing (zero CPU time), sometimes it needs to do a lot (a significant
         // amount of CPU time). Because of this, the 2nd task (which immediately runs after
         // the completion of the 1st task) will also experience this jitter. Obviously this
-        // is something we want to avoid as much as possible. By introducing an initial 
+        // is something we want to avoid as much as possible. By introducing an initial
         // execution time offset we will make sure that tasks with the same interval will not
         // be scheduled/serviced at the same point in time, thus preventing task jitter.
         kernel_ttask_iterator->param->exec_time_point = (x++ * KERNEL_JITTER_AVOIDANCE_COEFF);

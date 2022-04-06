@@ -17,7 +17,7 @@
 #define PWM_OC_OCCON_REG                    OC4CON
 #define PWM_OC_OCRS_REG                     OC4RS
 
-#define PWM_OC_GSCLK_PPS_WORD               0xb
+#define PWM_OC_GSCLK_PPS_WORD               MASK(0xb, 0)
 #define PWM_OC_TCON_WORD                    BIT(15)
 #define PWM_OC_OCCON_WORD                   MASK(0x6, 0)
 
@@ -54,15 +54,13 @@ void pwm_init(void)
     // Configure IO
     io_configure(IO_DIRECTION_DOUT_LOW, &pwm_gsclk_pin, 1);
 
-    // Configure interrupt
+    // Configure timer and interrupt
+    PWM_TMR_TCON_REG = PWM_TMR_TCON_WORD;
     REG_SET(PWM_TMR_IEC_REG, PWM_TMR_INT_MASK);
     REG_SET(PWM_TMR_IPC_REG, PWM_TMR_INT_PRIORITY_MASK);
 
-    // Configure timers
-    PWM_OC_TCON_REG = PWM_OC_TCON_WORD;
-    PWM_TMR_TCON_REG = PWM_TMR_TCON_WORD;
-
     // Configure PWM module
+    PWM_OC_TCON_REG = PWM_OC_TCON_WORD;
     PWM_OC_OCCON_REG = PWM_OC_OCCON_WORD;
 }
 

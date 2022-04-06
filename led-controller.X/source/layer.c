@@ -28,8 +28,8 @@
 #define LAYER_SDI_PPS_REG           SDI1R
 #define LAYER_SS_PPS_REG            SS1R
 
-#define LAYER_SDI_PPS_WORD          0xe
-#define LAYER_SS_PPS_WORD           0x3
+#define LAYER_SDI_PPS_WORD          MASK(0xe, 0)
+#define LAYER_SS_PPS_WORD           MASK(0x3, 0)
 
 struct layer_flags
 {
