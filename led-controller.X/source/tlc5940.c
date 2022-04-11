@@ -304,7 +304,7 @@ static void tlc5940_rtask_execute(void)
             tlc5940_state = TLC5940_IDLE;
             break;
         case TLC5940_SWITCH_MODE_LOD:
-            // Disable GSCLK so normal operation is halted and we can control the pin
+            // Disable GSCLK so normal operation is halted and we can control the PWM pin
             tlc5940_disable_gsclk();
 
             // Set every channel to max PWM value

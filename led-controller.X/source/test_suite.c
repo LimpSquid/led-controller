@@ -20,15 +20,15 @@
 enum test_suite_state
 {
     TEST_SUITE_INIT = 0,
-    
+
     // Test for open LEDs
     TEST_SUITE_EXEC_LOD_INIT,
     TEST_SUITE_EXEC_LOD_WAIT,
-    
+
     // Cycle through different colors
     TEST_SUITE_CYCLE_COLORS_INIT,
     TEST_SUITE_CYCLE_COLORS_DRAW,
-    
+
     // Cycle through positions,
     TEST_SUITE_CYCLE_POS_INIT,
     TEST_SUITE_CYCLE_POS_DRAW,
@@ -41,7 +41,7 @@ static int test_suite_init(void);
 static void test_suite_execute(void);
 KERN_SIMPLE_RTASK(test_suite, test_suite_init, test_suite_execute);
 
-static struct layer_color const test_suite_cycle_colors[] = 
+static struct layer_color const test_suite_cycle_colors[] =
 {
     { .r = 255, .g = 000, .b = 000 },
     { .r = 000, .g = 255, .b = 000 },
@@ -66,7 +66,7 @@ static int test_suite_init(void)
     test_suite_countdown_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if (test_suite_countdown_timer == NULL)
         goto fail_timer;
- 
+
     return KERN_INIT_SUCCESS;
 
 fail_timer:
@@ -78,14 +78,14 @@ static void test_suite_execute(void)
 {
     if (timer_is_running(test_suite_countdown_timer))
         return;
-            
+
     switch (test_suite_state) {
         default:
         case TEST_SUITE_INIT:
             if (layer_ready())
                 test_suite_state = TEST_SUITE_EXEC_LOD_INIT;
             break;
-            
+
         case TEST_SUITE_EXEC_LOD_INIT:
             if (layer_exec_lod())
                 test_suite_state = TEST_SUITE_EXEC_LOD_WAIT;
@@ -94,7 +94,7 @@ static void test_suite_execute(void)
             if (layer_ready())
                 test_suite_state = TEST_SUITE_CYCLE_COLORS_INIT;
             break;
-            
+
         case TEST_SUITE_CYCLE_COLORS_INIT:
             test_suite_generic_uint = 0;
             test_suite_state = TEST_SUITE_CYCLE_COLORS_DRAW;

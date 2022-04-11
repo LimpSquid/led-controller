@@ -19,6 +19,7 @@ enum
     BUS_COMMAND_LAYER_DMA_SWAP_BUFFERS  = 4,
     BUS_COMMAND_SYS_VERSION             = 5,
     BUS_COMMAND_SYS_CPU_RESET           = 6,
+    BUS_COMMAND_LAYER_CLEAR             = 7,
 
     BUS_NUM_OF_COMMANDS // Must be last
 };
@@ -115,6 +116,17 @@ static enum bus_response_code bus_func_ping(
     return BUS_OK;
 }
 
+static enum bus_response_code bus_func_layer_clear(
+    bool broadcast,
+    union bus_data const * request_data,
+    union bus_data * response_data)
+{
+    UNUSED3(broadcast, request_data, response_data);
+
+    layer_clear_all_pixels();
+    return BUS_OK;
+}
+
 const bus_func_t bus_funcs[] =
 {
     bus_func_layer_ready,
@@ -124,6 +136,7 @@ const bus_func_t bus_funcs[] =
     bus_func_layer_dma_swap_buffers,
     bus_func_sys_version,
     bus_func_sys_cpu_reset,
+    bus_func_layer_clear,
 };
 size_t const bus_funcs_size = BUS_FUNCS_SIZE;
 

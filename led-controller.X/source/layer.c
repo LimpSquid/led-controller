@@ -420,6 +420,5 @@ void layer_draw_all_pixels(struct layer_color color)
 
 void layer_clear_all_pixels()
 {
-   struct layer_color color = {0};
-   layer_draw_all_pixels(color);
+    memset(layer_draw_buffer, 0, LAYER_FRAME_BUFFER_SIZE);
 }
