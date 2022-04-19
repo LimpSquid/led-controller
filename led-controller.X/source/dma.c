@@ -19,6 +19,7 @@
 #define DMA_DMACON_WORD                 BIT(15)
 
 #define DMA_DCHCON_CHEN_MASK            BIT(7)
+#define DMA_DCHCON_CHAEN_MASK           BIT(4)
 #define DMA_DCHCON_CHBUSY_MASK          BIT(15)
 #define DMA_DCHECON_CHAIRQ_MASK         MASK(0xff, 16)
 #define DMA_DCHECON_CHSIRQ_MASK         MASK(0xff, 8)
@@ -26,7 +27,9 @@
 #define DMA_DCHECON_SIRQEN_MASK         BIT(4)
 #define DMA_DCHECON_CFORCE_MASK         BIT(7)
 #define DMA_DCHINT_CHBCIE_MASK          BIT(19)
+#define DMA_DCHINT_CHTAIE_MASK          BIT(17)
 #define DMA_DCHINT_CHBCIF_MASK          BIT(3)
+#define DMA_DCHINT_CHTAIF_MASK          BIT(1)
 #define DMA_DCHINT_IFS_MASK             MASK(0xff, 0)
 #define DMA_DCHINT_ENABLE_BITS_MASK     MASK(0xffff, 8)
 
@@ -56,7 +59,6 @@ struct dma_interrupt_map
     ATOMIC_REG_PTR(ipc);
 
     unsigned int mask;
-    unsigned int priority_mask;
     unsigned char priority_shift;
 };
 
@@ -66,6 +68,7 @@ struct dma_channel
     struct dma_interrupt_map const * const dma_int;
 
     void (*block_transfer_complete)(struct dma_channel *);
+    void (*transfer_abort)(struct dma_channel *);
     bool assigned;
 };
 
@@ -76,7 +79,6 @@ static const struct dma_interrupt_map dma_channel_interrupts[] =
         .iec = ATOMIC_REG_PTR_CAST(&IEC2),
         .ipc = ATOMIC_REG_PTR_CAST(&IPC10),
         .mask = BIT(8),
-        .priority_mask = MASK(0x7, 18),
         .priority_shift = 18,
     },
     {
@@ -84,7 +86,6 @@ static const struct dma_interrupt_map dma_channel_interrupts[] =
         .iec = ATOMIC_REG_PTR_CAST(&IEC2),
         .ipc = ATOMIC_REG_PTR_CAST(&IPC10),
         .mask = BIT(9),
-        .priority_mask = MASK(0x7, 26),
         .priority_shift = 26,
     },
     {
@@ -92,7 +93,6 @@ static const struct dma_interrupt_map dma_channel_interrupts[] =
         .iec = ATOMIC_REG_PTR_CAST(&IEC2),
         .ipc = ATOMIC_REG_PTR_CAST(&IPC11),
         .mask = BIT(10),
-        .priority_mask = MASK(0x7, 2),
         .priority_shift = 2,
     },
     {
@@ -100,7 +100,6 @@ static const struct dma_interrupt_map dma_channel_interrupts[] =
         .iec = ATOMIC_REG_PTR_CAST(&IEC2),
         .ipc = ATOMIC_REG_PTR_CAST(&IPC11),
         .mask = BIT(11),
-        .priority_mask = MASK(0x7, 10),
         .priority_shift = 10,
     },
 };
@@ -177,6 +176,10 @@ void dma_configure(struct dma_channel * channel, struct dma_config config)
     ATOMIC_REG_CLR(dma_reg->dchcon, DMA_DCHCON_CHEN_MASK);
 
     // Configure DMA
+    if (config.auto_enable)
+        ATOMIC_REG_SET(channel->dma_reg->dchcon, DMA_DCHCON_CHAEN_MASK);
+    else
+        ATOMIC_REG_CLR(channel->dma_reg->dchcon, DMA_DCHCON_CHAEN_MASK);
     ATOMIC_REG_VALUE(dma_reg->dchssa) = DMA_PHY_ADDR(config.src_mem);
     ATOMIC_REG_VALUE(dma_reg->dchdsa) = DMA_PHY_ADDR(config.dst_mem);
     ATOMIC_REG_VALUE(dma_reg->dchssiz) = config.src_size;
@@ -190,18 +193,25 @@ void dma_configure(struct dma_channel * channel, struct dma_config config)
     // Configure interrupts
     ATOMIC_REG_PTR_CLR(dma_int->iec, dma_int->mask);
     ATOMIC_REG_PTR_CLR(dma_int->ifs, dma_int->mask);
-    ATOMIC_REG_PTR_CLR(dma_int->ipc, dma_int->priority_mask);
+    ATOMIC_REG_PTR_CLR(dma_int->ipc, MASK(0x7, dma_int->priority_shift));
     ATOMIC_REG_CLR(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
 
     if (config.block_transfer_complete != NULL) {
         channel->block_transfer_complete = config.block_transfer_complete;
-        ATOMIC_REG_PTR_SET(dma_int->ipc, MASK(DMA_INTERRUPT_PRIORITY, dma_int->priority_shift) & dma_int->priority_mask);
         ATOMIC_REG_SET(dma_reg->dchint, DMA_DCHINT_CHBCIE_MASK);
     }
 
+    if (config.transfer_abort != NULL) {
+        channel->transfer_abort = config.transfer_abort;
+        ATOMIC_REG_SET(dma_reg->dchint, DMA_DCHINT_CHTAIE_MASK);
+    }
+
     // Has interrupts enabled?
-    if (ATOMIC_REG_VALUE(dma_reg->dchint) & DMA_DCHINT_ENABLE_BITS_MASK)
+    if (ATOMIC_REG_VALUE(dma_reg->dchint) & DMA_DCHINT_ENABLE_BITS_MASK) {
+        STATIC_ASSERT(DMA_INTERRUPT_PRIORITY >= 0 && DMA_INTERRUPT_PRIORITY <= 0x7);
+        ATOMIC_REG_PTR_SET(dma_int->ipc, MASK(DMA_INTERRUPT_PRIORITY, dma_int->priority_shift));
         ATOMIC_REG_PTR_SET(dma_int->iec, dma_int->mask);
+    }
 }
 void dma_configure_src(struct dma_channel * channel, void const * mem, unsigned short size)
 {
@@ -291,10 +301,13 @@ bool dma_ready(struct dma_channel * channel)
 
 static void dma_handle_interrupt(struct dma_channel * channel)
 {
-    unsigned int int_flags = ATOMIC_REG_VALUE(channel->dma_reg->dchint);
+    // Read the DCHINT register for every if statement, in case an interrupt flag is set
+    // inside one of the interrupt handlers.
 
-    if (int_flags & DMA_DCHINT_CHBCIF_MASK)
+    if (ATOMIC_REG_VALUE(channel->dma_reg->dchint) & DMA_DCHINT_CHBCIF_MASK)
         channel->block_transfer_complete(channel);
+    if (ATOMIC_REG_VALUE(channel->dma_reg->dchint) & DMA_DCHINT_CHTAIF_MASK)
+        channel->transfer_abort(channel);
 
     ATOMIC_REG_CLR(channel->dma_reg->dchint, DMA_DCHINT_IFS_MASK);
     ATOMIC_REG_PTR_CLR(channel->dma_int->ifs, channel->dma_int->mask);

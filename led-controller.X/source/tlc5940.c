@@ -66,9 +66,10 @@ typedef unsigned char tlc5940_quartet_t[3];
 
 struct tlc5940_flags
 {
-    // Don't use a bit-field here as the flag is used from an ISR,
-    // thus we require atomic access. A bit-field will use a LBU (load
-    // byte) instruction which makes a write non atomic.
+    // Don't use a bit field for flags that are set from an ISR. Updating the bit
+    // field (e.g. clearing or setting a bit) will require a load and store instruction,
+    // this is NOT atomic. Writing anything less than or equal to a word (e.g.
+    // 8/16/32 bit) is guaranteed to be an atomic operation.
 
     volatile bool need_update;
 
@@ -101,6 +102,7 @@ static struct dma_config const tlc5940_dma_config; // No special config needed
 static struct spi_config const tlc5940_spi_config =
 {
     .spi_con_flags = SPI_MSTEN | SPI_STXISEL_COMPLETE | SPI_DISSDI | SPI_MODE8 | SPI_CKP,
+    .spi_con2_flags = SPI_TUREN,
     .baudrate = 40000000,
 };
 

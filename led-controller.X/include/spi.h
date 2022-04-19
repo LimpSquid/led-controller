@@ -41,6 +41,13 @@ enum spi_con_flag
     SPI_SRXISEL_EMPTY           = 0
 };
 
+enum spi_con2_flag
+{
+    SPI_FRMERREN                = BIT(12),
+    SPI_ROVEN                   = BIT(11),
+    SPI_TUREN                   = BIT(10),
+};
+
 enum spi_channel
 {
     SPI_CHANNEL1 = 0,
@@ -52,6 +59,7 @@ struct spi_module;
 struct spi_config
 {    
     enum spi_con_flag spi_con_flags;
+    enum spi_con2_flag spi_con2_flags;
     unsigned int baudrate;
 };
 

@@ -33,9 +33,10 @@
 
 struct layer_flags
 {
-    // Don't use a bit-field here as the flags are used from an ISR,
-    // thus we require atomic access. A bit-field will use a LBU (load
-    // byte) instruction which makes a write non atomic.
+    // Don't use a bit field for flags that are set from an ISR. Updating the bit
+    // field (e.g. clearing or setting a bit) will require a load and store instruction,
+    // this is NOT atomic. Writing anything less than or equal to a word (e.g.
+    // 8/16/32 bit) is guaranteed to be an atomic operation.
 
     volatile bool do_buffer_swap; // Set flag to schedule a buffer swap on the next vertical sync
 
@@ -45,6 +46,9 @@ struct layer_flags
     // To avoid race conditions (as swapping buffers is not an atomic operation), a semaphore is
     // used to signal the TLC5940 latch handler that it can safely do a buffer swap.
     volatile bool buffer_swap_semaphore;
+
+    // Set if a DMA transfer was aborted (e.g. SPI error) and a manual DMA reset is required.
+    volatile bool dma_error;
 };
 
 enum layer_state
@@ -62,6 +66,7 @@ enum layer_state
 };
 
 static void layer_dma_block_transfer_complete(struct dma_channel * channel);
+static void layer_dma_transfer_abort(struct dma_channel * channel);
 
 static int layer_rtask_init(void);
 static void layer_rtask_execute(void);
@@ -151,12 +156,14 @@ static const struct io_pin layer_pins[LAYER_NUM_OF_ROWS] =
 
 static struct dma_config const layer_dma_config =
 {
-    .block_transfer_complete = layer_dma_block_transfer_complete
+    .block_transfer_complete = layer_dma_block_transfer_complete,
+    .transfer_abort = layer_dma_transfer_abort,
 };
 
 static struct spi_config const layer_spi_config =
 {
     .spi_con_flags = SPI_SRXISEL_NOT_EMPTY | SPI_DISSDO | SPI_MODE8 | SPI_SSEN | SPI_ENHBUF | SPI_CKP,
+    .spi_con2_flags = SPI_ROVEN | SPI_FRMERREN,
 };
 
 static struct io_pin const layer_sdi_pin = IO_PIN(2, F);
@@ -196,6 +203,13 @@ static void layer_dma_block_transfer_complete(struct dma_channel * channel)
     // Start next transfer
     dma_configure_dst(channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
     dma_enable_transfer(channel);
+}
+
+static void layer_dma_transfer_abort(struct dma_channel * channel)
+{
+    dma_disable_transfer(channel);
+    spi_disable(layer_spi_module);
+    layer_flags.dma_error = true;
 }
 
 static void layer_row_reset(void)
@@ -378,10 +392,17 @@ bool layer_exec_lod(void)
     return true;
 }
 
+bool layer_dma_error(void)
+{
+    return layer_flags.dma_error;
+}
+
 void layer_dma_reset(void)
 {
     dma_disable_transfer(layer_dma_channel); // Keep this first as it prevents the interrupt from being serviced
-    spi_disable(layer_spi_module);
+    spi_disable(layer_spi_module); // Resets the SPI module
+
+    layer_flags.dma_error = false;
 
     dma_configure_dst(layer_dma_channel, layer_recv_buffer, LAYER_FRAME_BUFFER_SIZE);
     dma_enable_transfer(layer_dma_channel);

@@ -17,13 +17,7 @@ enum bus_response_code
 
 union __attribute__((packed)) bus_data
 {
-    struct
-    {
-        unsigned char b1;
-        unsigned char b2;
-        unsigned char b3;
-        unsigned char b4;
-    }           by_bytes;
+    // Generic types
     uint8_t     by_uint8;
     uint16_t    by_uint16;
     uint32_t    by_uint32;
@@ -31,6 +25,22 @@ union __attribute__((packed)) bus_data
     int16_t     by_int16;
     int32_t     by_int32;
     bool        by_bool;
+
+    // Custom types
+    struct
+    {
+        unsigned char layer_ready       :1;
+        unsigned char layer_dma_error   :1;
+        unsigned int                    :30;
+    } by_status;
+
+    struct
+    {
+        unsigned char major;
+        unsigned char minor;
+        unsigned char patch;
+        unsigned char                   :8;
+    } by_version;
 };
 
 typedef enum bus_response_code (*bus_func_t)(

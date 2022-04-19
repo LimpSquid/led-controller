@@ -13,12 +13,14 @@ struct dma_event
 struct dma_config
 {
     void (*block_transfer_complete)(struct dma_channel *);
+    void (*transfer_abort)(struct dma_channel *);
     
     void const * src_mem;
     void const * dst_mem;
     unsigned short src_size;
     unsigned short dst_size;
     unsigned short cell_size;
+    bool auto_enable;
     
     struct dma_event abort_event;
     struct dma_event start_event;

@@ -129,6 +129,7 @@ void spi_configure(struct spi_module * module, struct spi_config config)
     // Configure SPI
     ATOMIC_REG_VALUE(spi_reg->spibrg) = config.baudrate > 0 ? SPI_BRG(config.baudrate) : 0;
     ATOMIC_REG_VALUE(spi_reg->spicon) = config.spi_con_flags;
+    ATOMIC_REG_VALUE(spi_reg->spicon2) = config.spi_con2_flags;
 
     if (config.spi_con_flags & SPI_MODE32)
         module->fifo_size = SPI_FIFO_SIZE_MODE32;

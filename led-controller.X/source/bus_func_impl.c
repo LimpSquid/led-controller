@@ -12,10 +12,10 @@
 
 enum
 {
-    BUS_COMMAND_LAYER_READY             = 0,
+    __COMMAND_NOT_IMPLEMENTED           = 0,
     BUS_COMMAND_LAYER_EXEC_LOD          = 1,
     BUS_COMMAND_LAYER_DMA_RESET         = 2,
-    BUS_COMMAND_PING                    = 3,
+    BUS_COMMAND_STATUS                  = 3,
     BUS_COMMAND_LAYER_DMA_SWAP_BUFFERS  = 4,
     BUS_COMMAND_SYS_VERSION             = 5,
     BUS_COMMAND_SYS_CPU_RESET           = 6,
@@ -76,10 +76,9 @@ static enum bus_response_code bus_func_sys_version(
     STATIC_ASSERT(SYS_VERSION_PATCH >= 0 && SYS_VERSION_PATCH <= 255)
     UNUSED2(broadcast, request_data);
 
-    response_data->by_bytes.b1 = SYS_VERSION_MAJOR;
-    response_data->by_bytes.b2 = SYS_VERSION_MINOR;
-    response_data->by_bytes.b3 = SYS_VERSION_PATCH;
-    response_data->by_bytes.b4 = 0; // Reserved
+    response_data->by_version.major = SYS_VERSION_MAJOR;
+    response_data->by_version.minor = SYS_VERSION_MINOR;
+    response_data->by_version.patch = SYS_VERSION_PATCH;
     return BUS_OK;
 }
 
@@ -106,13 +105,15 @@ static enum bus_response_code bus_func_sys_cpu_reset(
     return BUS_OK;
 }
 
-static enum bus_response_code bus_func_ping(
+static enum bus_response_code bus_func_status(
     bool broadcast,
     union bus_data const * request_data,
     union bus_data * response_data)
 {
-    UNUSED3(broadcast, request_data, response_data);
+    UNUSED2(broadcast, request_data);
 
+    response_data->by_status.layer_ready = layer_ready();
+    response_data->by_status.layer_dma_error = layer_dma_error();
     return BUS_OK;
 }
 
@@ -129,10 +130,10 @@ static enum bus_response_code bus_func_layer_clear(
 
 const bus_func_t bus_funcs[] =
 {
-    bus_func_layer_ready,
+    NULL,
     bus_func_layer_exec_lod,
     bus_func_layer_dma_reset,
-    bus_func_ping,
+    bus_func_status,
     bus_func_layer_dma_swap_buffers,
     bus_func_sys_version,
     bus_func_sys_cpu_reset,
