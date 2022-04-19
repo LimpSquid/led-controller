@@ -168,8 +168,8 @@ static struct layer_flags layer_flags =
     .buffer_swap_semaphore = true,
 };
 
-static unsigned char layer_buffer_pool[3][LAYER_FRAME_BUFFER_SIZE]; // Tripple buffering to already receive new pixel data while waiting on the vertical sync swap
-static unsigned char * layer_draw_buffer = layer_buffer_pool[0]; // Buffer to is used to write data to the TLC5940s
+static unsigned char layer_buffer_pool[3][LAYER_FRAME_BUFFER_SIZE]; // Triple buffering to receive new pixel data while waiting on the vertical sync swap
+static unsigned char * layer_draw_buffer = layer_buffer_pool[0]; // Buffer that is used to write data to the TLC5940s
 static unsigned char * layer_sync_buffer = layer_buffer_pool[1]; // Buffer that contains a new frame but is still waiting to be swapped with draw_buffer
 static unsigned char * layer_recv_buffer = layer_buffer_pool[2]; // Buffer for receiving pixel data to form a new frame
 static struct io_pin const * layer_row_pin = layer_pins;
