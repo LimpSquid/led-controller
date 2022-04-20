@@ -441,5 +441,7 @@ void layer_draw_all_pixels(struct layer_color color)
 
 void layer_clear_all_pixels()
 {
-    memset(layer_draw_buffer, 0, LAYER_FRAME_BUFFER_SIZE);
+    // Just clear the whole buffer region so invoking buffer swap
+    // after this function is called will not show old data
+    memset(layer_buffer_pool, 0, sizeof(layer_buffer_pool));
 }
