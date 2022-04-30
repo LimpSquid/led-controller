@@ -16,7 +16,7 @@
 // Version ranges between 0 - 255
 #define SYS_VERSION_MAJOR           2
 #define SYS_VERSION_MINOR           0
-#define SYS_VERSION_PATCH           1
+#define SYS_VERSION_PATCH           2
 
 // Macros for performance reasons
 #define SYS_TUCK_IN_BONZO()         WDTCONbits.ON = 0

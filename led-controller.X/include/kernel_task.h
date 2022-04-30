@@ -7,7 +7,9 @@
     static struct kernel_rtask_param                                    \
     __attribute__ ((used)) __rtask_param_##name =                       \
     {                                                                   \
-        .init_done = false                                              \
+        .next = ((void*)0),                                             \
+        .init_level = level,                                            \
+        .init_done = false,                                             \
     };                                                                  \
     static const struct kernel_rtask __rtask_##name                     \
     __attribute__ ((section(".kernel_rstack"), used)) =                 \
@@ -16,7 +18,6 @@
         .exec = exec_func,                                              \
         .configure = config_func,                                       \
         .param = &__rtask_param_##name,                                 \
-        .init_level = level                                             \
     };
 
 #define KERN_SIMPLE_RTASK(name, init_func, exec_func)                   \
@@ -26,11 +27,12 @@
     static struct kernel_ttask_param                                    \
     __attribute__ ((used)) __ttask_param_##name =                       \
     {                                                                   \
+        .next = ((void*)0),                                             \
+        .init_level = level,                                            \
         .init_done = false,                                             \
         .priority = KERN_TTASK_PRIORITY_NORMAL,                         \
         .interval = 0x7fffffffL,                                        \
         .exec_time_point = 0,                                           \
-        .next = ((void*)0)                                              \
     };                                                                  \
     static const struct kernel_ttask __ttask_##name                     \
         __attribute__ ((section(".kernel_tstack"), used)) =             \
@@ -39,7 +41,6 @@
         .exec = exec_func,                                              \
         .configure = config_func,                                       \
         .param = &__ttask_param_##name,                                 \
-        .init_level = level                                             \
     };
 
 #define KERN_SIMPLE_TTASK(name, init_func, exec_func)                   \
@@ -63,9 +64,6 @@ enum
     KERN_TTASK_PRIORITY_LOW = 0,
     KERN_TTASK_PRIORITY_NORMAL,
     KERN_TTASK_PRIORITY_HIGH,
-    
-    __KERN_TTASK_PRIORITY_COUNT,
-    __KERN_TTASK_PRIORITY_UPPER_BOUND = (__KERN_TTASK_PRIORITY_COUNT - 1)
 };
 
 enum
@@ -77,6 +75,9 @@ enum
 
 struct kernel_rtask_param
 {
+    struct kernel_rtask const * next;
+    int const init_level;
+
     bool init_done;
 };
 
@@ -87,17 +88,18 @@ struct kernel_rtask
     void (*configure)(struct kernel_rtask_param * const);
 
     struct kernel_rtask_param * const param;
-    int const init_level;
 };
 
 struct kernel_ttask_param
 {
-    bool init_done;
+    struct kernel_ttask const * next;
+    int const init_level;
+
     int priority;
     int interval;
     long long exec_time_point;
+    bool init_done;
     
-    struct kernel_ttask const * next;
 };
 
 struct kernel_ttask
@@ -105,9 +107,8 @@ struct kernel_ttask
     int (*init)(void);
     void (*exec)(void); 
     void (*configure)(struct kernel_ttask_param * const);
-    
-    struct kernel_ttask_param* const param;
-    const int init_level;
+
+    struct kernel_ttask_param * const param;
 };
 
 void kernel_ttask_set_priority(struct kernel_ttask_param * const ttask_param, int priority);
