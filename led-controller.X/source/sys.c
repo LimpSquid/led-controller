@@ -14,7 +14,7 @@
 #define SYS_CFGCON_IOLOCK_MASK          BIT(12)
 #define SYS_DEVCFG3_FSRSSEL_MASK        MASK(0x7, 0)
 
-#define EXCEPTION_MEM_BASE              0x9d00f000 // see memory section `kseg0_exception_mem` in linker file)
+#define EXCEPTION_MEM_BASE              0x9d00d000 // see memory section `kseg0_program_exception_mem` in linker file)
 
 #define ASSERT_EQ(lhs, rhs)             do { ASSERT(lhs == rhs); SYS_FAIL_IF_NOT(lhs == rhs); } while(0)
 

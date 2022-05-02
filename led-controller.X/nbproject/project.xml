@@ -19,15 +19,19 @@
             </sourceRootList>
             <confList>
                 <confElem>
-                    <name>release</name>
+                    <name>app_release</name>
                     <type>2</type>
                 </confElem>
                 <confElem>
-                    <name>test</name>
+                    <name>app_release_pedantic</name>
                     <type>2</type>
                 </confElem>
                 <confElem>
-                    <name>release_pedantic</name>
+                    <name>app_test</name>
+                    <type>2</type>
+                </confElem>
+                <confElem>
+                    <name>bootloader_release</name>
                     <type>2</type>
                 </confElem>
             </confList>

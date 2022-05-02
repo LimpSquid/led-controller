@@ -6,7 +6,7 @@
 #include <bus_address.h>
 #include <xc.h>
 
-int main(void)
+int main_app(void)
 {
     // Bonzo is sleeping for the early init
     SYS_TUCK_IN_BONZO();
@@ -37,4 +37,11 @@ int main(void)
 
     // Avoid warnings
     return 0;
+}
+
+// Define main as weak so it can be overridden by the bootloader when that is linked
+// into the final executable as well.
+int __attribute__((weak)) main(void)
+{
+    return main_app();
 }
