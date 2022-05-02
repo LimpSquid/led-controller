@@ -14,7 +14,15 @@
 #define SYS_CFGCON_IOLOCK_MASK          BIT(12)
 #define SYS_DEVCFG3_FSRSSEL_MASK        MASK(0x7, 0)
 
+#define EXCEPTION_MEM_BASE              0x9d00f000 // see memory section `kseg0_exception_mem` in linker file)
+
 #define ASSERT_EQ(lhs, rhs)             do { ASSERT(lhs == rhs); SYS_FAIL_IF_NOT(lhs == rhs); } while(0)
+
+static void sys_control_coprocessor_init(void)
+{
+    // Configure exception memory base address
+    _CP0_SET_EBASE(EXCEPTION_MEM_BASE);
+}
 
 void sys_lock(void)
 {
@@ -30,12 +38,12 @@ void sys_unlock(void)
     REG_CLR(SYS_CFGCON_REG, SYS_CFGCON_IOLOCK_MASK);
 }
 
-void sys_enable_global_interrupt()
+void sys_enable_global_interrupt(void)
 {
     __asm("ei");
 }
 
-void sys_disable_global_interrupt()
+void sys_disable_global_interrupt(void)
 {
     __asm("di");
 }
@@ -44,6 +52,9 @@ void sys_cpu_early_init(void)
 {
     // Wait for valid clock
     while (SYS_OSCCON_REG & SYS_OSCCON_CF_MASK);
+
+    // Configure system control coprocessor
+    sys_control_coprocessor_init();
 
     // Configure clock
     sys_unlock();
