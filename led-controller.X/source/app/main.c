@@ -6,12 +6,20 @@
 #include <bus_address.h>
 #include <xc.h>
 
-int main_app(void)
+#define EXCEPTION_MEM_BASE  0x9d009000 // see memory section `kseg0_program_exception_mem` in linker file)
+
+void app_cpu_init()
+{
+    _CP0_SET_EBASE(EXCEPTION_MEM_BASE);
+}
+
+int app_main(void)
 {
     // Bonzo is sleeping for the early init
     SYS_TUCK_IN_BONZO();
     sys_disable_global_interrupt();
     sys_cpu_early_init();
+    app_cpu_init();
     SYS_WAKEUP_BONZO();
 
     sys_cpu_config_check();
@@ -43,5 +51,5 @@ int main_app(void)
 // into the final executable as well.
 int __attribute__((weak)) main(void)
 {
-    return main_app();
+    return app_main();
 }

@@ -4,17 +4,23 @@
 #include <bus_address.h>
 #include <xc.h>
 
-int main(void)
+#define EXCEPTION_MEM_BASE  0x9fc01000 // see memory section `kseg0_program_exception_mem` in linker file)
+
+void bootloader_cpu_init()
+{
+    _CP0_SET_EBASE(EXCEPTION_MEM_BASE);
+}
+
+int bootloader_main(void)
 {
     // Bonzo is sleeping for the early init
     SYS_TUCK_IN_BONZO();
     sys_disable_global_interrupt();
     sys_cpu_early_init();
+    bootloader_cpu_init();
     SYS_WAKEUP_BONZO();
 
     sys_cpu_config_check();
-
-    // Initialize hardware
 
     // Then do the kernel init
     kernel_init();
@@ -33,4 +39,9 @@ int main(void)
 
     // Avoid warnings
     return 0;
+}
+
+int main(void)
+{
+    return bootloader_main();
 }
