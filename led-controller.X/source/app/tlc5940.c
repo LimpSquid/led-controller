@@ -1,8 +1,8 @@
-#include <tlc5940.h>
-#include <tlc5940_config.h>
-#include <spi.h>
-#include <dma.h>
-#include <pwm.h>
+#include <app/tlc5940.h>
+#include <app/tlc5940_config.h>
+#include <app/spi.h>
+#include <app/dma.h>
+#include <app/pwm.h>
 #include <sys.h>
 #include <util.h>
 #include <kernel_task.h>

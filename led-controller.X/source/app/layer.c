@@ -1,9 +1,9 @@
-#include <layer.h>
-#include <layer_config.h>
+#include <app/layer.h>
+#include <app/layer_config.h>
+#include <app/tlc5940.h>
+#include <app/spi.h>
+#include <app/dma.h>
 #include <kernel_task.h>
-#include <tlc5940.h>
-#include <spi.h>
-#include <dma.h>
 #include <timer.h>
 #include <sys.h>
 #include <util.h>

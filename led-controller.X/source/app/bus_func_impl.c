@@ -1,28 +1,14 @@
 #include <bus.h>
 #include <assert.h>
 #include <timer.h>
-#include <layer.h>
 #include <sys.h>
 #include <stddef.h>
+#include <app/layer.h>
 
 #define BUS_FUNCS_SIZE      (sizeof(bus_funcs) / sizeof(bus_func_t))
 #define UNUSED1(x)          ((void)x)
 #define UNUSED2(x, y)       ((void)x);((void)y)
 #define UNUSED3(x, y, z)    ((void)x);((void)y);((void)z)
-
-enum
-{
-    __COMMAND_NOT_IMPLEMENTED           = 0,
-    BUS_COMMAND_LAYER_EXEC_LOD          = 1,
-    BUS_COMMAND_LAYER_DMA_RESET         = 2,
-    BUS_COMMAND_STATUS                  = 3,
-    BUS_COMMAND_LAYER_DMA_SWAP_BUFFERS  = 4,
-    BUS_COMMAND_SYS_VERSION             = 5,
-    BUS_COMMAND_SYS_CPU_RESET           = 6,
-    BUS_COMMAND_LAYER_CLEAR             = 7,
-
-    BUS_NUM_OF_COMMANDS // Must be last
-};
 
 static enum bus_response_code bus_func_layer_ready(
     bool broadcast,
@@ -130,9 +116,9 @@ static enum bus_response_code bus_func_layer_clear(
 
 const bus_func_t bus_funcs[] =
 {
-    NULL,
-    bus_func_layer_exec_lod,
-    bus_func_layer_dma_reset,
+    NULL,                               // 0
+    bus_func_layer_exec_lod,            // 1
+    bus_func_layer_dma_reset,           // ...
     bus_func_status,
     bus_func_layer_dma_swap_buffers,
     bus_func_sys_version,
@@ -140,5 +126,4 @@ const bus_func_t bus_funcs[] =
     bus_func_layer_clear,
 };
 size_t const bus_funcs_size = BUS_FUNCS_SIZE;
-
-STATIC_ASSERT(BUS_FUNCS_SIZE == BUS_NUM_OF_COMMANDS);
+size_t const bus_funcs_start = 0;

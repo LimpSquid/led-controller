@@ -63,6 +63,7 @@ KERN_SIMPLE_RTASK(bus, bus_rtask_init, bus_rtask_execute)
 
 extern const bus_func_t bus_funcs[];
 extern const size_t bus_funcs_size;
+extern const size_t bus_funcs_start;
 static struct rs485_error_notifier bus_error_notifier =
 {
     .callback = bus_error_callback
@@ -149,7 +150,7 @@ static void bus_rtask_execute(void)
         case BUS_FRAME_HANDLE: {
             bool broadcast = bus_request.frame.header.address == BUS_BROADCAST_ADDRESS;
 
-            if (bus_request.frame.command >= bus_funcs_size)
+            if (bus_request.frame.command < bus_funcs_start || bus_request.frame.command >= (bus_funcs_start + bus_funcs_size))
                 bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
             else {
                 bus_func_t handler = bus_funcs[bus_request.frame.command];

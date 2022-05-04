@@ -1,4 +1,4 @@
-#include <pwm.h>
+#include <app/pwm.h>
 #include <assert_util.h>
 #include <sys.h>
 #include <util.h>

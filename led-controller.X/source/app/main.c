@@ -1,8 +1,8 @@
+#include <app/dma.h>
+#include <app/pwm.h>
 #include <sys.h>
 #include <kernel.h>
 #include <kernel_task.h>
-#include <dma.h>
-#include <pwm.h>
 #include <bus_address.h>
 #include <xc.h>
 

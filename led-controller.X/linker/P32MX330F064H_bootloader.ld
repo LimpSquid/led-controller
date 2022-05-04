@@ -146,9 +146,9 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x0000D000 /* reserved, used by app */
-  __kseg0_app_exception_mem         : ORIGIN = 0x9D00D000, LENGTH = 0x00001000 /* reserved, used by app */
-  kseg0_program_mem            (rx) : ORIGIN = 0x9D00E000, LENGTH = 0x00002000 /* bootloader */
+  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x00009000 /* reserved, used by app */
+  __kseg0_app_exception_mem         : ORIGIN = 0x9D009000, LENGTH = 0x00001000 /* reserved, used by app */
+  kseg0_program_mem            (rx) : ORIGIN = 0x9D00A000, LENGTH = 0x00006000 /* bootloader */
   kseg0_boot_mem                    : ORIGIN = 0x9FC00490, LENGTH = 0x00000970 
   kseg0_program_exception_mem       : ORIGIN = 0x9FC01000, LENGTH = 0x00001000 /* bootloader */
   kseg1_boot_mem                    : ORIGIN = 0xBFC00000, LENGTH = 0x00000490

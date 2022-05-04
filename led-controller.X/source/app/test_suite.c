@@ -1,7 +1,7 @@
 #ifdef TEST_SUITE_ENABLE
 #warning "TEST_SUITE_ENABLE defined"
+#include <app/layer.h>
 #include <kernel_task.h>
-#include <layer.h>
 #include <timer.h>
 #include <stddef.h>
 #include <stdlib.h>

@@ -1,8 +1,8 @@
-#include <spi.h>
+#include <app/spi.h>
+#include <app/dma.h>
 #include <assert_util.h>
 #include <util.h>
 #include <sys.h>
-#include <dma.h>
 #include <stddef.h>
 #include <xc.h>
 

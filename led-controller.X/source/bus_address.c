@@ -33,7 +33,7 @@ static unsigned char bus_address_read(void)
 static void bus_address_sample_handler(struct timer_module * module)
 {
     (void)module;
-    
+
     unsigned char address = bus_address_read();
     if (address != bus_address_sample)
         bus_address_sample = address;
@@ -42,16 +42,16 @@ static void bus_address_sample_handler(struct timer_module * module)
 }
 
 void bus_address_init(void)
-{    
+{
     // Configure IO
     io_configure(IO_DIRECTION_DIN, bus_address_pins, BUS_ADDRESS_BITS);
-    
+
     // Initialize timer
     bus_address_sample_timer = timer_construct(TIMER_TYPE_RECURRING, bus_address_sample_handler);
     ASSERT_NOT_NULL(bus_address_sample_timer);
     if (bus_address_sample_timer == NULL)
         return;
-    
+
     timer_start(bus_address_sample_timer, BUS_ADDRESS_SAMPLE_TIME, TIMER_TIME_UNIT_MS);
 }
 
