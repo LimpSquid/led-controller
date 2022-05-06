@@ -6,7 +6,7 @@
 #include <bus_address.h>
 #include <xc.h>
 
-#define EXCEPTION_MEM_BASE  0x9d009000 // see memory section `kseg0_program_exception_mem` in linker file)
+#define EXCEPTION_MEM_BASE  0x9D00B000 // see memory section `kseg0_program_exception_mem` in linker file)
 
 void app_cpu_init()
 {
@@ -45,6 +45,13 @@ int app_main(void)
 
     // Avoid warnings
     return 0;
+}
+
+// Hook for bootloader to jump to main application
+void __attribute__ ((section(".app_main_vector"), used)) app_mainv(void)
+{
+    int ret = app_main();
+    exit(ret);
 }
 
 // Define main as weak so it can be overridden by the bootloader when that is linked

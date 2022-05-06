@@ -28,6 +28,7 @@
       <itemPath>include/bus_address.h</itemPath>
       <itemPath>include/timer_config.h</itemPath>
       <itemPath>include/util.h</itemPath>
+      <itemPath>include/nvm.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -63,6 +64,7 @@
       <itemPath>source/crc16.c</itemPath>
       <itemPath>source/bus_address.c</itemPath>
       <itemPath>source/io.c</itemPath>
+      <itemPath>source/nvm.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

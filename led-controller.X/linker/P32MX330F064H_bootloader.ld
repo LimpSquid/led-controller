@@ -95,6 +95,9 @@ PROVIDE(_ebase_address = 0x9D00F000);
  * _DBG_CODE_ADDR                 -- In-circuit Debug Executive address
  * _DBG_CODE_SIZE                 -- In-circuit Debug Executive size
  * _GEN_EXCPT_ADDR                -- General Exception Vector
+ * _APP_MEM_START                 -- Physical start address of the application memory region
+ * _APP_MEM_SIZE                  -- Size of the application memory region (app main + app + exception)
+ * _APP_MAIN_VECTOR               -- Virtual address of the application main entry
  *************************************************************************/
 _RESET_ADDR                    = 0xBFC00000;
 _BEV_EXCPT_ADDR                = 0xBFC00380;
@@ -102,7 +105,9 @@ _DBG_EXCPT_ADDR                = 0xBFC00480;
 _DBG_CODE_ADDR                 = 0xBFC02000;
 _DBG_CODE_SIZE                 = 0xFF0;
 _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
-
+_APP_MEM_START                 = 0x9D000000;
+_APP_MEM_SIZE                  = 0x0000C000;
+_APP_MAIN_VECTOR               = 0x9D000000;
 /*************************************************************************
  * Memory Regions
  *
@@ -146,9 +151,9 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x00009000 /* reserved, used by app */
-  __kseg0_app_exception_mem         : ORIGIN = 0x9D009000, LENGTH = 0x00001000 /* reserved, used by app */
-  kseg0_program_mem            (rx) : ORIGIN = 0x9D00A000, LENGTH = 0x00006000 /* bootloader */
+  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x0000B000 /* reserved, used by app */
+  __kseg0_app_exception_mem         : ORIGIN = 0x9D00B000, LENGTH = 0x00001000 /* reserved, used by app */
+  kseg0_program_mem            (rx) : ORIGIN = 0x9D00C000, LENGTH = 0x00004000 /* bootloader */
   kseg0_boot_mem                    : ORIGIN = 0x9FC00490, LENGTH = 0x00000970 
   kseg0_program_exception_mem       : ORIGIN = 0x9FC01000, LENGTH = 0x00001000 /* bootloader */
   kseg1_boot_mem                    : ORIGIN = 0xBFC00000, LENGTH = 0x00000490
@@ -160,6 +165,33 @@ MEMORY
   kseg1_data_mem              (w!x) : ORIGIN = 0xA0000000, LENGTH = 0x00004000
   sfrs                              : ORIGIN = 0xBF800000, LENGTH = 0x00100000
   configsfrs                        : ORIGIN = 0xBFC02FF0, LENGTH = 0x00000010
+}
+
+SECTIONS
+{
+  .kernel_rstack :
+  {
+    __kernel_rstack_begin = .;
+    KEEP(*(.kernel_rstack))
+    __kernel_rstack_end = .;
+  } >kseg0_program_mem
+
+  .kernel_tstack :
+  {
+    __kernel_tstack_begin = .;
+    KEEP(*(.kernel_tstack))
+    __kernel_tstack_end = .;
+  } >kseg0_program_mem
+
+  .bootloader_info :
+  {
+    __app_mem_start = .;
+    QUAD(_APP_MEM_START);
+    __app_mem_size = .;
+    QUAD(_APP_MEM_SIZE);
+    __app_main_vector = .;
+    QUAD(_APP_MAIN_VECTOR);
+  } >kseg0_program_mem
 }
 
 /*************************************************************************
@@ -538,20 +570,6 @@ SECTIONS
   {
     KEEP(*(.startup))
   } > kseg0_boot_mem
-
-  .kernel_rstack : 
-  { 
-    __kernel_rstack_begin = .; 
-    KEEP(*(.kernel_rstack))
-    __kernel_rstack_end = .;
-  } >kseg0_program_mem
-
-  .kernel_tstack : 
-  { 
-    __kernel_tstack_begin = .; 
-    KEEP(*(.kernel_tstack))
-    __kernel_tstack_end = .;
-  } >kseg0_program_mem
 
   /* Code Sections - Note that input sections *(.text) and *(.text.*)
    * are not mapped here. The best-fit allocator locates them,

@@ -146,9 +146,10 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  kseg0_program_mem            (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00009000 /* app */
-  kseg0_program_exception_mem       : ORIGIN = 0x9D009000, LENGTH = 0x00001000 /* app */
-  __kseg0_bootloader_mem            : ORIGIN = 0x9D00A000, LENGTH = 0x00006000 /* reserved, used by bootloader */
+  kseg0_main_vec_mem           (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000020 /* app */
+  kseg0_program_mem            (rx) : ORIGIN = 0x9D000020, LENGTH = 0x0000AFE0 /* app */
+  kseg0_program_exception_mem       : ORIGIN = 0x9D00B000, LENGTH = 0x00001000 /* app */
+  __kseg0_bootloader_mem            : ORIGIN = 0x9D00C000, LENGTH = 0x00004000 /* reserved, used by bootloader */
   kseg0_boot_mem                    : ORIGIN = 0x9FC00490, LENGTH = 0x00000970
   __kseg0_bootloader_exception_mem  : ORIGIN = 0x9FC01000, LENGTH = 0x00001000 /* reserved, used by bootloader */
   kseg1_boot_mem                    : ORIGIN = 0xBFC00000, LENGTH = 0x00000490
@@ -160,6 +161,27 @@ MEMORY
   kseg1_data_mem              (w!x) : ORIGIN = 0xA0000000, LENGTH = 0x00004000
   sfrs                              : ORIGIN = 0xBF800000, LENGTH = 0x00100000
   configsfrs                        : ORIGIN = 0xBFC02FF0, LENGTH = 0x00000010
+}
+
+SECTIONS
+{
+  .kernel_rstack :
+  {
+    __kernel_rstack_begin = .;
+    KEEP(*(.kernel_rstack))
+    __kernel_rstack_end = .;
+  } >kseg0_program_mem
+
+  .kernel_tstack :
+  {
+    __kernel_tstack_begin = .;
+    KEEP(*(.kernel_tstack))
+    __kernel_tstack_end = .;
+  } >kseg0_program_mem
+
+  .app_main_vector : {
+    KEEP(*(.app_main_vector))
+  } >kseg0_main_vec_mem
 }
 
 /*************************************************************************
@@ -538,20 +560,6 @@ SECTIONS
   {
     KEEP(*(.startup))
   } > kseg0_boot_mem
-
-  .kernel_rstack : 
-  { 
-    __kernel_rstack_begin = .; 
-    KEEP(*(.kernel_rstack))
-    __kernel_rstack_end = .;
-  } >kseg0_program_mem
-
-  .kernel_tstack : 
-  { 
-    __kernel_tstack_begin = .; 
-    KEEP(*(.kernel_tstack))
-    __kernel_tstack_end = .;
-  } >kseg0_program_mem
 
   /* Code Sections - Note that input sections *(.text) and *(.text.*)
    * are not mapped here. The best-fit allocator locates them,
