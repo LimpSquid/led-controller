@@ -44,22 +44,22 @@ static struct kernel_ttask const * kernel_ttask_cursor = NULL;
 
 static void (*kernel_exec_func)(void);
 
-inline static void __attribute__((always_inline)) kernel_restore_rtask_iterator()
+inline static void __attribute__((always_inline)) kernel_restore_rtask_iterator(void)
 {
     kernel_rtask_iterator = &__kernel_rstack_begin;
 }
 
-inline static void __attribute__((always_inline)) kernel_restore_ttask_iterator()
+inline static void __attribute__((always_inline)) kernel_restore_ttask_iterator(void)
 {
     kernel_ttask_iterator = &__kernel_tstack_begin;
 }
 
-inline static int __attribute__((always_inline)) kernel_has_rtasks()
+inline static int __attribute__((always_inline)) kernel_has_rtasks(void)
 {
     return (int)(&__kernel_rstack_end - &__kernel_rstack_begin) != 0;
 }
 
-inline static int __attribute__((always_inline)) kernel_has_ttasks()
+inline static int __attribute__((always_inline)) kernel_has_ttasks(void)
 {
     return (int)(&__kernel_tstack_end - &__kernel_tstack_begin) != 0;
 }

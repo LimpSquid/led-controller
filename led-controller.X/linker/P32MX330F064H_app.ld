@@ -146,10 +146,10 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  kseg0_main_vec_mem           (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000020 /* app */
-  kseg0_program_mem            (rx) : ORIGIN = 0x9D000020, LENGTH = 0x0000AFE0 /* app */
-  kseg0_program_exception_mem       : ORIGIN = 0x9D00B000, LENGTH = 0x00001000 /* app */
-  __kseg0_bootloader_mem            : ORIGIN = 0x9D00C000, LENGTH = 0x00004000 /* reserved, used by bootloader */
+  kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000200 /* app */
+  kseg0_program_mem            (rx) : ORIGIN = 0x9D000200, LENGTH = 0x00007E00 /* app */
+  kseg0_program_exception_mem       : ORIGIN = 0x9D008000, LENGTH = 0x00001000 /* app */
+  __kseg0_bootloader_mem            : ORIGIN = 0x9D009000, LENGTH = 0x00007000 /* reserved, used by bootloader */
   kseg0_boot_mem                    : ORIGIN = 0x9FC00490, LENGTH = 0x00000970
   __kseg0_bootloader_exception_mem  : ORIGIN = 0x9FC01000, LENGTH = 0x00001000 /* reserved, used by bootloader */
   kseg1_boot_mem                    : ORIGIN = 0xBFC00000, LENGTH = 0x00000490
@@ -170,18 +170,14 @@ SECTIONS
     __kernel_rstack_begin = .;
     KEEP(*(.kernel_rstack))
     __kernel_rstack_end = .;
-  } >kseg0_program_mem
+  } >kseg0_program_kernel_mem
 
   .kernel_tstack :
   {
     __kernel_tstack_begin = .;
     KEEP(*(.kernel_tstack))
     __kernel_tstack_end = .;
-  } >kseg0_program_mem
-
-  .app_main_vector : {
-    KEEP(*(.app_main_vector))
-  } >kseg0_main_vec_mem
+  } >kseg0_program_kernel_mem
 }
 
 /*************************************************************************

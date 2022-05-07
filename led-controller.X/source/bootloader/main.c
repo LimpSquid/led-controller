@@ -1,4 +1,5 @@
 #include <sys.h>
+#include <nvm.h>
 #include <kernel.h>
 #include <kernel_task.h>
 #include <bus_address.h>
@@ -21,6 +22,9 @@ int bootloader_main(void)
     SYS_WAKEUP_BONZO();
 
     sys_cpu_config_check();
+
+    // Initialize hardware
+    nvm_init();
 
     // Then do the kernel init
     kernel_init();

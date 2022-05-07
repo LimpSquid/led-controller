@@ -98,8 +98,8 @@ static enum bus_response_code bus_func_status(
 {
     UNUSED2(broadcast, request_data);
 
-    response_data->by_status.layer_ready = layer_ready();
-    response_data->by_status.layer_dma_error = layer_dma_error();
+    response_data->by_app_status.layer_ready = layer_ready();
+    response_data->by_app_status.layer_dma_error = layer_dma_error();
     return BUS_OK;
 }
 

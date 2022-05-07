@@ -95,9 +95,10 @@ PROVIDE(_ebase_address = 0x9D00F000);
  * _DBG_CODE_ADDR                 -- In-circuit Debug Executive address
  * _DBG_CODE_SIZE                 -- In-circuit Debug Executive size
  * _GEN_EXCPT_ADDR                -- General Exception Vector
- * _APP_MEM_START                 -- Physical start address of the application memory region
- * _APP_MEM_SIZE                  -- Size of the application memory region (app main + app + exception)
- * _APP_MAIN_VECTOR               -- Virtual address of the application main entry
+ * _APP_MEM_SIZE                  -- Size of the application memory region
+ * _APP_MEM_START                 -- Virtual start address of the application memory region
+ * _APP_MEM_END                   -- Virtual end address (start + size) of the application memory region
+ * _APP_ENTRY_ADDR                -- Virtual address of the application entry (see other linker file)
  *************************************************************************/
 _RESET_ADDR                    = 0xBFC00000;
 _BEV_EXCPT_ADDR                = 0xBFC00380;
@@ -105,9 +106,10 @@ _DBG_EXCPT_ADDR                = 0xBFC00480;
 _DBG_CODE_ADDR                 = 0xBFC02000;
 _DBG_CODE_SIZE                 = 0xFF0;
 _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
+_APP_MEM_SIZE                  = 0x00009000;
 _APP_MEM_START                 = 0x9D000000;
-_APP_MEM_SIZE                  = 0x0000C000;
-_APP_MAIN_VECTOR               = 0x9D000000;
+_APP_MEM_END                   = _APP_MEM_START + _APP_MEM_SIZE;
+_APP_ENTRY_ADDR                = 0x9D000200;
 /*************************************************************************
  * Memory Regions
  *
@@ -151,9 +153,10 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x0000B000 /* reserved, used by app */
-  __kseg0_app_exception_mem         : ORIGIN = 0x9D00B000, LENGTH = 0x00001000 /* reserved, used by app */
-  kseg0_program_mem            (rx) : ORIGIN = 0x9D00C000, LENGTH = 0x00004000 /* bootloader */
+  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x00009000 /* reserved, used by app */
+  kseg0_bootloader_info_mem    (rw) : ORIGIN = 0x9D009000, LENGTH = 0x00000100 /* bootloader */
+  kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D009100, LENGTH = 0x00000100 /* bootloader */
+  kseg0_program_mem            (rx) : ORIGIN = 0x9D009200, LENGTH = 0x00006E00 /* bootloader */
   kseg0_boot_mem                    : ORIGIN = 0x9FC00490, LENGTH = 0x00000970 
   kseg0_program_exception_mem       : ORIGIN = 0x9FC01000, LENGTH = 0x00001000 /* bootloader */
   kseg1_boot_mem                    : ORIGIN = 0xBFC00000, LENGTH = 0x00000490
@@ -174,24 +177,25 @@ SECTIONS
     __kernel_rstack_begin = .;
     KEEP(*(.kernel_rstack))
     __kernel_rstack_end = .;
-  } >kseg0_program_mem
+  } >kseg0_program_kernel_mem
 
   .kernel_tstack :
   {
     __kernel_tstack_begin = .;
     KEEP(*(.kernel_tstack))
     __kernel_tstack_end = .;
-  } >kseg0_program_mem
+  } >kseg0_program_kernel_mem
 
   .bootloader_info :
   {
     __app_mem_start = .;
     QUAD(_APP_MEM_START);
-    __app_mem_size = .;
-    QUAD(_APP_MEM_SIZE);
-    __app_main_vector = .;
-    QUAD(_APP_MAIN_VECTOR);
-  } >kseg0_program_mem
+    __app_mem_end = .;
+    QUAD(_APP_MEM_END);
+    __app_entry_addr = .;
+    QUAD(_APP_ENTRY_ADDR);
+  } >kseg0_bootloader_info_mem
+  ASSERT((_APP_MEM_END - _APP_MEM_START) % 4096 == 0, "Application program memory must be multiple of 4096")
 }
 
 /*************************************************************************

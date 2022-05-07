@@ -11,6 +11,15 @@
     __typeof__(((type *)0)->member ) const *__mptr = (ptr);     \
     (type *)((char *)__mptr - OFFSET_OF(type, member)); })
 
+// Memory layout:
+// - KSEG  (2GiB) = 0x00000000 - 0x7fffffff
+// - KUSEG (2GiB) = 0x80000000 - 0xffffffff
+//
+// Converting KSEG  virt to phy address: `virt & 0x1fffffff`
+// Converting KUSEG virt to phy address: `virt + 0x40000000`
+#define PHY_ADDR(virt)                  ((int)virt < 0 ? ((int)virt & 0x1fffffffl) : (unsigned int)((unsigned char*)virt + 0x40000000L))
+
+
 // Atomic register utils
 #define ATOMIC_REG(name)                atomic_reg_group_t name
 #define ATOMIC_REG_VALUE(reg)           ATOMIC_REG_PTR_VALUE(&reg)

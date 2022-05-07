@@ -4,13 +4,6 @@
 #include <xc.h>
 #include <sys/attribs.h>
 
-// Memory layout:
-// - KSEG  (2GiB) = 0x00000000 - 0x7fffffff
-// - KUSEG (2GiB) = 0x80000000 - 0xffffffff
-//
-// Converting KSEG  virt to phy address: `virt & 0x1fffffff`
-// Converting KUSEG virt to phy address: `virt + 0x40000000`
-#define DMA_PHY_ADDR(virt)              ((int)virt < 0 ? ((int)virt & 0x1fffffffl) : (unsigned int)((unsigned char*)virt + 0x40000000L))
 #define DMA_NUMBER_OF_CHANNELS          (sizeof(dma_channels) / sizeof(dma_channels[0]))
 #define DMA_INTERRUPT_PRIORITY          0x3 // Interrupt handlers must use IPL3SOFT
 
@@ -180,8 +173,8 @@ void dma_configure(struct dma_channel * channel, struct dma_config config)
         ATOMIC_REG_SET(channel->dma_reg->dchcon, DMA_DCHCON_CHAEN_MASK);
     else
         ATOMIC_REG_CLR(channel->dma_reg->dchcon, DMA_DCHCON_CHAEN_MASK);
-    ATOMIC_REG_VALUE(dma_reg->dchssa) = DMA_PHY_ADDR(config.src_mem);
-    ATOMIC_REG_VALUE(dma_reg->dchdsa) = DMA_PHY_ADDR(config.dst_mem);
+    ATOMIC_REG_VALUE(dma_reg->dchssa) = PHY_ADDR(config.src_mem);
+    ATOMIC_REG_VALUE(dma_reg->dchdsa) = PHY_ADDR(config.dst_mem);
     ATOMIC_REG_VALUE(dma_reg->dchssiz) = config.src_size;
     ATOMIC_REG_VALUE(dma_reg->dchdsiz) = config.dst_size;
     ATOMIC_REG_VALUE(dma_reg->dchcsiz) = config.cell_size;
@@ -218,7 +211,7 @@ void dma_configure_src(struct dma_channel * channel, void const * mem, unsigned 
     ASSERT_NOT_NULL(channel);
     struct dma_register_map const * const dma_reg = channel->dma_reg;
 
-    ATOMIC_REG_VALUE(dma_reg->dchssa) = DMA_PHY_ADDR(mem);
+    ATOMIC_REG_VALUE(dma_reg->dchssa) = PHY_ADDR(mem);
     ATOMIC_REG_VALUE(dma_reg->dchssiz) = size;
 }
 
@@ -227,7 +220,7 @@ void dma_configure_dst(struct dma_channel * channel, void const * mem, unsigned 
     ASSERT_NOT_NULL(channel);
     struct dma_register_map const * const dma_reg = channel->dma_reg;
 
-    ATOMIC_REG_VALUE(dma_reg->dchdsa) = DMA_PHY_ADDR(mem);
+    ATOMIC_REG_VALUE(dma_reg->dchdsa) = PHY_ADDR(mem);
     ATOMIC_REG_VALUE(dma_reg->dchdsiz) = size;
 }
 

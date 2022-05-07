@@ -13,6 +13,7 @@
 #define SYS_FAIL_IF(expression)     if(expression) { exit(EXIT_FAILURE); }
 #define SYS_FAIL_IF_NOT(expression) SYS_FAIL_IF(!(expression))
 
+// TODO: move to app
 // Version ranges between 0 - 255
 #define SYS_VERSION_MAJOR           99
 #define SYS_VERSION_MINOR           0

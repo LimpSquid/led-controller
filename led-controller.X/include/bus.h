@@ -32,7 +32,13 @@ union __attribute__((packed)) bus_data
         unsigned char layer_ready       :1;
         unsigned char layer_dma_error   :1;
         unsigned int                    :30;
-    } by_status;
+    } by_app_status;
+    
+    struct
+    {
+        unsigned char bootloader_ready  :1;
+        unsigned int                    :31;
+    } by_bootloader_status;
 
     struct
     {
