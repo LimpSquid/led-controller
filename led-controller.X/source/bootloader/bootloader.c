@@ -91,10 +91,13 @@ bool bootloader_ready(void)
 bool bootloader_info(enum bootloader_info info, unsigned int * out)
 {
     switch (info) {
-        case BOOTLOADER_INFO_MEM_PHY_START: *out = PHY_ADDR(__app_mem_start);   break;
-        case BOOTLOADER_INFO_MEM_PHY_END:   *out = PHY_ADDR(__app_mem_end);     break;
-        case BOOTLOADER_INFO_MEM_ROW_SIZE:  *out = NVM_ROW_SIZE;                break;
-        default:                                                                return false;
+        case BOOTLOADER_INFO_MEM_PHY_START:     *out = PHY_ADDR(__app_mem_start);   break;
+        case BOOTLOADER_INFO_MEM_PHY_END:       *out = PHY_ADDR(__app_mem_end);     break;
+        case BOOTLOADER_INFO_MEM_WORD_SIZE:     *out = NVM_WORD_SIZE;               break;
+        case BOOTLOADER_INFO_MEM_DWORD_SIZE:    *out = NVM_DWORD_SIZE;              break;
+        case BOOTLOADER_INFO_MEM_ROW_SIZE:      *out = NVM_ROW_SIZE;                break;
+        case BOOTLOADER_INFO_MEM_PAGE_SIZE:     *out = NVM_PAGE_SIZE;               break;
+        default:                                                                    return false;
     }
 
     return true;
@@ -125,7 +128,7 @@ void bootloader_row_set_offset(unsigned int offset)
 
 bool bootloader_row_push_word(unsigned int word)
 {
-    if (bootloader_row_offset > (NVM_ROW_SIZE - NVM_WORD_SIZE))
+    if (bootloader_row_offset >= NVM_ROW_BUFFER_SIZE)
         return false;
 
     nvm_row_buffer[bootloader_row_offset++] = word;
@@ -137,7 +140,7 @@ bool bootloader_row_burn(unsigned int phy_address)
     if (bootloader_busy())
         return false;
     if (phy_address < PHY_ADDR(__app_mem_start) ||
-        phy_address > (PHY_ADDR(__app_mem_start) - NVM_ROW_SIZE))
+        phy_address > (PHY_ADDR(__app_mem_end) - NVM_ROW_SIZE))
         return false;
 
     bootloader_row_burn_address = (unsigned int *)phy_address;
