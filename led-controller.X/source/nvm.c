@@ -59,5 +59,5 @@ int nvm_write_row_virt(void const * address)
     NVMSRCADDR = (int)nvm_row_buffer;
     int result = nvm_unlock(0x4003);
     memset(nvm_row_buffer, 0xff, NVM_ROW_SIZE);
-    return nvm_unlock(0x4003);
+    return result;
 }
