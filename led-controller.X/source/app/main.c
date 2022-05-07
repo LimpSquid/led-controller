@@ -49,9 +49,7 @@ int app_main(void)
     return 0;
 }
 
-// Define main as weak so it can be overridden by the bootloader when that is linked
-// into the final executable as well.
-int __attribute__((weak)) main(void)
+int main(void)
 {
     return app_main();
 }
