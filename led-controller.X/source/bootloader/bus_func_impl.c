@@ -18,6 +18,20 @@ static enum bus_response_code bus_func_status(
     return BUS_OK;
 }
 
+static enum bus_response_code bus_func_bootloader_info(
+    bool broadcast,
+    union bus_data const * request_data,
+    union bus_data * response_data)
+{
+    UNUSED1(broadcast);
+
+    unsigned int result;
+    if (!bootloader_info(request_data->by_uint8, &result))
+        return BUS_ERR_INVALID_PAYLOAD;
+    response_data->by_uint32 = result;
+    return BUS_OK;
+}
+
 static enum bus_response_code bus_func_bootloader_erase(
     bool broadcast,
     union bus_data const * request_data,
@@ -68,8 +82,9 @@ static enum bus_response_code bus_func_bootloader_row_burn(
 const bus_func_t bus_funcs[] =
 {
     bus_func_status,                    // 128
-    bus_func_bootloader_erase,          // 129
-    bus_func_bootloader_row_set_offset, // ...
+    bus_func_bootloader_info,           // 129
+    bus_func_bootloader_erase,          // ...
+    bus_func_bootloader_row_set_offset,
     bus_func_bootloader_row_push_word,
     bus_func_bootloader_row_burn,
 };

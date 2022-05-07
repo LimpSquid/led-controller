@@ -1,6 +1,7 @@
 #include <bootloader/bootloader.h>
 #include <kernel_task.h>
 #include <nvm.h>
+#include <sys.h>
 #include <util.h>
 #include <assert.h>
 #include <xc.h>
@@ -36,6 +37,8 @@ inline static void __attribute__((always_inline)) bootloader_restore_app_mem_ite
 
 inline static void __attribute__((always_inline)) bootloader_run_app(void)
 {
+    sys_disable_global_interrupt();
+
     void (*app_main)(void) = (void (*)(void))__app_mem_start;
     app_main();
 }
@@ -70,7 +73,7 @@ void bootloader_rtask_execute(void)
             bootloader_state = BOOTLOADER_IDLE;
             break;
         case BOOTLOADER_BOOT:
-            bootloader_run_app();
+            bootloader_run_app(); // Never returns
             break;
     }
 }
@@ -83,6 +86,18 @@ bool bootloader_busy(void)
 bool bootloader_ready(void)
 {
     return !bootloader_busy();
+}
+
+bool bootloader_info(enum bootloader_info info, unsigned int * out)
+{
+    switch (info) {
+        case BOOTLOADER_INFO_MEM_PHY_START: *out = PHY_ADDR(__app_mem_start);   break;
+        case BOOTLOADER_INFO_MEM_PHY_END:   *out = PHY_ADDR(__app_mem_end);     break;
+        case BOOTLOADER_INFO_MEM_ROW_SIZE:  *out = NVM_ROW_SIZE;                break;
+        default:                                                                return false;
+    }
+
+    return true;
 }
 
 bool bootloader_erase(void)
