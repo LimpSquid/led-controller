@@ -111,6 +111,6 @@ void io_configure(enum io_direction direction, struct io_pin const * pins, unsig
 // CRC utils
 typedef unsigned short crc16_t;
 void crc16_reset(crc16_t * crc);
-void crc16_update(crc16_t * crc, unsigned char const * data, unsigned int size);
+void crc16_update(crc16_t * crc, void const * data, unsigned int size);
 
 #endif /* UTIL_H */

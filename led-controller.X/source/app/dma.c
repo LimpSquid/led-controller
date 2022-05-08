@@ -1,5 +1,5 @@
 #include <app/dma.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <util.h>
 #include <xc.h>
 #include <sys/attribs.h>

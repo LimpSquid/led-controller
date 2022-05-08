@@ -8,11 +8,6 @@
 nvm_word_t nvm_row_buffer[NVM_ROW_BUFFER_SIZE] __attribute__((aligned(NVM_WORD_SIZE)));
 STATIC_ASSERT(sizeof(nvm_word_t) == NVM_WORD_SIZE);
 
-inline static void __attribute__((always_inline)) nvm_reset_row_buffer(void)
-{
-    memset(nvm_row_buffer, 0xff, NVM_ROW_SIZE);
-}
-
 static int nvm_unlock(unsigned int nvmop)
 {
     sys_disable_global_interrupt();
@@ -36,7 +31,12 @@ static int nvm_unlock(unsigned int nvmop)
 
 void nvm_init(void)
 {
-    nvm_reset_row_buffer();
+    nvm_buffer_reset();
+}
+
+void nvm_buffer_reset(void)
+{
+    memset(nvm_row_buffer, 0xff, NVM_ROW_SIZE);
 }
 
 int nvm_erase_page_phy(void const * address)
@@ -56,7 +56,7 @@ int nvm_write_row_phys(void const * address)
     NVMADDR = (int)address;
     NVMSRCADDR = (int)nvm_row_buffer;
     int result = nvm_unlock(0x4003);
-    nvm_reset_row_buffer();
+    nvm_buffer_reset();
     return result;
 }
 
@@ -65,6 +65,6 @@ int nvm_write_row_virt(void const * address)
     NVMADDR = PHY_ADDR(address);
     NVMSRCADDR = (int)nvm_row_buffer;
     int result = nvm_unlock(0x4003);
-    nvm_reset_row_buffer();
+    nvm_buffer_reset();
     return result;
 }

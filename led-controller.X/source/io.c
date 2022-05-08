@@ -1,10 +1,10 @@
 #include <util.h>
-#include <assert_util.h>
+#include <assert.h>
 
 void io_configure(enum io_direction direction, struct io_pin const * pins, unsigned int size)
 {
     ASSERT_NOT_NULL(pins);
-    
+
     struct io_pin const * pin = pins; // Just for the name
     for (unsigned int i = 0; i < size; ++i) {
         switch (direction) {

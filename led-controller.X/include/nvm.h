@@ -13,6 +13,7 @@ typedef unsigned int nvm_word_t;
 extern nvm_word_t nvm_row_buffer[NVM_ROW_BUFFER_SIZE];
 
 void nvm_init(void);
+void nvm_buffer_reset(void);
 int nvm_erase_page_phys(void const * address);
 int nvm_erase_page_virt(void const * address);
 int nvm_write_row_phys(void const * address);

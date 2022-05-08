@@ -1,5 +1,5 @@
 #include <bus_address.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <timer.h>
 #include <util.h>
 

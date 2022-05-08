@@ -54,5 +54,7 @@ typedef enum bus_response_code (*bus_func_t)(
     union bus_data const * request_data,
     union bus_data * response_data);
 
+bool bus_idle(void);
+
 #endif /* BUS_H */
 

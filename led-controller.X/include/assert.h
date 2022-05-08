@@ -29,4 +29,8 @@ void __assert_print_no_block(const char* format, ...);
 #define STATIC_ASSERT(expression)   typedef char __assert[(expression) ? 0 : -1];
 #endif
 
+// Assert helper macros
+#define ASSERT_NULL(var)        ASSERT(var == NULL)
+#define ASSERT_NOT_NULL(var)    ASSERT(var != NULL)
+
 #endif    /* ASSERT_H */

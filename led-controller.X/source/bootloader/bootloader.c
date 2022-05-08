@@ -1,5 +1,6 @@
 #include <bootloader/bootloader.h>
 #include <kernel_task.h>
+#include <bus.h>
 #include <nvm.h>
 #include <sys.h>
 #include <util.h>
@@ -26,7 +27,7 @@ extern unsigned int const __app_mem_end;
 static unsigned int const * bootloader_app_mem_iterator = &__app_mem_start;
 static unsigned int const * const bootloader_app_mem_end = &__app_mem_end;
 static unsigned int const * bootloader_row_burn_address;
-static unsigned int bootloader_row_offset;
+static unsigned int bootloader_row_cursor;
 
 static enum bootloader_state bootloader_state = BOOTLOADER_IDLE;
 
@@ -69,11 +70,12 @@ void bootloader_rtask_execute(void)
             break;
         case BOOTLOADER_BURN_ROW:
             nvm_write_row_phys(bootloader_row_burn_address);
-            bootloader_row_offset = 0;
+            bootloader_row_cursor = 0;
             bootloader_state = BOOTLOADER_IDLE;
             break;
         case BOOTLOADER_BOOT:
-            bootloader_run_app(); // Never returns
+            if (bus_idle()) // Handle all in/out going bus messages before running the main app
+                bootloader_run_app();
             break;
     }
 }
@@ -121,17 +123,30 @@ bool bootloader_boot(void)
     return true;
 }
 
-void bootloader_row_set_offset(unsigned int offset)
+void bootloader_row_reset()
 {
-    bootloader_row_offset = offset;
+    bootloader_row_cursor = 0;
+    nvm_buffer_reset();
+}
+
+unsigned short bootloader_row_crc16()
+{
+    STATIC_ASSERT(sizeof(unsigned short) == sizeof(crc16_t));
+
+    crc16_t crc;
+    crc16_reset(&crc);
+    crc16_update(&crc, nvm_row_buffer, NVM_ROW_SIZE);
+    return crc;
 }
 
 bool bootloader_row_push_word(unsigned int word)
 {
-    if (bootloader_row_offset >= NVM_ROW_BUFFER_SIZE)
+    STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
+
+    if (bootloader_row_cursor >= NVM_ROW_BUFFER_SIZE)
         return false;
 
-    nvm_row_buffer[bootloader_row_offset++] = word;
+    nvm_row_buffer[bootloader_row_cursor++] = word;
     return true;
 }
 

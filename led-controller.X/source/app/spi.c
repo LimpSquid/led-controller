@@ -1,6 +1,6 @@
 #include <app/spi.h>
 #include <app/dma.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <util.h>
 #include <sys.h>
 #include <stddef.h>

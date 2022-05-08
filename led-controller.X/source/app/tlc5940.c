@@ -6,7 +6,7 @@
 #include <sys.h>
 #include <util.h>
 #include <kernel_task.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <stddef.h>
 #include <string.h>
 #include <xc.h>

@@ -1,6 +1,6 @@
 #include <rs485.h>
 #include <kernel_task.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <sys.h>
 #include <util.h>
 #include <timer.h>
@@ -46,6 +46,14 @@
 #define RS485_TX_PPS_WORD           MASK(0x3, 0)
 
 #define RS485_ISR_VECTOR            _UART_1_VECTOR
+
+enum rs485_status
+{
+    RS485_STATUS_IDLE = 0,
+    RS485_STATUS_TRANSFERRING,
+    RS485_STATUS_RECEIVING,
+    RS485_STATUS_ERROR
+};
 
 enum rs485_state
 {
@@ -264,9 +272,10 @@ static void rs485_rtask_execute(void)
     }
 }
 
-enum rs485_status rs485_get_status(void)
+bool rs485_idle(void)
 {
-    return rs485_status;
+    return (rs485_status == RS485_STATUS_IDLE && rs485_tx_consumer == rs485_tx_producer) ||
+            rs485_status == RS485_STATUS_ERROR;
 }
 
 struct rs485_error rs485_get_error(void)

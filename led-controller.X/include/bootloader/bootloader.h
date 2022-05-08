@@ -18,7 +18,8 @@ bool bootloader_ready(void);
 bool bootloader_info(enum bootloader_info info, unsigned int * out);
 bool bootloader_erase(void);
 bool bootloader_boot(void);
-void bootloader_row_set_offset(unsigned int offset);
+void bootloader_row_reset();
+unsigned short bootloader_row_crc16();
 bool bootloader_row_push_word(unsigned int word);
 bool bootloader_row_burn(unsigned int phy_address);
 

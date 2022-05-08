@@ -23,7 +23,6 @@
       <itemPath>include/timer.h</itemPath>
       <itemPath>include/assert.h</itemPath>
       <itemPath>include/print.h</itemPath>
-      <itemPath>include/assert_util.h</itemPath>
       <itemPath>include/rs485.h</itemPath>
       <itemPath>include/bus.h</itemPath>
       <itemPath>include/bus_address.h</itemPath>

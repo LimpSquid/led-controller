@@ -1,7 +1,7 @@
 #include <bus.h>
 #include <bus_address.h>
 #include <kernel_task.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <rs485.h>
 #include <timer.h>
 #include <util.h>
@@ -177,4 +177,9 @@ static void bus_rtask_execute(void)
             bus_state = BUS_READ_CLEAR;
             break;
     }
+}
+
+bool bus_idle(void)
+{
+    return bus_state == BUS_READ_PART && bus_frame_offset == 0 && rs485_idle();
 }

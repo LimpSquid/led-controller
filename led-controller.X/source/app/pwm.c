@@ -1,5 +1,5 @@
 #include <app/pwm.h>
-#include <assert_util.h>
+#include <assert.h>
 #include <sys.h>
 #include <util.h>
 #include <xc.h>
