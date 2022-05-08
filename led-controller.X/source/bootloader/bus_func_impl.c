@@ -44,6 +44,17 @@ static enum bus_response_code bus_func_bootloader_erase(
         : BUS_ERR_AGAIN;
 }
 
+static enum bus_response_code bus_func_bootloader_set_magic(
+    bool broadcast,
+    union bus_data const * request_data,
+    union bus_data * response_data)
+{
+    UNUSED2(broadcast, response_data);
+
+    bootloader_set_magic(request_data->by_uint32);
+    return BUS_OK;
+}
+
 static enum bus_response_code bus_func_bootloader_boot(
     bool broadcast,
     union bus_data const * request_data,
@@ -107,6 +118,7 @@ const bus_func_t bus_funcs[] =
     bus_func_status,                    // 128
     bus_func_bootloader_info,           // 129
     bus_func_bootloader_erase,          // ...
+    bus_func_bootloader_set_magic,
     bus_func_bootloader_boot,
     bus_func_bootloader_row_reset,
     bus_func_bootloader_row_push_word,

@@ -15,6 +15,7 @@ enum bootloader_info
 
 bool bootloader_busy(void);
 bool bootloader_ready(void);
+void bootloader_set_magic(unsigned int magic);
 bool bootloader_info(enum bootloader_info info, unsigned int * out);
 bool bootloader_erase(void);
 bool bootloader_boot(unsigned short app_crc16);

@@ -2,6 +2,7 @@
 #include <kernel_task.h>
 #include <bus.h>
 #include <nvm.h>
+#include <timer.h>
 #include <sys.h>
 #include <util.h>
 #include <assert.h>
@@ -10,8 +11,12 @@
 STATIC_ASSERT(sizeof(unsigned short) == sizeof(crc16_t));
 STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
 
+#define BOOTLOADER_BOOT_MAGIC_WINDOW    500 // In ms
+#define BOOTLOADER_BOOT_MAGIC           0x0B00B1E5
+
 enum bootloader_state
 {
+    BOOTLOADER_WAIT_BOOT_MAGIC,
     BOOTLOADER_IDLE,
 
     BOOTLOADER_ERASE,
@@ -40,11 +45,13 @@ static unsigned int const * bootloader_app_mem_iterator = &__app_mem_start;
 static unsigned int const * const bootloader_app_mem_end = &__app_mem_end;
 static unsigned int const * bootloader_row_burn_address;
 static unsigned int bootloader_row_cursor;
+static unsigned int bootloader_magic;
 static crc16_t bootloader_app_boot_crc;
 static crc16_t bootloader_app_mem_crc;
 static struct bootloader_flags bootloader_flags;
+static struct timer_module * bootloader_timer;
 
-static enum bootloader_state bootloader_state = BOOTLOADER_IDLE;
+static enum bootloader_state bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
 
 inline static void __attribute__((always_inline)) bootloader_restore_app_mem_iterator(void)
 {
@@ -61,7 +68,18 @@ inline static void __attribute__((always_inline)) bootloader_run_app(void)
 
 int bootloader_rtask_init(void)
 {
+    // Initialize timer
+    bootloader_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
+    if (bootloader_timer == NULL)
+        goto fail_timer;
+
+    timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
+
     return KERN_INIT_SUCCESS;
+
+fail_timer:
+
+    return KERN_INIT_FAILED;
 }
 
 void bootloader_rtask_execute(void)
@@ -69,6 +87,16 @@ void bootloader_rtask_execute(void)
     // TODO: eventually check the return code of NVM functions
 
     switch (bootloader_state) {
+        case BOOTLOADER_WAIT_BOOT_MAGIC:
+            if (bootloader_magic == BOOTLOADER_BOOT_MAGIC) { // Magic received within window, go into bootloader mode
+                timer_stop(bootloader_timer);
+                bootloader_state = BOOTLOADER_IDLE;
+            } else if (!timer_is_running(bootloader_timer)) { // No magic received within window, try to boot app
+                bootloader_app_boot_crc = __app_crc16;
+                bootloader_state = BOOTLOADER_BOOT;
+            }
+            break;
+
         default: // TODO, some other default state
         case BOOTLOADER_IDLE:
             break;
@@ -97,9 +125,12 @@ void bootloader_rtask_execute(void)
             crc16_update(&bootloader_app_mem_crc, bootloader_app_mem_iterator, NVM_PAGE_SIZE);
             bootloader_app_mem_iterator += NVM_PAGE_SIZE;
             if (bootloader_app_mem_iterator == bootloader_app_mem_end) {
-                bootloader_state = (bootloader_app_mem_crc == bootloader_app_boot_crc)
-                    ? BOOTLOADER_BOOT_CRC_BURN
-                    : BOOTLOADER_IDLE; // TODO: set error
+                if (bootloader_app_mem_crc != bootloader_app_boot_crc)
+                    bootloader_state = BOOTLOADER_IDLE; // TODO: set error
+                else if(__app_crc16 == bootloader_app_mem_crc)
+                    bootloader_state = BOOTLOADER_BOOT_RUN_APP;
+                else
+                    bootloader_state = BOOTLOADER_BOOT_CRC_BURN;
             }
             break;
         case BOOTLOADER_BOOT_CRC_BURN:
@@ -121,6 +152,11 @@ bool bootloader_busy(void)
 bool bootloader_ready(void)
 {
     return !bootloader_busy();
+}
+
+void bootloader_set_magic(unsigned int magic)
+{
+    bootloader_magic = magic;
 }
 
 bool bootloader_info(enum bootloader_info info, unsigned int * out)
