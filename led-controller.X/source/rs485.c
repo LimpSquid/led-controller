@@ -253,8 +253,10 @@ static void rs485_rtask_execute(void)
         case RS485_TRANSFER_WAIT_COMPLETION:
             if (rs485_tx_available()) // Either more data became available or hardware buffer got room for more data
                 rs485_state = RS485_TRANSFER_WRITE;
-            else if (rs485_tx_complete()) // Done transferring data
+            else if (rs485_tx_complete()) { // Done transferring data
+                IO_CLR(rs485_dir_pin); // In case global interrupt is disabled (e.g. bootloader)
                 rs485_state = RS485_IDLE;
+            }
             break;
 
         // Error routine

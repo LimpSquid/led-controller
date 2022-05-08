@@ -18,6 +18,8 @@ int nvm_erase_page_phys(void const * address);
 int nvm_erase_page_virt(void const * address);
 int nvm_write_row_phys(void const * address);
 int nvm_write_row_virt(void const * address);
+int nvm_write_word_phys(void const * address, nvm_word_t word);
+int nvm_write_word_virt(void const * address, nvm_word_t word);
 
 #endif	/* NVM_H */
 

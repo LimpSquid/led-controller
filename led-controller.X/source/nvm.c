@@ -68,3 +68,17 @@ int nvm_write_row_virt(void const * address)
     nvm_buffer_reset();
     return result;
 }
+
+int nvm_write_word_phys(void const * address, nvm_word_t word)
+{
+    NVMADDR = (int)address;
+    NVMDATA = word;
+    return nvm_unlock(0x4001);
+}
+
+int nvm_write_word_virt(void const * address, nvm_word_t word)
+{
+    NVMADDR = PHY_ADDR(address);
+    NVMDATA = word;
+    return nvm_unlock(0x4001);
+}

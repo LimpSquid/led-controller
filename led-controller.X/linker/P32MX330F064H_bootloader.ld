@@ -194,6 +194,9 @@ SECTIONS
     QUAD(_APP_MEM_END);
     __app_entry_addr = .;
     QUAD(_APP_ENTRY_ADDR);
+    __app_crc16 = .;
+    SHORT(0xFFFF);
+    SHORT(0xFFFF); /* Fill */
   } >kseg0_bootloader_info_mem
   ASSERT((_APP_MEM_END - _APP_MEM_START) % 4096 == 0, "Application program memory must be multiple of 4096")
 }

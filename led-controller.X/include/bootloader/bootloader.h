@@ -17,7 +17,7 @@ bool bootloader_busy(void);
 bool bootloader_ready(void);
 bool bootloader_info(enum bootloader_info info, unsigned int * out);
 bool bootloader_erase(void);
-bool bootloader_boot(void);
+bool bootloader_boot(unsigned short app_crc16);
 void bootloader_row_reset();
 unsigned short bootloader_row_crc16();
 bool bootloader_row_push_word(unsigned int word);
