@@ -13,12 +13,6 @@
 #define SYS_FAIL_IF(expression)     if(expression) { exit(EXIT_FAILURE); }
 #define SYS_FAIL_IF_NOT(expression) SYS_FAIL_IF(!(expression))
 
-// TODO: move to app
-// Version ranges between 0 - 255
-#define SYS_VERSION_MAJOR           99
-#define SYS_VERSION_MINOR           0
-#define SYS_VERSION_PATCH           2
-
 // Macros for performance reasons
 #define SYS_TUCK_IN_BONZO()         WDTCONbits.ON = 0
 #define SYS_WAKEUP_BONZO()          WDTCONbits.ON = 1

@@ -29,6 +29,7 @@
       <itemPath>include/timer_config.h</itemPath>
       <itemPath>include/util.h</itemPath>
       <itemPath>include/nvm.h</itemPath>
+      <itemPath>include/version.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -4193,7 +4194,8 @@
         <property key="place-data-into-section" value="false"/>
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
-        <property key="preprocessor-macros" value="_SYS_CLK=96000000;_PB_DIV=1"/>
+        <property key="preprocessor-macros"
+                  value="_SYS_CLK=96000000;_PB_DIV=1;BOOTLOADER"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>
