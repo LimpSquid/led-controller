@@ -16,6 +16,7 @@ STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
 
 enum bootloader_state
 {
+    BOOTLOADER_INIT,
     BOOTLOADER_WAIT_BOOT_MAGIC,
     BOOTLOADER_IDLE,
 
@@ -26,11 +27,8 @@ enum bootloader_state
     BOOTLOADER_BOOT_CRC_VERIFY,
     BOOTLOADER_BOOT_CRC_BURN,
     BOOTLOADER_BOOT_RUN_APP,
-};
 
-struct bootloader_flags
-{
-    // TODO: crc ok?
+    BOOTLOADER_ERROR,
 };
 
 static int bootloader_rtask_init(void);
@@ -39,6 +37,7 @@ KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute)
 
 extern unsigned int const __app_mem_start;
 extern unsigned int const __app_mem_end;
+extern unsigned int const __app_entry_addr;
 extern crc16_t const __app_crc16;
 
 static unsigned int const * bootloader_app_mem_iterator = &__app_mem_start;
@@ -48,7 +47,6 @@ static unsigned int bootloader_row_cursor;
 static unsigned int bootloader_magic;
 static crc16_t bootloader_app_boot_crc;
 static crc16_t bootloader_app_mem_crc;
-static struct bootloader_flags bootloader_flags;
 static struct timer_module * bootloader_timer;
 
 static enum bootloader_state bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
@@ -62,7 +60,7 @@ inline static void __attribute__((always_inline)) bootloader_run_app(void)
 {
     sys_disable_global_interrupt();
 
-    void (*app_main)(void) = (void (*)(void))__app_mem_start;
+    void (*app_main)(void) = (void (*)(void))__app_entry_addr;
     app_main();
 }
 
@@ -73,8 +71,6 @@ int bootloader_rtask_init(void)
     if (bootloader_timer == NULL)
         goto fail_timer;
 
-    timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
-
     return KERN_INIT_SUCCESS;
 
 fail_timer:
@@ -84,9 +80,11 @@ fail_timer:
 
 void bootloader_rtask_execute(void)
 {
-    // TODO: eventually check the return code of NVM functions
-
     switch (bootloader_state) {
+        case BOOTLOADER_INIT:
+            timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
+            bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
+            break;
         case BOOTLOADER_WAIT_BOOT_MAGIC:
             if (bootloader_magic == BOOTLOADER_BOOT_MAGIC) { // Magic received within window, go into bootloader mode
                 timer_stop(bootloader_timer);
@@ -96,8 +94,6 @@ void bootloader_rtask_execute(void)
                 bootloader_state = BOOTLOADER_BOOT;
             }
             break;
-
-        default: // TODO, some other default state
         case BOOTLOADER_IDLE:
             break;
 
@@ -105,17 +101,22 @@ void bootloader_rtask_execute(void)
             bootloader_restore_app_mem_iterator();
             bootloader_state = BOOTLOADER_ERASE_PAGE;
             // no break
-        case BOOTLOADER_ERASE_PAGE:
-            nvm_erase_page_virt(bootloader_app_mem_iterator);
+        case BOOTLOADER_ERASE_PAGE: {
+            bool ok = nvm_erase_page_virt(bootloader_app_mem_iterator);
             bootloader_app_mem_iterator += NVM_PAGE_SIZE;
-            if (bootloader_app_mem_iterator == bootloader_app_mem_end)
+
+            if (!ok)
+                bootloader_state = BOOTLOADER_ERROR;
+            else if (bootloader_app_mem_iterator == bootloader_app_mem_end)
                 bootloader_state = BOOTLOADER_IDLE;
             break;
-        case BOOTLOADER_BURN_ROW:
-            nvm_write_row_phys(bootloader_row_burn_address);
+        }
+        case BOOTLOADER_BURN_ROW: {
+            bool ok = nvm_write_row_phys(bootloader_row_burn_address);
             bootloader_row_cursor = 0;
-            bootloader_state = BOOTLOADER_IDLE;
+            bootloader_state = ok ? BOOTLOADER_IDLE : BOOTLOADER_ERROR;
             break;
+        }
         case BOOTLOADER_BOOT:
             crc16_reset(&bootloader_app_mem_crc);
             bootloader_restore_app_mem_iterator();
@@ -126,7 +127,7 @@ void bootloader_rtask_execute(void)
             bootloader_app_mem_iterator += NVM_PAGE_SIZE;
             if (bootloader_app_mem_iterator == bootloader_app_mem_end) {
                 if (bootloader_app_mem_crc != bootloader_app_boot_crc)
-                    bootloader_state = BOOTLOADER_IDLE; // TODO: set error
+                    bootloader_state = BOOTLOADER_IDLE; // If we can't boot because of CRC mismatch, just go back into idle mode
                 else if(__app_crc16 == bootloader_app_mem_crc)
                     bootloader_state = BOOTLOADER_BOOT_RUN_APP;
                 else
@@ -134,12 +135,18 @@ void bootloader_rtask_execute(void)
             }
             break;
         case BOOTLOADER_BOOT_CRC_BURN:
-            nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc);
-            bootloader_state = BOOTLOADER_BOOT_RUN_APP;
+            bootloader_state = nvm_erase_page_virt(bootloader_app_mem_iterator)
+                ? BOOTLOADER_BOOT_RUN_APP
+                : BOOTLOADER_ERROR;
             break;
         case BOOTLOADER_BOOT_RUN_APP:
             if (bus_idle()) // Handle all in/out going bus messages before running the main app
                 bootloader_run_app();
+            break;
+
+        default:
+        case BOOTLOADER_ERROR:
+            // Do nothing until someone takes me out of error mode
             break;
     }
 }
@@ -152,6 +159,11 @@ bool bootloader_busy(void)
 bool bootloader_ready(void)
 {
     return !bootloader_busy();
+}
+
+bool bootloader_error(void)
+{
+    return bootloader_state == BOOTLOADER_ERROR;
 }
 
 void bootloader_set_magic(unsigned int magic)

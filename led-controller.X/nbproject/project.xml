@@ -28,7 +28,7 @@
                     <type>2</type>
                 </confElem>
                 <confElem>
-                    <name>app_test</name>
+                    <name>app_debug_test_suite</name>
                     <type>2</type>
                 </confElem>
                 <confElem>

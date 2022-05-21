@@ -146,7 +146,8 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000100 /* app */
+  kseg0_program_crc_mem        (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
+  kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D000004, LENGTH = 0x000000FC /* app */
   kseg0_program_mem            (rx) : ORIGIN = 0x9D000100, LENGTH = 0x00007F00 /* app */
   kseg0_program_exception_mem       : ORIGIN = 0x9D008000, LENGTH = 0x00001000 /* app */
   __kseg0_bootloader_mem            : ORIGIN = 0x9D009000, LENGTH = 0x00007000 /* reserved, used by bootloader */
@@ -178,6 +179,13 @@ SECTIONS
     KEEP(*(.kernel_tstack))
     __kernel_tstack_end = .;
   } >kseg0_program_kernel_mem
+
+  .app_crc :
+  {
+    /* Fill CRC with ones, so the bootloader can burn it after the app is written to flash */
+    SHORT(0xFFFF);
+    SHORT(0xFFFF);
+  } >kseg0_program_crc_mem
 }
 
 /*************************************************************************

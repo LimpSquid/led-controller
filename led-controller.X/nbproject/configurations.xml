@@ -36,7 +36,7 @@
                    projectFiles="true">
       <itemPath>linker/P32MX330F064H_app.ld</itemPath>
       <itemPath>linker/P32MX330F064H_bootloader.ld</itemPath>
-      <itemPath>linker/P32MX330F064H.ld</itemPath>
+      <itemPath>linker/P32MX330F064H_app_debug.ld</itemPath>
     </logicalFolder>
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
@@ -1353,7 +1353,7 @@
         <C32Global>
         </C32Global>
       </item>
-      <item path="linker/P32MX330F064H.ld" ex="true" overriding="false">
+      <item path="linker/P32MX330F064H_app_debug.ld" ex="true" overriding="false">
         <C32>
         </C32>
         <C32-AR>
@@ -2785,7 +2785,7 @@
         </C32Global>
       </item>
     </conf>
-    <conf name="app_test" type="2">
+    <conf name="app_debug_test_suite" type="2">
       <toolsSet>
         <developmentServer>localhost</developmentServer>
         <targetDevice>PIC32MX330F064H</targetDevice>
@@ -4070,6 +4070,8 @@
         </C32CPP>
         <C32Global>
         </C32Global>
+      </item>
+      <item path="linker/P32MX330F064H_app.ld" ex="true" overriding="false">
       </item>
       <item path="linker/P32MX330F064H_bootloader.ld" ex="true" overriding="false">
         <C32>
@@ -5503,7 +5505,7 @@
         <C32Global>
         </C32Global>
       </item>
-      <item path="linker/P32MX330F064H.ld" ex="true" overriding="false">
+      <item path="linker/P32MX330F064H_app.ld" ex="true" overriding="false">
         <C32>
         </C32>
         <C32-AR>
@@ -5519,7 +5521,7 @@
         <C32Global>
         </C32Global>
       </item>
-      <item path="linker/P32MX330F064H_app.ld" ex="true" overriding="false">
+      <item path="linker/P32MX330F064H_app_debug.ld" ex="true" overriding="false">
         <C32>
         </C32>
         <C32-AR>

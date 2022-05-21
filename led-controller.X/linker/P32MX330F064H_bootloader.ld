@@ -153,7 +153,8 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  __kseg0_app_mem                   : ORIGIN = 0x9D000000, LENGTH = 0x00009000 /* reserved, used by app */
+  kseg0_program_crc_mem        (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
+  __kseg0_app_mem                   : ORIGIN = 0x9D000004, LENGTH = 0x00008FFC /* reserved, used by app */
   kseg0_bootloader_info_mem    (rw) : ORIGIN = 0x9D009000, LENGTH = 0x00000100 /* bootloader */
   kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D009100, LENGTH = 0x00000100 /* bootloader */
   kseg0_program_mem            (rx) : ORIGIN = 0x9D009200, LENGTH = 0x00006E00 /* bootloader */
@@ -186,6 +187,17 @@ SECTIONS
     __kernel_tstack_end = .;
   } >kseg0_program_kernel_mem
 
+  .app_crc :
+  {
+    /* This section is part of the application program memory, each time  
+     * the app is flashed we will ensure that the CRC memory is filled 
+     * with ones so we can burn the actual CRC to flash afterwards.
+     */
+    __app_crc16 = .;
+    SHORT(0xFFFF);
+    SHORT(0xFFFF);
+  } >kseg0_program_crc_mem
+
   .bootloader_info :
   {
     __app_mem_start = .;
@@ -194,9 +206,6 @@ SECTIONS
     QUAD(_APP_MEM_END);
     __app_entry_addr = .;
     QUAD(_APP_ENTRY_ADDR);
-    __app_crc16 = .;
-    SHORT(0xFFFF);
-    SHORT(0xFFFF); /* Fill */
   } >kseg0_bootloader_info_mem
   ASSERT((_APP_MEM_END - _APP_MEM_START) % 4096 == 0, "Application program memory must be multiple of 4096")
 }

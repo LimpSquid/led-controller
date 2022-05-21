@@ -17,6 +17,7 @@ static enum bus_response_code bus_func_status(
     UNUSED2(broadcast, request_data);
 
     response_data->by_bootloader_status.bootloader_ready = bootloader_ready();
+    response_data->by_bootloader_status.bootloader_error = bootloader_error();
     return BUS_OK;
 }
 

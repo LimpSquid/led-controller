@@ -5,28 +5,42 @@
 #include <assert.h>
 #include <string.h>
 
+#define NVM_KEY_MAGIC_WORD_1        0xAA996655
+#define NVM_KEY_MAGIC_WORD_2        0x556699AA
+
+#define NVM_NVMCON_WREN_MASK        BIT(14)
+#define NVM_NVMCON_WR_MASK          BIT(15)
+#define NVM_NVMCON_OP_MASK          MASK(0xf, 0)
+#define NVM_NVMCON_ERR_MASK         (BIT(13) | BIT(12))
+
+enum nvm_operation
+{
+    nvm_write_word  = 1,
+    nvm_write_row   = 3,
+    nvm_page_erase  = 4,
+};
+
 nvm_word_t nvm_row_buffer[NVM_ROW_BUFFER_SIZE] __attribute__((aligned(NVM_WORD_SIZE)));
 STATIC_ASSERT(sizeof(nvm_word_t) == NVM_WORD_SIZE);
 
-static int nvm_unlock(unsigned int nvmop)
+static bool nvm_unlock(enum nvm_operation op)
 {
     sys_disable_global_interrupt();
 
-    NVMCON = nvmop;
-    // Write Keys
-    NVMKEY = 0xAA996655;
-    NVMKEY = 0x556699AA;
-    // Start the operation using the Set Register
-    NVMCONSET = 0x8000;
-    // Wait for operation to complete
-    while (NVMCON & 0x8000);
+    NVMCON = op & NVM_NVMCON_OP_MASK;
+    REG_SET(NVMCON, NVM_NVMCON_WREN_MASK);
+    NVMKEY = NVM_KEY_MAGIC_WORD_1;
+    NVMKEY = NVM_KEY_MAGIC_WORD_2;
+
+    // Start operation and wait until completion
+    REG_SET(NVMCON, NVM_NVMCON_WR_MASK);
+    while (NVMCON & NVM_NVMCON_WR_MASK);
+
+    REG_CLR(NVMCON, NVM_NVMCON_WREN_MASK);
 
     sys_enable_global_interrupt();
 
-    // Disable NVM write enable
-    NVMCONCLR = 0x0004000;
-    // Return WRERR and LVDERR Error Status Bits
-    return (NVMCON & 0x3000);
+    return !(NVMCON & NVM_NVMCON_ERR_MASK);
 }
 
 void nvm_init(void)
@@ -39,46 +53,46 @@ void nvm_buffer_reset(void)
     memset(nvm_row_buffer, 0xff, NVM_ROW_SIZE);
 }
 
-int nvm_erase_page_phy(void const * address)
+bool nvm_erase_page_phy(void const * address)
 {
     NVMADDR = (int)address;
-    return nvm_unlock(0x4004);
+    return nvm_unlock(nvm_page_erase);
 }
 
-int nvm_erase_page_virt(void const * address)
+bool nvm_erase_page_virt(void const * address)
 {
     NVMADDR = PHY_ADDR(address);
-    return nvm_unlock(0x4004);
+    return nvm_unlock(nvm_page_erase);
 }
 
-int nvm_write_row_phys(void const * address)
+bool nvm_write_row_phys(void const * address)
 {
     NVMADDR = (int)address;
     NVMSRCADDR = (int)nvm_row_buffer;
-    int result = nvm_unlock(0x4003);
+    bool result = nvm_unlock(nvm_write_row);
     nvm_buffer_reset();
     return result;
 }
 
-int nvm_write_row_virt(void const * address)
+bool nvm_write_row_virt(void const * address)
 {
     NVMADDR = PHY_ADDR(address);
     NVMSRCADDR = (int)nvm_row_buffer;
-    int result = nvm_unlock(0x4003);
+    bool result = nvm_unlock(nvm_write_row);
     nvm_buffer_reset();
     return result;
 }
 
-int nvm_write_word_phys(void const * address, nvm_word_t word)
+bool nvm_write_word_phys(void const * address, nvm_word_t word)
 {
     NVMADDR = (int)address;
     NVMDATA = word;
-    return nvm_unlock(0x4001);
+    return nvm_unlock(nvm_write_word);
 }
 
-int nvm_write_word_virt(void const * address, nvm_word_t word)
+bool nvm_write_word_virt(void const * address, nvm_word_t word)
 {
     NVMADDR = PHY_ADDR(address);
     NVMDATA = word;
-    return nvm_unlock(0x4001);
+    return nvm_unlock(nvm_write_word);
 }

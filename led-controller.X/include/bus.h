@@ -29,15 +29,16 @@ union __attribute__((packed)) bus_data
     // Custom types
     struct
     {
-        unsigned char layer_ready       :1;
-        unsigned char layer_dma_error   :1;
-        unsigned int                    :30;
+        bool layer_ready            :1;
+        bool layer_dma_error        :1;
+        unsigned int                :30;
     } by_app_status;
     
     struct
     {
-        unsigned char bootloader_ready  :1;
-        unsigned int                    :31;
+        bool bootloader_ready       :1;
+        bool bootloader_error       :1;
+        unsigned int                :30;
     } by_bootloader_status;
 
     struct
@@ -45,7 +46,7 @@ union __attribute__((packed)) bus_data
         unsigned char major;
         unsigned char minor;
         unsigned char patch;
-        unsigned char                   :8;
+        unsigned char               :8;
     } by_version;
 };
 
