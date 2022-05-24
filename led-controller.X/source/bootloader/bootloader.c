@@ -114,6 +114,7 @@ void bootloader_rtask_execute(void)
         case BOOTLOADER_BURN_ROW: {
             bool ok = nvm_write_row_phys(bootloader_row_burn_address);
             bootloader_row_cursor = 0;
+            // Buffer is automatically cleared after a successful write
             bootloader_state = ok ? BOOTLOADER_IDLE : BOOTLOADER_ERROR;
             break;
         }
@@ -205,10 +206,14 @@ bool bootloader_boot(unsigned short app_crc16)
     return true;
 }
 
-void bootloader_row_reset()
+bool bootloader_row_reset()
 {
+     if (bootloader_busy())
+        return false;
+
     bootloader_row_cursor = 0;
     nvm_buffer_reset();
+    return true;
 }
 
 unsigned short bootloader_row_crc16()
@@ -221,6 +226,8 @@ unsigned short bootloader_row_crc16()
 
 bool bootloader_row_push_word(unsigned int word)
 {
+    if (bootloader_busy())
+        return false;
     if (bootloader_row_cursor >= NVM_ROW_BUFFER_SIZE)
         return false;
 
@@ -231,6 +238,8 @@ bool bootloader_row_push_word(unsigned int word)
 bool bootloader_row_burn(unsigned int phy_address)
 {
     if (bootloader_busy())
+        return false;
+    if (bootloader_row_cursor < NVM_ROW_BUFFER_SIZE)
         return false;
     if (phy_address < PHY_ADDR(__app_mem_start) ||
         phy_address > (PHY_ADDR(__app_mem_end) - NVM_ROW_SIZE))

@@ -77,8 +77,9 @@ static enum bus_response_code bus_func_bootloader_row_reset(
 {
     UNUSED3(broadcast, request_data, response_data);
 
-    bootloader_row_reset();
-    return BUS_OK;
+    return bootloader_row_reset()
+        ? BUS_OK
+        : BUS_ERR_AGAIN;
 }
 
 static enum bus_response_code bus_func_bootloader_row_push_word(
