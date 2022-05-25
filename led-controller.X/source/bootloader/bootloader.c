@@ -1,11 +1,11 @@
 #include <bootloader/bootloader.h>
-#include <kernel_task.h>
-#include <bus.h>
-#include <nvm.h>
-#include <timer.h>
-#include <sys.h>
-#include <util.h>
-#include <assert.h>
+#include <core/kernel_task.h>
+#include <core/bus.h>
+#include <core/nvm.h>
+#include <core/timer.h>
+#include <core/sys.h>
+#include <core/util.h>
+#include <core/assert.h>
 #include <xc.h>
 
 STATIC_ASSERT(sizeof(unsigned short) == sizeof(crc16_t));

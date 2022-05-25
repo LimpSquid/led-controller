@@ -16,19 +16,21 @@
       <logicalFolder name="f2" displayName="bootloader" projectFiles="true">
         <itemPath>include/bootloader/bootloader.h</itemPath>
       </logicalFolder>
-      <itemPath>include/kernel.h</itemPath>
-      <itemPath>include/kernel_task.h</itemPath>
-      <itemPath>include/kernel_config.h</itemPath>
-      <itemPath>include/sys.h</itemPath>
-      <itemPath>include/timer.h</itemPath>
-      <itemPath>include/assert.h</itemPath>
-      <itemPath>include/print.h</itemPath>
-      <itemPath>include/rs485.h</itemPath>
-      <itemPath>include/bus.h</itemPath>
-      <itemPath>include/bus_address.h</itemPath>
-      <itemPath>include/timer_config.h</itemPath>
-      <itemPath>include/util.h</itemPath>
-      <itemPath>include/nvm.h</itemPath>
+      <logicalFolder name="f3" displayName="core" projectFiles="true">
+        <itemPath>include/core/kernel.h</itemPath>
+        <itemPath>include/core/kernel_task.h</itemPath>
+        <itemPath>include/core/kernel_config.h</itemPath>
+        <itemPath>include/core/sys.h</itemPath>
+        <itemPath>include/core/timer.h</itemPath>
+        <itemPath>include/core/assert.h</itemPath>
+        <itemPath>include/core/print.h</itemPath>
+        <itemPath>include/core/rs485.h</itemPath>
+        <itemPath>include/core/bus.h</itemPath>
+        <itemPath>include/core/bus_address.h</itemPath>
+        <itemPath>include/core/timer_config.h</itemPath>
+        <itemPath>include/core/util.h</itemPath>
+        <itemPath>include/core/nvm.h</itemPath>
+      </logicalFolder>
       <itemPath>include/version.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
@@ -56,18 +58,20 @@
         <itemPath>source/bootloader/bus_func_impl.c</itemPath>
         <itemPath>source/bootloader/bootloader.c</itemPath>
       </logicalFolder>
-      <itemPath>source/kernel.c</itemPath>
-      <itemPath>source/sys.c</itemPath>
+      <logicalFolder name="f3" displayName="core" projectFiles="true">
+        <itemPath>source/core/kernel.c</itemPath>
+        <itemPath>source/core/sys.c</itemPath>
+        <itemPath>source/core/timer.c</itemPath>
+        <itemPath>source/core/assert.c</itemPath>
+        <itemPath>source/core/print.c</itemPath>
+        <itemPath>source/core/rs485.c</itemPath>
+        <itemPath>source/core/bus.c</itemPath>
+        <itemPath>source/core/crc16.c</itemPath>
+        <itemPath>source/core/bus_address.c</itemPath>
+        <itemPath>source/core/io.c</itemPath>
+        <itemPath>source/core/nvm.c</itemPath>
+      </logicalFolder>
       <itemPath>source/config_word.c</itemPath>
-      <itemPath>source/timer.c</itemPath>
-      <itemPath>source/assert.c</itemPath>
-      <itemPath>source/print.c</itemPath>
-      <itemPath>source/rs485.c</itemPath>
-      <itemPath>source/bus.c</itemPath>
-      <itemPath>source/crc16.c</itemPath>
-      <itemPath>source/bus_address.c</itemPath>
-      <itemPath>source/io.c</itemPath>
-      <itemPath>source/nvm.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -80,6 +84,7 @@
     <Elem>include</Elem>
     <Elem>source</Elem>
     <Elem>app</Elem>
+    <Elem>core</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>

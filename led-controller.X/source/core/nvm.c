@@ -1,8 +1,8 @@
-#include <nvm.h>
+#include <core/nvm.h>
+#include <core/sys.h>
+#include <core/util.h>
+#include <core/assert.h>
 #include <xc.h>
-#include <sys.h>
-#include <util.h>
-#include <assert.h>
 #include <string.h>
 
 #define NVM_KEY_MAGIC_WORD_1        0xAA996655

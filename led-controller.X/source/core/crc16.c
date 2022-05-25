@@ -1,5 +1,5 @@
-#include <util.h>
-#include <assert.h>
+#include <core/util.h>
+#include <core/assert.h>
 
 #define CRC16_POLYNOMIAL    0x1021
 #define CRC16_SEED          0xffff

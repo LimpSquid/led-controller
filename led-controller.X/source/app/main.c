@@ -1,10 +1,10 @@
 #include <app/dma.h>
 #include <app/pwm.h>
-#include <nvm.h>
-#include <sys.h>
-#include <kernel.h>
-#include <kernel_task.h>
-#include <bus_address.h>
+#include <core/nvm.h>
+#include <core/sys.h>
+#include <core/kernel.h>
+#include <core/kernel_task.h>
+#include <core/bus_address.h>
 #include <xc.h>
 
 #define EXCEPTION_MEM_BASE  0x9D008000 // see memory section `kseg0_program_exception_mem` in linker file)

@@ -1,5 +1,9 @@
 #include <xc.h>
 
+// Note: making changes here will require you to flash
+// firmware to the devices with an external programmer.
+// The bootloader doesn't program the config words.
+
 // DEVCFG3
 // USERID = No Setting
 #pragma config FSRSSEL = PRIORITY_7     // Shadow Register Set Priority Select (SRS Priority 7)

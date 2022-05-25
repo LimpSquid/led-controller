@@ -1,9 +1,9 @@
 #include <app/pwm.h>
-#include <assert.h>
-#include <sys.h>
-#include <util.h>
-#include <xc.h>
+#include <core/assert.h>
+#include <core/sys.h>
+#include <core/util.h>
 #include <sys/attribs.h>
+#include <xc.h>
 
 // Below are the output compare related defines
 #define PWM_OC_PR(frequency)                (SYS_PB_CLOCK / (frequency * PWM_OC_PRESCALER) - 1)

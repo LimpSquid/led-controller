@@ -1,8 +1,8 @@
-#include <timer.h>
-#include <timer_config.h>
-#include <kernel_task.h>
-#include <assert.h>
-#include <util.h>
+#include <core/timer.h>
+#include <core/timer_config.h>
+#include <core/kernel_task.h>
+#include <core/assert.h>
+#include <core/util.h>
 #include <stddef.h>
 #include <limits.h>
 

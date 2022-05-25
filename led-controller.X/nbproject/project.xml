@@ -17,6 +17,7 @@
                 <sourceRootElem>include</sourceRootElem>
                 <sourceRootElem>source</sourceRootElem>
                 <sourceRootElem>app</sourceRootElem>
+                <sourceRootElem>core</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>

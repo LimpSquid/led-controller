@@ -1,10 +1,10 @@
-#include <bus.h>
-#include <assert.h>
-#include <timer.h>
-#include <sys.h>
+#include <core/bus.h>
+#include <core/assert.h>
+#include <core/timer.h>
+#include <core/sys.h>
+#include <app/layer.h>
 #include <version.h>
 #include <stddef.h>
-#include <app/layer.h>
 
 #define BUS_FUNCS_SIZE      (sizeof(bus_funcs) / sizeof(bus_func_t))
 #define UNUSED1(x)          ((void)x)

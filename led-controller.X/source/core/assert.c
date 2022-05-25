@@ -1,5 +1,5 @@
-#include <assert.h>
-#include <print.h>
+#include <core/assert.h>
+#include <core/print.h>
 #include <string.h>
 
 #define ASSERT_BUFFER_SIZE  512

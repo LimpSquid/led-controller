@@ -1,6 +1,6 @@
-#include <sys.h>
-#include <util.h>
-#include <assert.h>
+#include <core/sys.h>
+#include <core/util.h>
+#include <core/assert.h>
 #include <xc.h>
 
 #define SYS_OSCCON_REG                  OSCCON

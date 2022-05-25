@@ -1,11 +1,11 @@
-#include <rs485.h>
-#include <kernel_task.h>
-#include <assert.h>
-#include <sys.h>
-#include <util.h>
-#include <timer.h>
-#include <xc.h>
+#include <core/rs485.h>
+#include <core/kernel_task.h>
+#include <core/assert.h>
+#include <core/sys.h>
+#include <core/util.h>
+#include <core/timer.h>
 #include <sys/attribs.h>
+#include <xc.h>
 
 #define RS485_BAUDRATE              115200LU
 #define RS485_TX_FIFO_SIZE          100 // [1, 256)

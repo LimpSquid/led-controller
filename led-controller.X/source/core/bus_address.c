@@ -1,7 +1,7 @@
-#include <bus_address.h>
-#include <assert.h>
-#include <timer.h>
-#include <util.h>
+#include <core/bus_address.h>
+#include <core/assert.h>
+#include <core/timer.h>
+#include <core/util.h>
 
 #define BUS_ADDRESS_BITS            5
 #define BUS_ADDRESS_SAMPLE_TIME     250 // In milliseconds

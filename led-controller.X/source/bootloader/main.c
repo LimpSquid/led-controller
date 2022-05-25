@@ -1,8 +1,8 @@
-#include <sys.h>
-#include <nvm.h>
-#include <kernel.h>
-#include <kernel_task.h>
-#include <bus_address.h>
+#include <core/sys.h>
+#include <core/nvm.h>
+#include <core/kernel.h>
+#include <core/kernel_task.h>
+#include <core/bus_address.h>
 #include <xc.h>
 
 #define EXCEPTION_MEM_BASE  0x9fc01000 // see memory section `kseg0_program_exception_mem` in linker file)

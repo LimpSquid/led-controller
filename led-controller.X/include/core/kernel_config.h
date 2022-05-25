@@ -1,8 +1,7 @@
 #ifndef KERNEL_CONFIG_H
 #define KERNEL_CONFIG_H
 
-#include <sys.h>
-#include <util.h>
+#include <core/sys.h> // For SYS_PB_CLOCK
 
 #define KERN_TMR_REG            TMR5            // Hardware timer
 #define KERN_TMR_REG_DATA_TYPE  unsigned short  // Hardware timer data type

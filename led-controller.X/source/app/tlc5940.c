@@ -3,14 +3,14 @@
 #include <app/spi.h>
 #include <app/dma.h>
 #include <app/pwm.h>
-#include <sys.h>
-#include <util.h>
-#include <kernel_task.h>
-#include <assert.h>
+#include <core/sys.h>
+#include <core/util.h>
+#include <core/kernel_task.h>
+#include <core/assert.h>
+#include <sys/attribs.h>
 #include <stddef.h>
 #include <string.h>
 #include <xc.h>
-#include <sys/attribs.h>
 
 #if !defined(TLC5940_NUM_OF_DEVICES)
     #error "Number of TLC5940 devices is not specified, please define 'TLC5940_NUM_OF_DEVICES'"

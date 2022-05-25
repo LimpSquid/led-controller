@@ -1,8 +1,8 @@
-#include <bus.h>
-#include <assert.h>
-#include <stddef.h>
-#include <version.h>
+#include <core/bus.h>
+#include <core/assert.h>
 #include <bootloader/bootloader.h>
+#include <version.h>
+#include <stddef.h>
 
 #define BUS_FUNCS_SIZE      (sizeof(bus_funcs) / sizeof(bus_func_t))
 #define UNUSED1(x)          ((void)x)

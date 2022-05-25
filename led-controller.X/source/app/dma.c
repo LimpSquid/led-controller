@@ -1,8 +1,8 @@
 #include <app/dma.h>
-#include <assert.h>
-#include <util.h>
-#include <xc.h>
+#include <core/assert.h>
+#include <core/util.h>
 #include <sys/attribs.h>
+#include <xc.h>
 
 #define DMA_NUMBER_OF_CHANNELS          (sizeof(dma_channels) / sizeof(dma_channels[0]))
 #define DMA_INTERRUPT_PRIORITY          0x3 // Interrupt handlers must use IPL3SOFT

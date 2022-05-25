@@ -3,14 +3,14 @@
 #include <app/tlc5940.h>
 #include <app/spi.h>
 #include <app/dma.h>
-#include <kernel_task.h>
-#include <timer.h>
-#include <sys.h>
-#include <util.h>
+#include <core/kernel_task.h>
+#include <core/timer.h>
+#include <core/sys.h>
+#include <core/util.h>
+#include <core/assert.h>
 #include <stddef.h>
 #include <string.h>
 #include <xc.h>
-#include <assert.h>
 
 #define LAYER_NUM_OF_ROWS           16
 #define LAYER_NUM_OF_COLS           16

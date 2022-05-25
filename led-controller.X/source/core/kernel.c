@@ -1,8 +1,8 @@
-#include <kernel.h>
-#include <kernel_task.h>
-#include <kernel_config.h>
-#include <assert.h>
-#include <util.h>
+#include <core/kernel.h>
+#include <core/kernel_task.h>
+#include <core/kernel_config.h>
+#include <core/assert.h>
+#include <core/util.h>
 #include <stddef.h>
 #include <xc.h>
 

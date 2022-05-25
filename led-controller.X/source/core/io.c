@@ -1,5 +1,5 @@
-#include <util.h>
-#include <assert.h>
+#include <core/util.h>
+#include <core/assert.h>
 
 void io_configure(enum io_direction direction, struct io_pin const * pins, unsigned int size)
 {
