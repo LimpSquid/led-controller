@@ -1,12 +1,12 @@
 #ifdef TEST_SUITE_ENABLE
 #warning "TEST_SUITE_ENABLE defined"
 #include <app/layer.h>
-#include <kernel_task.h>
-#include <timer.h>
+#include <core/kernel_task.h>
+#include <core/timer.h>
+#include <core/bus_address.h>
+#include <core/util.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <bus_address.h>
-#include <util.h>
 
 #define TEST_SUITE_X_PIXELS             16
 #define TEST_SUITE_Y_PIXELS             16

@@ -5,8 +5,6 @@
 #include <core/bus_address.h>
 #include <xc.h>
 
-#define EXCEPTION_MEM_BASE  0x9fc01000 // see memory section `kseg0_program_exception_mem` in linker file)
-
 void bootloader_cpu_init()
 {
     _CP0_SET_EBASE(EXCEPTION_MEM_BASE);

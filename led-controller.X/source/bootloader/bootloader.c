@@ -33,7 +33,7 @@ enum bootloader_state
 
 static int bootloader_rtask_init(void);
 static void bootloader_rtask_execute(void);
-KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute)
+//KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute) // FIXME: uncommenting this will crash the CPU, investigate...
 
 extern unsigned int const __app_mem_start;
 extern unsigned int const __app_mem_end;
@@ -80,6 +80,8 @@ fail_timer:
 
 void bootloader_rtask_execute(void)
 {
+    // NOT EXECUTING SEE LINE 36!!!!!!!!!!!!!
+
     switch (bootloader_state) {
         case BOOTLOADER_INIT:
             timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);

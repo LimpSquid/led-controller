@@ -3,17 +3,17 @@
 
 #ifdef __DEBUG
     // App or bootloader debug
-    #define VERSION_MAJOR   255
-    #define VERSION_MINOR   255
-    #define VERSION_PATCH   255
-#elif BOOTLOADER
-    // Bootloader release
     #define VERSION_MAJOR   0
     #define VERSION_MINOR   0
     #define VERSION_PATCH   0
-#else 
-    // App release
+#elif BOOTLOADER
+    // Bootloader
     #define VERSION_MAJOR   0
+    #define VERSION_MINOR   0
+    #define VERSION_PATCH   1
+#else
+    // App
+    #define VERSION_MAJOR   2
     #define VERSION_MINOR   0
     #define VERSION_PATCH   2
 #endif

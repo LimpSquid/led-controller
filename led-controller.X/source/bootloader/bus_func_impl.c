@@ -144,7 +144,7 @@ const bus_func_t bus_funcs[] =
     bus_func_bootloader_row_push_word,  // 134
     bus_func_bootloader_row_burn,       // 135
     bus_func_bootloader_row_crc16,      // 136
-    bus_func_version,
+    bus_func_version,                   // 137
 };
 size_t const bus_funcs_size = BUS_FUNCS_SIZE;
 size_t const bus_funcs_start = 128;

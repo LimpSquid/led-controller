@@ -153,7 +153,7 @@ static void bus_rtask_execute(void)
             if (bus_request.frame.command < bus_funcs_start || bus_request.frame.command >= (bus_funcs_start + bus_funcs_size))
                 bus_response.frame.response_code = BUS_ERR_INVALID_COMMAND;
             else {
-                bus_func_t handler = bus_funcs[bus_request.frame.command];
+                bus_func_t handler = bus_funcs[bus_request.frame.command - bus_funcs_start];
                 bus_response.frame.response_code = (handler == NULL)
                     ? BUS_ERR_INVALID_COMMAND
                     : handler(broadcast, &bus_request.frame.payload, &bus_response.frame.payload);
