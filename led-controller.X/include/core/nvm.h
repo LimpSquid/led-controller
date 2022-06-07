@@ -3,12 +3,14 @@
 
 #include <stdbool.h>
 
+// All in bytes
 #define NVM_WORD_SIZE       4
 #define NVM_DWORD_SIZE      (NVM_WORD_SIZE * 2)
 #define NVM_ROW_SIZE        512
 #define NVM_PAGE_SIZE       (NVM_ROW_SIZE * 8)
 #define NVM_ROW_BUFFER_SIZE (NVM_ROW_SIZE / NVM_WORD_SIZE)
 
+typedef unsigned char nvm_byte_t;
 typedef unsigned int nvm_word_t;
 
 // Aligned buffer

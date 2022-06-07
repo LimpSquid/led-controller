@@ -33,27 +33,27 @@ enum bootloader_state
 
 static int bootloader_rtask_init(void);
 static void bootloader_rtask_execute(void);
-//KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute) // FIXME: uncommenting this will crash the CPU, investigate...
+KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute) // FIXME: uncommenting this will crash the CPU, investigate...
 
 extern unsigned int const __app_mem_start;
 extern unsigned int const __app_mem_end;
 extern unsigned int const __app_entry_addr;
 extern crc16_t const __app_crc16;
 
-static unsigned int const * bootloader_app_mem_iterator = &__app_mem_start;
-static unsigned int const * const bootloader_app_mem_end = &__app_mem_end;
-static unsigned int const * bootloader_row_burn_address;
+static nvm_byte_t const * bootloader_app_mem_iterator;
+static nvm_byte_t const * bootloader_app_mem_end;
+static void const * bootloader_row_burn_address;
 static unsigned int bootloader_row_cursor;
 static unsigned int bootloader_magic;
 static crc16_t bootloader_app_boot_crc;
 static crc16_t bootloader_app_mem_crc;
 static struct timer_module * bootloader_timer;
 
-static enum bootloader_state bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
+static enum bootloader_state bootloader_state = BOOTLOADER_INIT;
 
 inline static void __attribute__((always_inline)) bootloader_restore_app_mem_iterator(void)
 {
-    bootloader_app_mem_iterator = &__app_mem_start;
+    bootloader_app_mem_iterator = (nvm_byte_t const *)__app_mem_start;
 }
 
 inline static void __attribute__((always_inline)) bootloader_run_app(void)
@@ -66,6 +66,10 @@ inline static void __attribute__((always_inline)) bootloader_run_app(void)
 
 int bootloader_rtask_init(void)
 {
+    // FIXME: Not ideal to do this here, but needed since this is not a constant expression
+    bootloader_app_mem_iterator = (nvm_byte_t const *)__app_mem_start;
+    bootloader_app_mem_end = (nvm_byte_t const *)__app_mem_end;
+
     // Initialize timer
     bootloader_timer = timer_construct(TIMER_TYPE_COUNTDOWN, NULL);
     if (bootloader_timer == NULL)
@@ -80,8 +84,6 @@ fail_timer:
 
 void bootloader_rtask_execute(void)
 {
-    // NOT EXECUTING SEE LINE 36!!!!!!!!!!!!!
-
     switch (bootloader_state) {
         case BOOTLOADER_INIT:
             timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
@@ -247,7 +249,7 @@ bool bootloader_row_burn(unsigned int phy_address)
         phy_address > (PHY_ADDR(__app_mem_end) - NVM_ROW_SIZE))
         return false;
 
-    bootloader_row_burn_address = (unsigned int *)phy_address;
+    bootloader_row_burn_address = (void *)phy_address;
     bootloader_state = BOOTLOADER_BURN_ROW;
     return true;
 }

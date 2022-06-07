@@ -133,7 +133,7 @@ static enum bus_response_code bus_func_version(
     return BUS_OK;
 }
 
-const bus_func_t bus_funcs[] =
+bus_func_t const bus_funcs[] =
 {
     bus_func_status,                    // 128
     bus_func_bootloader_info,           // 129

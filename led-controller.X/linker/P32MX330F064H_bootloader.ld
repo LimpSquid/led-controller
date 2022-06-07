@@ -85,7 +85,7 @@ OPTIONAL("libmchp_peripheral_32MX330F064H.a")
  *   xc32-gcc src.c -Wl,--defsym=_ebase_address=0x9D001000
  *************************************************************************/
 PROVIDE(_vector_spacing = 0x0001);
-PROVIDE(_ebase_address = 0x9D00F000);
+PROVIDE(_ebase_address = 0x9FC01000);
 
 /*************************************************************************
  * Memory Address Equates

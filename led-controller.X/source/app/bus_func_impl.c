@@ -104,7 +104,7 @@ static enum bus_response_code bus_func_layer_clear(
     return BUS_OK;
 }
 
-const bus_func_t bus_funcs[] =
+bus_func_t const bus_funcs[] =
 {
     NULL,                               // 0
     bus_func_layer_exec_lod,            // 1

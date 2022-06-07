@@ -33,10 +33,12 @@ static bool nvm_unlock(enum nvm_operation op)
     NVMKEY = NVM_KEY_MAGIC_WORD_2;
 
     // Start operation and wait until completion
-    REG_SET(NVMCON, NVM_NVMCON_WR_MASK);
+    // Note: it's important to use the atomic SET shadow register
+    //       to start the operation, a normal bitwise OR assignment
+    //       results in a WRERR
+    ATOMIC_REG_SET(NVMCON, NVM_NVMCON_WR_MASK);
     while (NVMCON & NVM_NVMCON_WR_MASK);
-
-    REG_CLR(NVMCON, NVM_NVMCON_WREN_MASK);
+    ATOMIC_REG_CLR(NVMCON, NVM_NVMCON_WREN_MASK);
 
     sys_enable_global_interrupt();
 
