@@ -70,7 +70,7 @@ bool nvm_erase_page_virt(void const * address)
 bool nvm_write_row_phys(void const * address)
 {
     NVMADDR = (int)address;
-    NVMSRCADDR = (int)nvm_row_buffer;
+    NVMSRCADDR = PHY_ADDR(nvm_row_buffer);
     bool result = nvm_unlock(nvm_write_row);
     nvm_buffer_reset();
     return result;
@@ -79,7 +79,7 @@ bool nvm_write_row_phys(void const * address)
 bool nvm_write_row_virt(void const * address)
 {
     NVMADDR = PHY_ADDR(address);
-    NVMSRCADDR = (int)nvm_row_buffer;
+    NVMSRCADDR = PHY_ADDR(nvm_row_buffer);
     bool result = nvm_unlock(nvm_write_row);
     nvm_buffer_reset();
     return result;
