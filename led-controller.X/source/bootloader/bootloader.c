@@ -148,7 +148,7 @@ void bootloader_rtask_execute(void)
             }
             break;
         case BOOTLOADER_BOOT_CRC_BURN:
-            bootloader_state = true /* nvm_erase_page_virt(bootloader_app_mem_iterator)*/
+            bootloader_state = true // FIXME: burn CRC
                 ? BOOTLOADER_BOOT_RUN_APP
                 : BOOTLOADER_ERROR;
             break;
