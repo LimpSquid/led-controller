@@ -60,10 +60,11 @@ inline static void __attribute__((always_inline)) bootloader_restore_app_mem_ite
 
 inline static void __attribute__((always_inline)) bootloader_run_app(void)
 {
+    SYS_TUCK_IN_BONZO();
     sys_disable_global_interrupt();
 
-    void (*app_main)(void) = (void (*)(void))__app_entry_addr;
-    app_main();
+    void (*app)(void) = (void (*)(void))__app_entry_addr;
+    app();
 }
 
 int bootloader_rtask_init(void)
@@ -148,7 +149,7 @@ void bootloader_rtask_execute(void)
             }
             break;
         case BOOTLOADER_BOOT_CRC_BURN:
-            bootloader_state = true // FIXME: burn CRC
+            bootloader_state = nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc) // FIXME: doesn't "match" after restart?
                 ? BOOTLOADER_BOOT_RUN_APP
                 : BOOTLOADER_ERROR;
             break;

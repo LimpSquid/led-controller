@@ -109,7 +109,7 @@ _GEN_EXCPT_ADDR                = _ebase_address + 0x180;
 _APP_MEM_SIZE                  = 0x00009000;
 _APP_MEM_START                 = 0x9D000000;
 _APP_MEM_END                   = _APP_MEM_START + _APP_MEM_SIZE;
-_APP_ENTRY_ADDR                = 0x9D000100;
+_APP_ENTRY_ADDR                = 0xBD007E00; /* Startup code */
 /*************************************************************************
  * Memory Regions
  *

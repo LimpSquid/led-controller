@@ -82,7 +82,7 @@ OPTIONAL("libmchp_peripheral_32MX330F064H.a")
  * To override the defaults, define the _vector_spacing & _ebase_address
  * symbols using the --defsym linker opt as shown in these examples:
  *   xc32-gcc src.c -Wl,--defsym=_vector_spacing=2
- *   xc32-gcc src.c -Wl,--defsym=_ebase_address=0x9D001000
+ *   xc32-gcc src.c -Wl,--defsym=_ebase_address=0x9D008000
  *************************************************************************/
 PROVIDE(_vector_spacing = 0x0001);
 PROVIDE(_ebase_address = 0x9D008000);
@@ -142,18 +142,20 @@ MEMORY
 
   /* Things to put in non-cacheable memory:
    * - Reset vector
+   * - Startup code
    * - Bootstrap exception handler
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
   kseg0_program_crc_mem        (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
   kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D000004, LENGTH = 0x000000FC /* app */
-  kseg0_program_mem            (rx) : ORIGIN = 0x9D000100, LENGTH = 0x00007F00 /* app */
+  kseg0_program_mem            (rx) : ORIGIN = 0x9D000100, LENGTH = 0x00007D00 /* app */
   kseg0_program_exception_mem       : ORIGIN = 0x9D008000, LENGTH = 0x00001000 /* app */
   __kseg0_bootloader_mem            : ORIGIN = 0x9D009000, LENGTH = 0x00007000 /* reserved, used by bootloader */
   kseg0_boot_mem                    : ORIGIN = 0x9FC00490, LENGTH = 0x00000970
   __kseg0_bootloader_exception_mem  : ORIGIN = 0x9FC01000, LENGTH = 0x00001000 /* reserved, used by bootloader */
   kseg1_boot_mem                    : ORIGIN = 0xBFC00000, LENGTH = 0x00000490
+  kseg1_startup_mem                 : ORIGIN = 0xBD007E00, LENGTH = 0x00000200 /* app */
   debug_exec_mem                    : ORIGIN = 0xBFC02000, LENGTH = 0x00000FF0
   config3                           : ORIGIN = 0xBFC02FF0, LENGTH = 0x00000004
   config2                           : ORIGIN = 0xBFC02FF4, LENGTH = 0x00000004
@@ -183,9 +185,16 @@ SECTIONS
   .app_crc :
   {
     /* Fill CRC with ones, so the bootloader can burn it after the app is written to flash */
+    KEEP(*(.app_crc))
     SHORT(0xFFFF);
     SHORT(0xFFFF);
   } >kseg0_program_crc_mem
+
+  /* Since we want to run the startup code of the application when booting from the bootloader */
+  .reset_startup ORIGIN(kseg1_startup_mem) :
+  {
+    KEEP(*(.reset.startup))
+  } >kseg1_startup_mem
 }
 
 /*************************************************************************
@@ -213,7 +222,6 @@ SECTIONS
   .reset _RESET_ADDR :
   {
     KEEP(*(.reset))
-    KEEP(*(.reset.startup))
   } > kseg1_boot_mem
   .bev_excpt _BEV_EXCPT_ADDR :
   {

@@ -87,14 +87,14 @@ bool nvm_write_row_virt(void const * address)
 
 bool nvm_write_word_phys(void const * address, nvm_word_t word)
 {
-    NVMADDR = (int)address;
     NVMDATA = word;
+    NVMADDR = (int)address;
     return nvm_unlock(nvm_write_word);
 }
 
 bool nvm_write_word_virt(void const * address, nvm_word_t word)
 {
-    NVMADDR = PHY_ADDR(address);
     NVMDATA = word;
+    NVMADDR = PHY_ADDR(address);
     return nvm_unlock(nvm_write_word);
 }
