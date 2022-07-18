@@ -1,4 +1,3 @@
-#define TEST_SUITE_ENABLE
 #ifdef TEST_SUITE_ENABLE
 #warning "TEST_SUITE_ENABLE defined"
 #include <app/layer.h>
