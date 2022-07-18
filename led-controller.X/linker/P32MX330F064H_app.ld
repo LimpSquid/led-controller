@@ -188,7 +188,7 @@ SECTIONS
     KEEP(*(.app_crc))
     LONG(0xFFFFFFFF);
   } >kseg0_program_crc_mem
-  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must be 4")
+  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must have a size of 4")
 
   /* Since we want to run the startup code of the application when booting from the bootloader */
   .reset_startup ORIGIN(kseg1_startup_mem) :

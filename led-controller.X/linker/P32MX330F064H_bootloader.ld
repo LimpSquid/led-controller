@@ -149,6 +149,7 @@ MEMORY
 
   /* Things to put in non-cacheable memory:
    * - Reset vector
+   * - Startup code
    * - Bootstrap exception handler
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
@@ -192,7 +193,7 @@ SECTIONS
     __app_crc16 = .;
     LONG(0x00000000); /* Must not be 0xFFFFFFFF */
   } >kseg0_program_crc_mem
-  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must be 4")
+  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must have a size of 4")
 
   .bootloader_info :
   {

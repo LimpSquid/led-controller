@@ -113,7 +113,10 @@ static enum bus_response_code bus_func_bootloader_row_crc16(
 {
     UNUSED2(broadcast, request_data);
 
-    response_data->by_uint16 = bootloader_row_crc16();
+    unsigned short result;
+    if (!bootloader_row_crc16(&result))
+        return BUS_ERR_AGAIN;
+    response_data->by_uint16 = result;
     return BUS_OK;
 }
 

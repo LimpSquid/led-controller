@@ -203,6 +203,10 @@ void bootloader_set_magic(unsigned int magic)
 
 bool bootloader_info(enum bootloader_info info, unsigned int * out)
 {
+    ASSERT_NOT_NULL(out);
+    if (out == NULL)
+        return false;
+
     switch (info) {
         case BOOTLOADER_INFO_MEM_PHY_START:     *out = PHY_ADDR(__app_mem_start);   break;
         case BOOTLOADER_INFO_MEM_PHY_END:       *out = PHY_ADDR(__app_mem_end);     break;
@@ -245,9 +249,17 @@ bool bootloader_row_reset()
     return true;
 }
 
-unsigned short bootloader_row_crc16()
+bool bootloader_row_crc16(unsigned short * out)
 {
-    return bootloader_nvm_row_crc;
+    ASSERT_NOT_NULL(out);
+    if (out == NULL)
+        return false;
+
+    if (bootloader_row_cursor < NVM_ROW_BUFFER_SIZE)
+        return false;
+
+    *out = bootloader_nvm_row_crc;
+    return true;
 }
 
 bool bootloader_row_push_word(unsigned int word)
