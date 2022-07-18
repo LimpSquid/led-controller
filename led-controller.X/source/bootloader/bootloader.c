@@ -13,7 +13,6 @@ STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
 
 #define BOOTLOADER_BOOT_MAGIC_WINDOW    500 // In ms
 #define BOOTLOADER_BOOT_MAGIC           0x0B00B1E5
-#define BOOTLOADER_CRC_STEP_SIZE        (NVM_WORD_SIZE * 8)
 
 enum bootloader_state
 {
@@ -23,6 +22,7 @@ enum bootloader_state
 
     BOOTLOADER_ERASE,
     BOOTLOADER_ERASE_PAGE,
+    BOOTLOADER_BURN,
     BOOTLOADER_BURN_ROW,
     BOOTLOADER_BOOT,
     BOOTLOADER_BOOT_CRC_VERIFY,
@@ -46,7 +46,6 @@ static nvm_byte_t const * bootloader_app_mem_end;
 static void const * bootloader_row_burn_address;
 static unsigned int bootloader_row_cursor;
 static unsigned int bootloader_magic;
-static crc16_t bootloader_app_boot_crc;
 static crc16_t bootloader_app_mem_crc;
 static crc16_t bootloader_nvm_row_crc;
 static struct timer_module * bootloader_timer;
@@ -65,6 +64,11 @@ inline static void __attribute__((always_inline)) bootloader_run_app(void)
 
     void (*app)(void) = (void (*)(void))__app_entry_addr;
     app();
+}
+
+inline static bool __attribute__((always_inline)) bootloader_crc_is_set(void)
+{
+    return __app_crc16 != 0xffff;
 }
 
 int bootloader_rtask_init(void)
@@ -99,10 +103,8 @@ void bootloader_rtask_execute(void)
             if (bootloader_magic == BOOTLOADER_BOOT_MAGIC) { // Magic received within window, go into bootloader mode
                 timer_stop(bootloader_timer);
                 bootloader_state = BOOTLOADER_IDLE;
-            } else if (!timer_is_running(bootloader_timer)) { // No magic received within window, try to boot app
-                bootloader_app_boot_crc = __app_crc16;
+            } else if (!timer_is_running(bootloader_timer)) // No magic received within window, try to boot app
                 bootloader_state = BOOTLOADER_BOOT;
-            }
             break;
         case BOOTLOADER_IDLE:
             break;
@@ -122,6 +124,16 @@ void bootloader_rtask_execute(void)
                     bootloader_state = BOOTLOADER_IDLE;
             }
             break;
+        case BOOTLOADER_BURN: {
+            nvm_word_t address = (nvm_word_t) PHY_ADDR(&__app_crc16);
+            nvm_word_t start = (nvm_word_t) bootloader_row_burn_address;
+            nvm_word_t end = start + NVM_ROW_BUFFER_SIZE;
+            if (address >= start && address < end)
+                nvm_row_buffer[address - start] = NVM_WORD_MAX; // Word where CRC is stored may not be programmed
+
+            bootloader_state = BOOTLOADER_BURN_ROW;
+            break;
+        }
         case BOOTLOADER_BURN_ROW:
             if (bus_idle()) {
                 bool ok = nvm_write_row_phys(bootloader_row_burn_address);
@@ -137,19 +149,23 @@ void bootloader_rtask_execute(void)
             bootloader_state = BOOTLOADER_BOOT_CRC_VERIFY;
             // no break
         case BOOTLOADER_BOOT_CRC_VERIFY:
-            crc16_update(&bootloader_app_mem_crc, bootloader_app_mem_iterator, BOOTLOADER_CRC_STEP_SIZE);
-            bootloader_app_mem_iterator += BOOTLOADER_CRC_STEP_SIZE;
+            // Ignore the word where CRC is stored from the CRC computation
+            if (bootloader_app_mem_iterator != (nvm_byte_t const *)&__app_crc16)
+                crc16_update(&bootloader_app_mem_crc, bootloader_app_mem_iterator, NVM_WORD_SIZE);
+            bootloader_app_mem_iterator += NVM_WORD_SIZE;
+
             if (bootloader_app_mem_iterator == bootloader_app_mem_end) {
-                if (bootloader_app_mem_crc != bootloader_app_boot_crc)
-                    bootloader_state = BOOTLOADER_IDLE; // If we can't boot because of CRC mismatch, just go back into idle mode
-                else if(__app_crc16 == bootloader_app_mem_crc)
-                    bootloader_state = BOOTLOADER_BOOT_RUN_APP;
-                else
+                if (bootloader_crc_is_set()) {
+                    crc16_update(&bootloader_app_mem_crc, &__app_crc16, sizeof(crc16_t));
+                    bootloader_state = bootloader_app_mem_crc
+                        ? BOOTLOADER_IDLE // If we can't boot because of an incorrect CRC, just go back into idle mode
+                        : BOOTLOADER_BOOT_RUN_APP;
+                } else
                     bootloader_state = BOOTLOADER_BOOT_CRC_BURN;
             }
             break;
         case BOOTLOADER_BOOT_CRC_BURN:
-            bootloader_state = nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc) // FIXME: doesn't "match" after restart?
+            bootloader_state = nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc)
                 ? BOOTLOADER_BOOT_RUN_APP
                 : BOOTLOADER_ERROR;
             break;
@@ -209,12 +225,11 @@ bool bootloader_erase(void)
     return true;
 }
 
-bool bootloader_boot(unsigned short app_crc16)
+bool bootloader_boot()
 {
     if (bootloader_busy())
         return false;
 
-    bootloader_app_boot_crc = app_crc16;
     bootloader_state = BOOTLOADER_BOOT;
     return true;
 }
@@ -258,6 +273,6 @@ bool bootloader_row_burn(unsigned int phy_address)
         return false;
 
     bootloader_row_burn_address = (void const *)phy_address;
-    bootloader_state = BOOTLOADER_BURN_ROW;
+    bootloader_state = BOOTLOADER_BURN;
     return true;
 }

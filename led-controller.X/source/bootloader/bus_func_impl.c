@@ -63,9 +63,9 @@ static enum bus_response_code bus_func_bootloader_boot(
     union bus_data const * request_data,
     union bus_data * response_data)
 {
-    UNUSED2(broadcast, response_data);
+    UNUSED3(broadcast, request_data, response_data);
 
-    return bootloader_boot(request_data->by_uint16)
+    return bootloader_boot()
         ? BUS_OK
         : BUS_ERR_AGAIN;
 }

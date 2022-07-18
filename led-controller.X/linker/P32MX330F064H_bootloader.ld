@@ -189,23 +189,19 @@ SECTIONS
 
   .app_crc :
   {
-    /* This section is part of the application program memory, each time  
-     * the app is flashed we will ensure that the CRC memory is filled 
-     * with ones so we can burn the actual CRC to flash afterwards.
-     */
     __app_crc16 = .;
-    SHORT(0xFFFF);
-    SHORT(0xFFFF);
+    LONG(0x00000000); /* Must not be 0xFFFFFFFF */
   } >kseg0_program_crc_mem
+  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must be 4")
 
   .bootloader_info :
   {
     __app_mem_start = .;
-    QUAD(_APP_MEM_START);
+    LONG(_APP_MEM_START);
     __app_mem_end = .;
-    QUAD(_APP_MEM_END);
+    LONG(_APP_MEM_END);
     __app_entry_addr = .;
-    QUAD(_APP_ENTRY_ADDR);
+    LONG(_APP_ENTRY_ADDR);
   } >kseg0_bootloader_info_mem
   ASSERT((_APP_MEM_END - _APP_MEM_START) % 4096 == 0, "Application program memory must be multiple of 4096")
 }

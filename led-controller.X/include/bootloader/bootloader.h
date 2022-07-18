@@ -20,7 +20,7 @@ bool bootloader_error(void);
 void bootloader_set_magic(unsigned int magic);
 bool bootloader_info(enum bootloader_info info, unsigned int * out);
 bool bootloader_erase(void);
-bool bootloader_boot(unsigned short app_crc16);
+bool bootloader_boot();
 bool bootloader_row_reset();
 unsigned short bootloader_row_crc16();
 bool bootloader_row_push_word(unsigned int word);

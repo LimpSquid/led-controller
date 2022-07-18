@@ -184,11 +184,11 @@ SECTIONS
 
   .app_crc :
   {
-    /* Fill CRC with ones, so the bootloader can burn it after the app is written to flash */
+    /* Fill CRC with ones (not strictly necessary), so the bootloader will burn the application CRC to flash */
     KEEP(*(.app_crc))
-    SHORT(0xFFFF);
-    SHORT(0xFFFF);
+    LONG(0xFFFFFFFF);
   } >kseg0_program_crc_mem
+  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must be 4")
 
   /* Since we want to run the startup code of the application when booting from the bootloader */
   .reset_startup ORIGIN(kseg1_startup_mem) :
