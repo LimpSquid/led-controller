@@ -146,8 +146,7 @@
         <property key="place-data-into-section" value="false"/>
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
-        <property key="preprocessor-macros"
-                  value="_SYS_CLK=96000000;_PB_DIV=1;EXCEPTION_MEM_BASE=0x9d008000"/>
+        <property key="preprocessor-macros" value="_SYS_CLK=96000000;_PB_DIV=1"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>
@@ -308,7 +307,6 @@
         <property key="debugoptions.debug-startup" value="Use system settings"/>
         <property key="debugoptions.reset-behaviour" value="Use system settings"/>
         <property key="debugoptions.useswbreakpoints" value="true"/>
-        <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
         <property key="memories.bootflash" value="false"/>
@@ -1508,8 +1506,7 @@
         <property key="place-data-into-section" value="false"/>
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
-        <property key="preprocessor-macros"
-                  value="_SYS_CLK=96000000;_PB_DIV=1;EXCEPTION_MEM_BASE=0x9fc01000"/>
+        <property key="preprocessor-macros" value="_SYS_CLK=96000000;_PB_DIV=1"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>
@@ -2867,7 +2864,7 @@
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros"
-                  value="_SYS_CLK=96000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;TEST_SUITE_ENABLE;EXCEPTION_MEM_BASE=0x9fc01000"/>
+                  value="_SYS_CLK=96000000;_PB_DIV=1;LAYER_AUTO_BUFFER_SWAP;BUS_IGNORE_CRC;TEST_SUITE_ENABLE"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>
@@ -4240,7 +4237,7 @@
         <property key="post-instruction-scheduling" value="default"/>
         <property key="pre-instruction-scheduling" value="default"/>
         <property key="preprocessor-macros"
-                  value="_SYS_CLK=96000000;_PB_DIV=1;BOOTLOADER;EXCEPTION_MEM_BASE=0x9fc01000"/>
+                  value="_SYS_CLK=96000000;_PB_DIV=1;BOOTLOADER"/>
         <property key="strict-ansi" value="false"/>
         <property key="support-ansi" value="false"/>
         <property key="tentative-definitions" value="-fno-common"/>
