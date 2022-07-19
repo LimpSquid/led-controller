@@ -170,6 +170,9 @@ static void rs485_error_notify()
 
 static int rs485_rtask_init(void)
 {
+    // Disable module first
+    REG_CLR(RS485_UMODE_REG, RS485_ON_MASK);
+
     // Configure PPS
     sys_unlock();
     RS485_RX_PPS_REG = RS485_RX_PPS_WORD;

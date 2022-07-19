@@ -1,6 +1,5 @@
 #include <app/dma.h>
 #include <app/pwm.h>
-#include <core/nvm.h>
 #include <core/sys.h>
 #include <core/kernel.h>
 #include <core/kernel_task.h>
@@ -26,7 +25,6 @@ int app_main(void)
     // Initialize hardware
     dma_init();
     pwm_init();
-    nvm_init();
 
     // Then do the kernel init
     kernel_init();

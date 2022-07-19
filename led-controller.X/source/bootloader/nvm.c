@@ -1,4 +1,4 @@
-#include <core/nvm.h>
+#include <bootloader/nvm.h>
 #include <core/sys.h>
 #include <core/util.h>
 #include <core/assert.h>

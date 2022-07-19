@@ -15,6 +15,7 @@
       </logicalFolder>
       <logicalFolder name="f2" displayName="bootloader" projectFiles="true">
         <itemPath>include/bootloader/bootloader.h</itemPath>
+        <itemPath>include/bootloader/nvm.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="core" projectFiles="true">
         <itemPath>include/core/kernel.h</itemPath>
@@ -29,7 +30,6 @@
         <itemPath>include/core/bus_address.h</itemPath>
         <itemPath>include/core/timer_config.h</itemPath>
         <itemPath>include/core/util.h</itemPath>
-        <itemPath>include/core/nvm.h</itemPath>
       </logicalFolder>
       <itemPath>include/version.h</itemPath>
     </logicalFolder>
@@ -57,6 +57,7 @@
         <itemPath>source/bootloader/main.c</itemPath>
         <itemPath>source/bootloader/bus_func_impl.c</itemPath>
         <itemPath>source/bootloader/bootloader.c</itemPath>
+        <itemPath>source/bootloader/nvm.c</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="core" projectFiles="true">
         <itemPath>source/core/kernel.c</itemPath>
@@ -69,7 +70,6 @@
         <itemPath>source/core/crc16.c</itemPath>
         <itemPath>source/core/bus_address.c</itemPath>
         <itemPath>source/core/io.c</itemPath>
-        <itemPath>source/core/nvm.c</itemPath>
       </logicalFolder>
       <itemPath>source/config_word.c</itemPath>
     </logicalFolder>
@@ -1365,6 +1365,8 @@
         <C32Global>
         </C32Global>
       </item>
+      <item path="include/bootloader/nvm.h" ex="true" overriding="false">
+      </item>
       <item path="linker/P32MX330F064H_app_debug.ld" ex="true" overriding="false">
         <C32>
         </C32>
@@ -1444,6 +1446,8 @@
         </C32CPP>
         <C32Global>
         </C32Global>
+      </item>
+      <item path="source/bootloader/nvm.c" ex="true" overriding="false">
       </item>
     </conf>
     <conf name="app_debug" type="2">
@@ -2719,6 +2723,8 @@
         <C32Global>
         </C32Global>
       </item>
+      <item path="include/bootloader/nvm.h" ex="true" overriding="false">
+      </item>
       <item path="linker/P32MX330F064H_app.ld" ex="true" overriding="false">
         <C32>
         </C32>
@@ -2798,6 +2804,8 @@
         </C32CPP>
         <C32Global>
         </C32Global>
+      </item>
+      <item path="source/bootloader/nvm.c" ex="true" overriding="false">
       </item>
     </conf>
     <conf name="app_debug_test_suite" type="2">
@@ -4088,6 +4096,8 @@
         <C32Global>
         </C32Global>
       </item>
+      <item path="include/bootloader/nvm.h" ex="true" overriding="false">
+      </item>
       <item path="linker/P32MX330F064H_app.ld" ex="true" overriding="false">
         <C32>
         </C32>
@@ -4167,6 +4177,8 @@
         </C32CPP>
         <C32Global>
         </C32Global>
+      </item>
+      <item path="source/bootloader/nvm.c" ex="true" overriding="false">
       </item>
     </conf>
     <conf name="bootloader_release" type="2">
@@ -4389,7 +4401,6 @@
         <property key="debugoptions.debug-startup" value="Use system settings"/>
         <property key="debugoptions.reset-behaviour" value="Use system settings"/>
         <property key="debugoptions.useswbreakpoints" value="false"/>
-        <property key="firmware.download.all" value="false"/>
         <property key="hwtoolclock.frcindebug" value="false"/>
         <property key="memories.aux" value="false"/>
         <property key="memories.bootflash" value="false"/>

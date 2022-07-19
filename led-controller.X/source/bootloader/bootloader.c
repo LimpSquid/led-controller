@@ -1,7 +1,7 @@
 #include <bootloader/bootloader.h>
+#include <bootloader/nvm.h>
 #include <core/kernel_task.h>
 #include <core/bus.h>
-#include <core/nvm.h>
 #include <core/timer.h>
 #include <core/sys.h>
 #include <core/util.h>
@@ -11,7 +11,7 @@
 STATIC_ASSERT(sizeof(unsigned short) == sizeof(crc16_t));
 STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
 
-#define BOOTLOADER_BOOT_MAGIC_WINDOW    500 // In ms
+#define BOOTLOADER_BOOT_MAGIC_WINDOW    5000 // In ms
 #define BOOTLOADER_BOOT_MAGIC           0x0B00B1E5
 
 enum bootloader_state

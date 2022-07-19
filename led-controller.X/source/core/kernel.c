@@ -236,30 +236,35 @@ static int kernel_compute_sys_ticks(int time, int unit)
 
 void kernel_init(void)
 {
-    kernel_exec_func = kernel_execute_no_task;
+    bool const has_ttasks = kernel_has_ttasks();
+    bool const has_rtasks = kernel_has_rtasks();
+
+    // Select exec function
+    if (has_ttasks && has_rtasks)
+        kernel_exec_func = kernel_execute_ttask_rtask;
+    else if (has_ttasks)
+        kernel_exec_func = kernel_execute_ttask;
+    else if (has_rtasks)
+        kernel_exec_func = kernel_execute_rtask;
+    else
+        kernel_exec_func = kernel_execute_no_task;
 
     // Configure ttasks
-    if (kernel_has_ttasks()) {
+    if (has_ttasks) {
         kernel_init_configure_ttask();
         kernel_init_ttask_call_sequence();
-        kernel_exec_func = kernel_has_rtasks()
-            ? kernel_execute_ttask_rtask
-            : kernel_execute_ttask;
     }
 
     // Configure rtasks
-    if (kernel_has_rtasks()) {
+    if (has_rtasks) {
         kernel_init_configure_rtask();
         kernel_init_rtask_call_sequence();
-        kernel_exec_func = kernel_has_ttasks()
-            ? kernel_execute_ttask_rtask
-            : kernel_execute_rtask;
     }
 
     kernel_init_task_init();
 
     // Configure timer after init
-    if (kernel_has_ttasks()) {
+    if (has_ttasks) {
         REG_CLR(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);
         KERN_TMR_CFG_REG = KERN_TMR_CFG_WORD;
         REG_SET(KERN_TMR_CFG_REG, KERN_TMR_EN_BIT);

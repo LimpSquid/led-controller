@@ -1,5 +1,5 @@
+#include <bootloader/nvm.h>
 #include <core/sys.h>
-#include <core/nvm.h>
 #include <core/kernel.h>
 #include <core/kernel_task.h>
 #include <core/bus_address.h>
