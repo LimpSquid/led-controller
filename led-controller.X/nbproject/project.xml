@@ -16,18 +16,24 @@
                 <sourceRootElem>linker</sourceRootElem>
                 <sourceRootElem>include</sourceRootElem>
                 <sourceRootElem>source</sourceRootElem>
+                <sourceRootElem>app</sourceRootElem>
+                <sourceRootElem>core</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>
-                    <name>release</name>
+                    <name>app_release</name>
                     <type>2</type>
                 </confElem>
                 <confElem>
-                    <name>test</name>
+                    <name>app_debug</name>
                     <type>2</type>
                 </confElem>
                 <confElem>
-                    <name>release_pedantic</name>
+                    <name>app_debug_test_suite</name>
+                    <type>2</type>
+                </confElem>
+                <confElem>
+                    <name>bootloader_release</name>
                     <type>2</type>
                 </confElem>
             </confList>
