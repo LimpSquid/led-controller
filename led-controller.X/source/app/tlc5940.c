@@ -84,6 +84,7 @@ enum tlc5940_state
 {
     TLC5940_INIT = 0,
     TLC5940_INIT_WRITE_DOT_CORRECTION,
+    TLC5940_INIT_CLEAR_REGISTER,
 
     TLC5940_IDLE,
     TLC5940_UPDATE,
@@ -208,7 +209,7 @@ static int tlc5940_rtask_init(void)
     // Configure IO
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_sdo_pin, 1);
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_sck_pin, 1);
-    io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_blank_pin, 1);
+    io_configure(IO_DIRECTION_DOUT_HIGH, &tlc5940_blank_pin, 1);
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_xlat_pin, 1);
     io_configure(IO_DIRECTION_DOUT_HIGH, &tlc5940_dcprg_pin, 1); // Use dot correction register
     io_configure(IO_DIRECTION_DOUT_LOW, &tlc5940_vprg_pin, 1);
@@ -257,6 +258,12 @@ static void tlc5940_rtask_execute(void)
             spi_transmit_mode8(tlc5940_spi_module, tlc5940_dot_corr_buffer, TLC5940_BUFFER_SIZE_DOT_CORR);
             IO_SETCLR(tlc5940_xlat_pin);
             IO_CLR(tlc5940_vprg_pin);
+            tlc5940_state = TLC5940_INIT_CLEAR_REGISTER;
+            break;
+        case TLC5940_INIT_CLEAR_REGISTER:
+            // Buffer is already zero initialized
+            spi_transmit_mode8(tlc5940_spi_module, tlc5940_buffer, TLC5940_BUFFER_SIZE);
+            IO_SETCLR(tlc5940_xlat_pin);
             tlc5940_state = TLC5940_IDLE;
             break;
 
