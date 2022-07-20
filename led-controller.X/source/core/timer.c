@@ -22,7 +22,7 @@ struct timer_module
 {
     unsigned long interval;
     unsigned long ticks;
-    void(*execute)(struct timer_module * timer);
+    void(*handler)(struct timer_module * timer);
 
     struct
     {
@@ -65,9 +65,9 @@ static unsigned long timer_compute_ticks(int time, int unit)
 
 static void timer_ttask_execute(void)
 {
-    void (*execute)(struct timer_module *) = NULL;
-
     struct timer_module * timer = timer_pool;
+    struct timer_module * timer_to_fire = NULL;
+
     for (unsigned int i = 0; i < TIMER_POOL_SIZE; ++i) {
         if (timer->opt.assigned && !timer->opt.suspended) {
 
@@ -78,15 +78,15 @@ static void timer_ttask_execute(void)
             if (timed_out) {
                 switch (timer->opt.type) {
                     case TIMER_TYPE_RECURRING:
-                        if (execute == NULL) { // Yay, we can execute this timer's handle
-                            timer->ticks = timer->interval; // Reset tick count
-                            execute = timer->execute;
+                        if (timer_to_fire == NULL) {
+                            timer->ticks = timer->interval;
+                            timer_to_fire = timer;
                         }
                         break;
                     case TIMER_TYPE_SINGLE_SHOT:
-                        if (execute == NULL) {
+                        if (timer_to_fire == NULL) {
                             timer->opt.suspended = true;
-                            execute = timer->execute;
+                            timer_to_fire = timer;
                         }
                         break;
                     case TIMER_TYPE_COUNTDOWN:
@@ -100,8 +100,8 @@ static void timer_ttask_execute(void)
         timer++; // Advance to next timer
     }
 
-    if (execute != NULL)
-        execute(timer);
+    if (timer_to_fire != NULL)
+        timer_to_fire->handler(timer_to_fire);
 }
 
 static void timer_ttask_configure(struct kernel_ttask_param * const param)
@@ -110,7 +110,7 @@ static void timer_ttask_configure(struct kernel_ttask_param * const param)
     kernel_ttask_set_interval(param, TIMER_TICK_INTERVAL, KERN_TIME_UNIT_US);
 }
 
-struct timer_module * timer_construct(int type, void (*execute)(struct timer_module *))
+struct timer_module * timer_construct(int type, void (*handler)(struct timer_module *))
 {
     struct timer_module * timer = NULL;
     if (type < 0 || type >= __TIMER_TYPE_COUNT)
@@ -131,7 +131,7 @@ struct timer_module * timer_construct(int type, void (*execute)(struct timer_mod
     if (timer != NULL) {
         timer->interval = 0;
         timer->ticks = 0;
-        timer->execute = execute;
+        timer->handler = handler;
         timer->opt.type = type;
         timer->opt.suspended = true;
         timer->opt.assigned = true;
