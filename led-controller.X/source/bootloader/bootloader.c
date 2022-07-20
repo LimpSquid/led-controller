@@ -45,7 +45,6 @@ static nvm_byte_t const * bootloader_app_mem_iterator;
 static nvm_byte_t const * bootloader_app_mem_end;
 static void const * bootloader_row_burn_address;
 static unsigned int bootloader_row_cursor;
-static unsigned int bootloader_magic;
 static crc16_t bootloader_app_mem_crc;
 static crc16_t bootloader_nvm_row_crc;
 static struct timer_module * bootloader_timer;
@@ -100,10 +99,7 @@ void bootloader_rtask_execute(void)
             bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
             break;
         case BOOTLOADER_WAIT_BOOT_MAGIC:
-            if (bootloader_magic == BOOTLOADER_BOOT_MAGIC) { // Magic received within window, go into bootloader mode
-                timer_stop(bootloader_timer);
-                bootloader_state = BOOTLOADER_IDLE;
-            } else if (!timer_is_running(bootloader_timer)) // No magic received within window, try to boot app
+            if (!timer_is_running(bootloader_timer)) // No magic received within window, try to boot app
                 bootloader_state = BOOTLOADER_BOOT;
             break;
         case BOOTLOADER_IDLE:
@@ -196,9 +192,20 @@ bool bootloader_error(void)
     return bootloader_state == BOOTLOADER_ERROR;
 }
 
-void bootloader_set_magic(unsigned int magic)
+bool bootloader_waiting_for_magic(void)
 {
-    bootloader_magic = magic;
+    return bootloader_state == BOOTLOADER_WAIT_BOOT_MAGIC;
+}
+
+bool bootloader_set_magic(unsigned int magic)
+{
+    if (!bootloader_waiting_for_magic())
+        return false;
+    if (magic != BOOTLOADER_BOOT_MAGIC)
+        return false;
+
+    bootloader_state = BOOTLOADER_IDLE; // Magic received stay in bootloader mode
+    return true;
 }
 
 bool bootloader_info(enum bootloader_info info, unsigned int * out)

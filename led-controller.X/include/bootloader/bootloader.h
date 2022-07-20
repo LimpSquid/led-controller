@@ -16,8 +16,9 @@ enum bootloader_info
 
 bool bootloader_busy(void);
 bool bootloader_ready(void);
+bool bootloader_waiting_for_magic(void);
 bool bootloader_error(void);
-void bootloader_set_magic(unsigned int magic);
+bool bootloader_set_magic(unsigned int magic);
 bool bootloader_info(enum bootloader_info info, unsigned int * out);
 bool bootloader_erase(void);
 bool bootloader_boot();

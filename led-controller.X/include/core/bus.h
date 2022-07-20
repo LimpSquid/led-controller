@@ -36,9 +36,10 @@ union __attribute__((packed)) bus_data
     
     struct
     {
-        bool bootloader_ready       :1;
-        bool bootloader_error       :1;
-        unsigned int                :30;
+        bool bootloader_ready               :1;
+        bool bootloader_error               :1;
+        bool bootloader_waiting_for_magic   :1;
+        unsigned int                        :29;
     } by_bootloader_status;
 
     struct

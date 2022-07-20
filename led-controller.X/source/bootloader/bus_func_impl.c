@@ -18,6 +18,7 @@ static enum bus_response_code bus_func_status(
 
     response_data->by_bootloader_status.bootloader_ready = bootloader_ready();
     response_data->by_bootloader_status.bootloader_error = bootloader_error();
+    response_data->by_bootloader_status.bootloader_waiting_for_magic = bootloader_waiting_for_magic();
     return BUS_OK;
 }
 
@@ -54,8 +55,9 @@ static enum bus_response_code bus_func_bootloader_set_magic(
 {
     UNUSED2(broadcast, response_data);
 
-    bootloader_set_magic(request_data->by_uint32);
-    return BUS_OK;
+    return bootloader_set_magic(request_data->by_uint32)
+        ? BUS_OK
+        : BUS_ERR_INVALID_PAYLOAD
 }
 
 static enum bus_response_code bus_func_bootloader_boot(
