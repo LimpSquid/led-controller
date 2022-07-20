@@ -244,10 +244,7 @@ inline static void  __attribute__((always_inline)) layer_advance_row(void)
 
     layer_row_index = (unsigned int)(layer_row_pin - layer_pins);
     layer_row_previous_pin = layer_row_pin;
-    if (layer_row_at_end())
-        layer_row_pin = layer_pins;
-    else
-        layer_row_pin++;
+    layer_row_pin = layer_row_at_end() ? layer_pins : (layer_row_pin + 1);
 }
 
 void tlc5940_update_handler(void)

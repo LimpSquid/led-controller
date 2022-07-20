@@ -18,7 +18,9 @@ static enum bus_response_code bus_func_layer_exec_lod(
 {
     UNUSED3(broadcast, request_data, response_data);
 
-    return layer_exec_lod() ? BUS_OK : BUS_ERR_AGAIN;
+    return layer_exec_lod()
+        ? BUS_OK
+        : BUS_ERR_AGAIN;
 }
 
 static enum bus_response_code bus_func_layer_dma_reset(
@@ -39,7 +41,9 @@ static enum bus_response_code bus_func_layer_dma_swap_buffers(
 {
     UNUSED3(broadcast, request_data, response_data);
 
-    return layer_dma_swap_buffers() ? BUS_OK : BUS_ERR_AGAIN;
+    return layer_dma_swap_buffers()
+        ? BUS_OK
+        : BUS_ERR_AGAIN;
 }
 
 static enum bus_response_code bus_func_version(
@@ -60,7 +64,10 @@ static enum bus_response_code bus_func_version(
 
 static void bus_delayed_cpu_reset(struct timer_module * timer)
 {
-    timer_destruct(timer); // Lets be nice and destruct the timer even though we are going to reset :-)
+    if (!bus_idle())
+        return timer_start(timer, 25, TIMER_TIME_UNIT_MS); // Try again
+
+    timer_destruct(timer); // Let's be nice and destruct the timer even though we are going to reset :-)
     sys_cpu_reset();
 }
 
@@ -71,13 +78,15 @@ static enum bus_response_code bus_func_sys_cpu_reset(
 {
     UNUSED2(broadcast, response_data);
 
-    if (request_data->by_int32 > 0) {
-        struct timer_module * timer = timer_construct(TIMER_TYPE_SINGLE_SHOT, bus_delayed_cpu_reset);
-        if (timer == NULL)
-            return BUS_ERR_AGAIN;
-        timer_start(timer, request_data->by_int32, TIMER_TIME_UNIT_MS);
-    } else
+    // Hard reset
+    if (request_data->by_int32 < 0)
         sys_cpu_reset();
+
+    struct timer_module * timer = timer_construct(TIMER_TYPE_SINGLE_SHOT, bus_delayed_cpu_reset);
+    if (timer == NULL)
+        return BUS_ERR_AGAIN;
+
+    timer_start(timer, request_data->by_int32, TIMER_TIME_UNIT_MS);
     return BUS_OK;
 }
 
