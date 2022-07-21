@@ -34,7 +34,7 @@ enum bootloader_state
 
 static int bootloader_rtask_init(void);
 static void bootloader_rtask_execute(void);
-KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute) // FIXME: uncommenting this will crash the CPU, investigate...
+KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute)
 
 extern unsigned int const __app_mem_start;
 extern unsigned int const __app_mem_end;
@@ -72,7 +72,7 @@ inline static bool __attribute__((always_inline)) bootloader_crc_is_set(void)
 
 int bootloader_rtask_init(void)
 {
-    // FIXME: Not ideal to do this here, but needed since this is not a constant expression
+    // Not ideal to do this here, but needed since this is not a constant expression
     bootloader_app_mem_iterator = (nvm_byte_t const *)__app_mem_start;
     bootloader_app_mem_end = (nvm_byte_t const *)__app_mem_end;
 

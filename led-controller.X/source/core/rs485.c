@@ -332,7 +332,7 @@ void rs485_transmit_buffer(unsigned char * buffer, unsigned int size)
     ASSERT_NOT_NULL(buffer);
     ASSERT(size != 0);
 
-    // Todo:
+    // TODO:
     // We can improve this a bit by checking how much continuous room
     // there is available in the buffer. If that is >= size, we can just
     // do a memcpy instead. Should be a little bit faster.
@@ -361,7 +361,7 @@ unsigned int rs485_read_buffer(unsigned char * buffer, unsigned int max_size)
     ASSERT_NOT_NULL(buffer);
     ASSERT(rs485_rx_consumer != rs485_rx_producer);
 
-    // Todo:
+    // TODO:
     // Just like transmit buffer we can probably just memcpy continuous chunks
     // of data from the rs485 buffer to the buffer passed to this function.
 
