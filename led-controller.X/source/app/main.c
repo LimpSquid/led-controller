@@ -5,7 +5,7 @@
 #include <core/kernel_task.h>
 #include <core/bus_address.h>
 
-int app_main(void)
+int main(void)
 {
     // Bonzo is sleeping for the early init
     SYS_TUCK_IN_BONZO();
@@ -36,9 +36,4 @@ int app_main(void)
 
     // Avoid warnings
     return 0;
-}
-
-int main(void)
-{
-    return app_main();
 }
