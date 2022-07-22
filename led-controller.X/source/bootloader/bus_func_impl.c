@@ -57,7 +57,7 @@ static enum bus_response_code bus_func_bootloader_set_magic(
 
     return bootloader_set_magic(request_data->by_uint32)
         ? BUS_OK
-        : BUS_ERR_INVALID_PAYLOAD
+        : BUS_ERR_INVALID_PAYLOAD;
 }
 
 static enum bus_response_code bus_func_bootloader_boot(

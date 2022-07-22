@@ -191,7 +191,9 @@ SECTIONS
   .app_crc :
   {
     __app_crc16 = .;
-    LONG(0x00000000); /* Must not be 0xFFFFFFFF */
+    SHORT(0x0000); /* Must not be 0xFFFF */
+    __bootloader_flags = .;
+    SHORT(0xffff);
   } >kseg0_program_crc_mem
   ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must have a size of 4")
 

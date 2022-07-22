@@ -14,6 +14,17 @@ STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
 #define BOOTLOADER_BOOT_MAGIC_WINDOW    5000 // In ms
 #define BOOTLOADER_BOOT_MAGIC           0x0B00B1E5
 
+union bootloader_flags
+{
+    struct
+    {
+        unsigned char mem_invalid   :1;
+        unsigned short              :15;
+    };
+    unsigned short by_ushort;
+};
+STATIC_ASSERT(sizeof(union bootloader_flags) == sizeof(unsigned short));
+
 enum bootloader_state
 {
     BOOTLOADER_INIT,
@@ -40,6 +51,7 @@ extern unsigned int const __app_mem_start;
 extern unsigned int const __app_mem_end;
 extern unsigned int const __app_entry_addr;
 extern crc16_t const __app_crc16;
+extern union bootloader_flags const __bootloader_flags;
 
 static nvm_byte_t const * bootloader_app_mem_iterator;
 static nvm_byte_t const * bootloader_app_mem_end;
@@ -95,8 +107,12 @@ void bootloader_rtask_execute(void)
 {
     switch (bootloader_state) {
         case BOOTLOADER_INIT:
-            timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
-            bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
+            if (__bootloader_flags.mem_invalid)
+                bootloader_state = BOOTLOADER_IDLE;
+            else {
+                timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
+                bootloader_state = BOOTLOADER_WAIT_BOOT_MAGIC;
+            }
             break;
         case BOOTLOADER_WAIT_BOOT_MAGIC:
             if (!timer_is_running(bootloader_timer)) // No magic received within window, try to boot app
@@ -160,11 +176,15 @@ void bootloader_rtask_execute(void)
                     bootloader_state = BOOTLOADER_BOOT_CRC_BURN;
             }
             break;
-        case BOOTLOADER_BOOT_CRC_BURN:
-            bootloader_state = nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc)
+        case BOOTLOADER_BOOT_CRC_BURN: {
+            union bootloader_flags flags = __bootloader_flags;
+            flags.mem_invalid = 0;
+
+            bootloader_state = nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc | (flags.by_ushort << 16))
                 ? BOOTLOADER_BOOT_RUN_APP
                 : BOOTLOADER_ERROR;
             break;
+        }
         case BOOTLOADER_BOOT_RUN_APP:
             if (bus_idle()) // Handle all in/out going bus messages before running the main app
                 bootloader_run_app();
@@ -199,6 +219,8 @@ bool bootloader_waiting_for_magic(void)
 
 bool bootloader_set_magic(unsigned int magic)
 {
+    if (bootloader_ready()) // We're already in bootload mode
+        return true;
     if (!bootloader_waiting_for_magic())
         return false;
     if (magic != BOOTLOADER_BOOT_MAGIC)

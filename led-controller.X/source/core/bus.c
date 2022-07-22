@@ -114,7 +114,7 @@ static void bus_rtask_execute(void)
         case BUS_READ_PART:
             if (bus_frame_offset && !timer_is_running(bus_timer))
                 bus_state = BUS_READ_CLEAR; // Did not receive a complete frame within deadline, drop it
-            else if (rs485_bytes_available()) { // Shouldn't strictly be necessary
+            else if (rs485_bytes_available()) {
                 unsigned int size = rs485_read_buffer(
                     bus_request.data + bus_frame_offset,
                     BUS_FRAME_SIZE - bus_frame_offset);
