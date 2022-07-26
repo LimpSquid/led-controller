@@ -14,16 +14,17 @@ STATIC_ASSERT(sizeof(unsigned int) == sizeof(nvm_word_t));
 #define BOOTLOADER_BOOT_MAGIC_WINDOW    5000 // In ms
 #define BOOTLOADER_BOOT_MAGIC           0x0B00B1E5
 
-union bootloader_flags
+union bootloader_meta
 {
     struct
     {
+        crc16_t app_crc;
         unsigned char mem_invalid   :1;
         unsigned short              :15;
     };
-    unsigned short by_ushort;
+    nvm_word_t by_nvm_word;
 };
-STATIC_ASSERT(sizeof(union bootloader_flags) == sizeof(unsigned short));
+STATIC_ASSERT(sizeof(union bootloader_meta) == sizeof(nvm_word_t));
 
 enum bootloader_state
 {
@@ -50,8 +51,7 @@ KERN_SIMPLE_RTASK(bootloader, bootloader_rtask_init, bootloader_rtask_execute)
 extern unsigned int const __app_mem_start;
 extern unsigned int const __app_mem_end;
 extern unsigned int const __app_entry_addr;
-extern crc16_t const __app_crc16;
-extern union bootloader_flags const __bootloader_flags;
+extern union bootloader_meta const __bootloader_meta;
 
 static nvm_byte_t const * bootloader_app_mem_iterator;
 static nvm_byte_t const * bootloader_app_mem_end;
@@ -79,7 +79,7 @@ inline static void __attribute__((always_inline)) bootloader_run_app(void)
 
 inline static bool __attribute__((always_inline)) bootloader_crc_is_set(void)
 {
-    return __app_crc16 != 0xffff;
+    return __bootloader_meta.app_crc != 0xffff;
 }
 
 int bootloader_rtask_init(void)
@@ -107,7 +107,7 @@ void bootloader_rtask_execute(void)
 {
     switch (bootloader_state) {
         case BOOTLOADER_INIT:
-            if (__bootloader_flags.mem_invalid)
+            if (__bootloader_meta.mem_invalid)
                 bootloader_state = BOOTLOADER_IDLE;
             else {
                 timer_start(bootloader_timer, BOOTLOADER_BOOT_MAGIC_WINDOW, TIMER_TIME_UNIT_MS);
@@ -137,11 +137,11 @@ void bootloader_rtask_execute(void)
             }
             break;
         case BOOTLOADER_BURN: {
-            nvm_word_t address = (nvm_word_t) PHY_ADDR(&__app_crc16);
+            nvm_word_t address = (nvm_word_t) PHY_ADDR(&__bootloader_meta);
             nvm_word_t start = (nvm_word_t) bootloader_row_burn_address;
             nvm_word_t end = start + NVM_ROW_BUFFER_SIZE;
             if (address >= start && address < end)
-                nvm_row_buffer[address - start] = NVM_WORD_MAX; // Word where CRC is stored may not be programmed
+                nvm_row_buffer[address - start] = NVM_WORD_MAX; // Meta word may not be programmed
 
             bootloader_state = BOOTLOADER_BURN_ROW;
             break;
@@ -162,13 +162,13 @@ void bootloader_rtask_execute(void)
             // no break
         case BOOTLOADER_BOOT_CRC_VERIFY:
             // Ignore the word where CRC is stored from the CRC computation
-            if (bootloader_app_mem_iterator != (nvm_byte_t const *)&__app_crc16)
+            if (bootloader_app_mem_iterator != (nvm_byte_t const *)&__bootloader_meta)
                 crc16_update(&bootloader_app_mem_crc, bootloader_app_mem_iterator, NVM_WORD_SIZE);
             bootloader_app_mem_iterator += NVM_WORD_SIZE;
 
             if (bootloader_app_mem_iterator == bootloader_app_mem_end) {
                 if (bootloader_crc_is_set()) {
-                    crc16_update(&bootloader_app_mem_crc, &__app_crc16, sizeof(crc16_t));
+                    crc16_update(&bootloader_app_mem_crc, &__bootloader_meta.app_crc, sizeof(crc16_t));
                     bootloader_state = bootloader_app_mem_crc
                         ? BOOTLOADER_IDLE // If we can't boot because of an incorrect CRC, just go back into idle mode
                         : BOOTLOADER_BOOT_RUN_APP;
@@ -177,10 +177,11 @@ void bootloader_rtask_execute(void)
             }
             break;
         case BOOTLOADER_BOOT_CRC_BURN: {
-            union bootloader_flags flags = __bootloader_flags;
-            flags.mem_invalid = 0;
+            union bootloader_meta meta = __bootloader_meta;
+            meta.app_crc = bootloader_app_mem_crc;
+            meta.mem_invalid = 0;
 
-            bootloader_state = nvm_write_word_virt(&__app_crc16, bootloader_app_mem_crc | (flags.by_ushort << 16))
+            bootloader_state = nvm_write_word_virt(&__bootloader_meta, meta.by_nvm_word)
                 ? BOOTLOADER_BOOT_RUN_APP
                 : BOOTLOADER_ERROR;
             break;

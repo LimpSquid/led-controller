@@ -154,7 +154,7 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  kseg0_program_crc_mem        (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
+  kseg0_program_meta_mem       (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
   __kseg0_app_mem                   : ORIGIN = 0x9D000004, LENGTH = 0x00008FFC /* reserved, used by app */
   kseg0_bootloader_info_mem    (rw) : ORIGIN = 0x9D009000, LENGTH = 0x00000100 /* bootloader */
   kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D009100, LENGTH = 0x00000100 /* bootloader */
@@ -188,14 +188,13 @@ SECTIONS
     __kernel_tstack_end = .;
   } >kseg0_program_kernel_mem
 
-  .app_crc :
+  .meta :
   {
-    __app_crc16 = .;
-    SHORT(0x0000); /* Must not be 0xFFFF */
-    __bootloader_flags = .;
-    SHORT(0xffff);
-  } >kseg0_program_crc_mem
-  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must have a size of 4")
+    __bootloader_meta = .;
+    SHORT(0x0000); /* CRC Must not be 0xFFFF */
+    SHORT(0xFFFF);
+  } >kseg0_program_meta_mem
+  ASSERT(SIZEOF(.meta) == 4, "Meta memory region must have a size of 4")
 
   .bootloader_info :
   {

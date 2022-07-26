@@ -10,7 +10,7 @@
     // Bootloader
     #define VERSION_MAJOR   1
     #define VERSION_MINOR   0
-    #define VERSION_PATCH   4
+    #define VERSION_PATCH   5
 #else
     // App
     #define VERSION_MAJOR   2

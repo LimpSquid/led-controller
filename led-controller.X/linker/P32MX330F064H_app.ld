@@ -147,7 +147,7 @@ MEMORY
    * - Debug Executive
    * - SFRS (caching is not possible per above illustration)
    */
-  kseg0_program_crc_mem        (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
+  kseg0_program_meta_mem       (rx) : ORIGIN = 0x9D000000, LENGTH = 0x00000004 /* app and bootloader */
   kseg0_program_kernel_mem     (rx) : ORIGIN = 0x9D000004, LENGTH = 0x000000FC /* app */
   kseg0_program_mem            (rx) : ORIGIN = 0x9D000100, LENGTH = 0x00007D00 /* app */
   kseg0_program_exception_mem       : ORIGIN = 0x9D008000, LENGTH = 0x00001000 /* app */
@@ -182,13 +182,12 @@ SECTIONS
     __kernel_tstack_end = .;
   } >kseg0_program_kernel_mem
 
-  .app_crc :
+  .meta :
   {
-    /* Fill CRC with ones (not strictly necessary), so the bootloader will burn the application CRC to flash */
-    KEEP(*(.app_crc))
+    KEEP(*(.meta))
     LONG(0xFFFFFFFF);
-  } >kseg0_program_crc_mem
-  ASSERT(SIZEOF(.app_crc) == 4, "Application CRC program memory must have a size of 4")
+  } >kseg0_program_meta_mem
+  ASSERT(SIZEOF(.meta) == 4, "Meta memory region must have a size of 4")
 
   /* Since we want to run the startup code of the application when booting from the bootloader */
   .reset_startup ORIGIN(kseg1_startup_mem) :
