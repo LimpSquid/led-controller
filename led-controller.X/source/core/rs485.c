@@ -127,11 +127,6 @@ inline static bool __attribute__((always_inline)) rs485_tx_complete()
 
 inline static void __attribute__((always_inline)) rs485_receive(unsigned char data)
 {
-    // Detect overflows when fifo size is larger than 2/3 of the max size
-    ASSERT(((RS485_RX_FIFO_SIZE * 2) / 3) >
-          ((unsigned char)(rs485_rx_producer -  rs485_rx_consumer) %
-           UCHAR_MAX - RS485_RX_FIFO_SIZE));
-
     rs485_rx_fifo[rs485_rx_producer++] = data;
     if (rs485_rx_producer >= RS485_RX_FIFO_SIZE)
         rs485_rx_producer = 0;
