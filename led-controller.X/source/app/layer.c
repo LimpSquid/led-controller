@@ -185,6 +185,12 @@ static struct dma_channel * layer_dma_channel;
 static struct spi_module * layer_spi_module;
 static struct timer_module * layer_countdown_timer;
 static enum layer_state layer_state = LAYER_SWITCH_ENABLED_MODE;
+#ifdef LAYER_AUTO_BUFFER_SWAP_ON
+#warning "LAYER_AUTO_BUFFER_SWAP_ON defined"
+static enum layer_buffer_swap_mode layer_buffer_swap_mode = LAYER_BUFFER_SWAP_AUTO;
+#else
+static enum layer_buffer_swap_mode layer_buffer_swap_mode = LAYER_BUFFER_SWAP_MANUAL;
+#endif
 static unsigned int layer_row_index; // Active row, corresponding row IO is layer_pins[layer_row_index]
 
 static void layer_dma_block_transfer_complete(struct dma_channel * channel)
@@ -194,10 +200,7 @@ static void layer_dma_block_transfer_complete(struct dma_channel * channel)
     layer_sync_buffer = layer_recv_buffer;
     layer_recv_buffer = tmp;
 
-#ifdef LAYER_AUTO_BUFFER_SWAP
-#warning "AUTO_BUFFER_SWAP defined"
-    layer_flags.do_buffer_swap = true; // Keep last
-#endif
+    layer_flags.do_buffer_swap = (layer_buffer_swap_mode == LAYER_BUFFER_SWAP_AUTO);
     layer_flags.buffer_swap_semaphore = true;
 
     // Start next transfer
@@ -408,11 +411,23 @@ void layer_dma_reset(void)
 
 bool layer_dma_swap_buffers(void)
 {
+    if (layer_buffer_swap_mode != LAYER_BUFFER_SWAP_MANUAL)
+        return false;
     if (layer_flags.do_buffer_swap) // Buffer swap already in progress
         return false;
 
     layer_flags.do_buffer_swap = true;
     return true;
+}
+
+enum layer_buffer_swap_mode layer_get_buffer_swap_mode(void)
+{
+    return layer_buffer_swap_mode;
+}
+
+void layer_set_buffer_swap_mode(enum layer_buffer_swap_mode mode)
+{
+    layer_buffer_swap_mode = mode;
 }
 
 void layer_draw_pixel(unsigned char x, unsigned char y, struct layer_color color)

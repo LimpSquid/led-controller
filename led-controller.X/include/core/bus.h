@@ -31,7 +31,8 @@ union __attribute__((packed)) bus_data
     {
         bool layer_ready            :1;
         bool layer_dma_error        :1;
-        unsigned int                :30;
+        bool layer_auto_buffer_swap :1;
+        unsigned int                :29;
     } by_app_status;
     
     struct

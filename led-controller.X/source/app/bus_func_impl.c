@@ -11,6 +11,20 @@
 #define UNUSED2(x, y)       ((void)x);((void)y)
 #define UNUSED3(x, y, z)    ((void)x);((void)y);((void)z)
 
+static enum bus_response_code bus_func_layer_auto_buffer_swap(
+    bool broadcast,
+    union bus_data const * request_data,
+    union bus_data * response_data)
+{
+    UNUSED2(broadcast, response_data);
+
+    bool enable = request_data->by_bool;
+    if (enable)
+        layer_set_buffer_swap_mode(LAYER_BUFFER_SWAP_AUTO);
+    else
+        layer_set_buffer_swap_mode(LAYER_BUFFER_SWAP_MANUAL);
+}
+
 static enum bus_response_code bus_func_layer_exec_lod(
     bool broadcast,
     union bus_data const * request_data,
@@ -41,6 +55,7 @@ static enum bus_response_code bus_func_layer_dma_swap_buffers(
 {
     UNUSED3(broadcast, request_data, response_data);
 
+    // TODO: if auto buffer swap is enabled, return different error?
     return layer_dma_swap_buffers()
         ? BUS_OK
         : BUS_ERR_AGAIN;
@@ -99,6 +114,9 @@ static enum bus_response_code bus_func_status(
 
     response_data->by_app_status.layer_ready = layer_ready();
     response_data->by_app_status.layer_dma_error = layer_dma_error();
+    response_data->by_app_status.layer_auto_buffer_swap =
+        layer_get_buffer_swap_mode() == LAYER_BUFFER_SWAP_AUTO;
+
     return BUS_OK;
 }
 
@@ -115,7 +133,7 @@ static enum bus_response_code bus_func_layer_clear(
 
 bus_func_t const bus_funcs[] =
 {
-    NULL,                               // 0
+    bus_func_layer_auto_buffer_swap,    // 0
     bus_func_layer_exec_lod,            // 1
     bus_func_layer_dma_reset,           // 2
     bus_func_status,                    // 3

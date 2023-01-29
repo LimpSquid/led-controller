@@ -14,8 +14,8 @@
 #else
     // App
     #define VERSION_MAJOR   2
-    #define VERSION_MINOR   0
-    #define VERSION_PATCH   6
+    #define VERSION_MINOR   1
+    #define VERSION_PATCH   0
 #endif
 
 #endif	/* VERSION_H */
