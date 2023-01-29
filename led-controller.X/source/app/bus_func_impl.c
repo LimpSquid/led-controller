@@ -23,6 +23,7 @@ static enum bus_response_code bus_func_layer_auto_buffer_swap(
         layer_set_buffer_swap_mode(LAYER_BUFFER_SWAP_AUTO);
     else
         layer_set_buffer_swap_mode(LAYER_BUFFER_SWAP_MANUAL);
+    return BUS_OK;
 }
 
 static enum bus_response_code bus_func_layer_exec_lod(
